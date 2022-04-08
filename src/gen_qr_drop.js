@@ -8,13 +8,14 @@ const { ether, BN } = require('@openzeppelin/test-helpers');
 const qr = require('qr-image');
 const fs = require('fs');
 const { assert } = require('console');
+const { MAX_INT256 } = require('@openzeppelin/test-helpers/src/constants');
 
 function keccak128 (input) {
     return keccak256(input).slice(0, 16);
 }
 
-const AMOUNTS = [ether('5'), ether('15'), ether('25'), ether('50')];
-const COUNTS = [500, 300, 124, 100];
+const AMOUNTS = [ether('1'), ether('5'), ether('15'), ether('25'), ether('50')];
+const COUNTS = [10, 400, 300, 200, 100];
 
 const PREFIX = 'https://app.1inch.io/#/1/qr?';
 
@@ -76,13 +77,31 @@ function uriDecode (s, root) {
 }
 
 function genUrl (priv, amount, proof) {
-    const vBuf = Buffer.from([3]);
+    const vBuf = Buffer.from([4]);
     const kBuf = Buffer.from(priv.substring(32), 'hex');
     const aBuf = Buffer.from(toBN(amount).toString(16, 24), 'hex');
     const pBuf = Buffer.concat(proof.map(p => p.data));
 
     const baseArgs = uriEncode(Buffer.concat([vBuf, kBuf, aBuf, pBuf]));
     return PREFIX + 'd=' + baseArgs;
+}
+
+function shuffle(array) {
+    let currentIndex = array.length,  randomIndex;
+
+    // While there remain elements to shuffle...
+    while (currentIndex != 0) {
+
+        // Pick a remaining element...
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+
+        // And swap it with the current element.
+        [array[currentIndex], array[randomIndex]] = [
+        array[randomIndex], array[currentIndex]];
+    }
+
+    return array;
 }
 
 async function main () {
@@ -97,9 +116,16 @@ async function main () {
 
     console.log(drop.root, amounts.reduce((acc, v) => acc.add(v), toBN('0')).toString());
 
+    let indices = [];
+    for (let i = 0; i < amounts.length; i++) {
+        indices.push(i);
+    }
+    indices = shuffle(indices);
+
     for (let i = 0; i < amounts.length; i++) {
         const url = genUrl(privs[i], amounts[i], drop.proofs[i]);
-        saveQr(i, url);
+        saveQr(indices[i], url);
+        console.log(i, indices[i]);
         assert(uriDecode(url, drop.root));
         // if (i % 200 == 0) {
         //     console.log(url, uriDecode(url, drop.root));
