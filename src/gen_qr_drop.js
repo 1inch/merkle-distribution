@@ -76,7 +76,7 @@ function uriDecode (s, root) {
 }
 
 function genUrl (priv, amount, proof) {
-    const vBuf = Buffer.from([4]);
+    const vBuf = Buffer.from([5]);
     const kBuf = Buffer.from(priv.substring(32), 'hex');
     const aBuf = Buffer.from(toBN(amount).toString(16, 24), 'hex');
     const pBuf = Buffer.concat(proof.map(p => p.data));
