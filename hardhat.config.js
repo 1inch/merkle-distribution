@@ -6,16 +6,10 @@ require('hardhat-deploy');
 require('hardhat-gas-reporter');
 require('solidity-coverage');
 
-const networks = require('./hardhat.networks');
+const { networks, etherscan } = require('./hardhat.networks');
 
 module.exports = {
-    etherscan: {
-        apiKey: process.env.ETHERSCAN_KEY,
-    },
-    gasReporter: {
-        enable: true,
-        currency: 'USD',
-    },
+    etherscan,
     solidity: {
         settings: {
             optimizer: {
