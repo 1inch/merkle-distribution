@@ -14,7 +14,7 @@ module.exports = async ({ deployments, getNamedAccounts }) => {
     const merkleDrop128 = await deploy('MerkleDrop128-6', {
         contract: 'SignatureMerkleDrop128',
         from: deployer,
-        args: args,
+        args,
         nonce: 869,
         maxFeePerGas: 60e9,
         maxPriorityFeePerGas: 5e9,

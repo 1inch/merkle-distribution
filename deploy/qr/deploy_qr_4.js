@@ -14,7 +14,7 @@ module.exports = async ({ deployments, getNamedAccounts }) => {
     const merkleDrop128 = await deploy('MerkleDrop128-4', {
         contract: 'SignatureMerkleDrop128',
         from: deployer,
-        args: args,
+        args,
     });
 
     if (await getChainId() !== '31337') {

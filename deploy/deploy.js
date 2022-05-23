@@ -12,7 +12,7 @@ module.exports = async ({ deployments, getNamedAccounts }) => {
 
     const merkleDrop = await deploy('CumulativeMerkleDrop', {
         from: deployer,
-        args: args,
+        args,
         skipIfAlreadyDeployed: true,
         maxFeePerGas: 100000000000,
         maxPriorityFeePerGas: 2000000000,

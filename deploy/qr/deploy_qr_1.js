@@ -12,7 +12,7 @@ module.exports = async ({ deployments, getNamedAccounts }) => {
 
     const merkleDrop128 = await deploy('MerkleDrop128', {
         from: deployer,
-        args: args,
+        args,
     });
 
     console.log('MerkleDrop128 deployed to:', merkleDrop128.address);
