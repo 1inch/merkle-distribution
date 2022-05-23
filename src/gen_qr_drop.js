@@ -39,10 +39,14 @@ function uriEncode (b) {
     return encodeURIComponent(b.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '!'));
 }
 
-function saveQr (i, url) {
+function saveQr (i, test, url) {
     // console.log(url);
     const code = qr.imageSync(url, { type: 'png' });
-    fs.writeFileSync(`src/qr/${i}.png`, code);
+    if (test) {
+        fs.writeFileSync(`src/test_qr/${i}.png`, code);
+    } else {
+        fs.writeFileSync(`src/qr/${i}.png`, code);
+    }
 }
 
 function verifyProof (wallet, amount, proof, root) {
@@ -76,7 +80,7 @@ function uriDecode (s, root) {
 }
 
 function genUrl (priv, amount, proof) {
-    const vBuf = Buffer.from([6]);
+    const vBuf = Buffer.from([7]);
     const kBuf = Buffer.from(priv.substring(32), 'hex');
     const aBuf = Buffer.from(toBN(amount).toString(16, 24), 'hex');
     const pBuf = Buffer.concat(proof.map(p => p.data));
@@ -122,7 +126,7 @@ async function main () {
 
     for (let i = 0; i < amounts.length; i++) {
         const url = genUrl(privs[i], amounts[i], drop.proofs[i]);
-        saveQr(indices[i], url);
+        saveQr(indices[i], i < 10, url);
         console.log(i, indices[i]);
         assert(uriDecode(url, drop.root));
         // if (i % 200 == 0) {
