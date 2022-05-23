@@ -1,3 +1,4 @@
+const { expect } = require('chai');
 const { expectRevert } = require('@openzeppelin/test-helpers');
 const { MerkleTree } = require('merkletreejs');
 const keccak256 = require('keccak256');
