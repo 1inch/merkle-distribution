@@ -12,6 +12,7 @@ monthly_files = [
     'data/22_02.json',
     'data/22_03.json',
     'data/22_04.json',
+    'data/22_05.json',
 ]
 
 data_in = []
