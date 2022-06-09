@@ -13,8 +13,11 @@ function keccak128 (input) {
     return keccak256(input).slice(0, 16);
 }
 
-const AMOUNTS = [ether('1'), ether('5'), ether('15'), ether('25'), ether('50')];
-const COUNTS = [10, 400, 300, 200, 100];
+// const AMOUNTS = [ether('1'), ether('5'), ether('15'), ether('25'), ether('50')];
+// const COUNTS = [10, 400, 300, 200, 100];
+
+const AMOUNTS = [ether('1'), ether('20'), ether('50')];
+const COUNTS = [10, 150, 150];
 
 const PREFIX = 'https://app.1inch.io/#/1/qr?';
 
