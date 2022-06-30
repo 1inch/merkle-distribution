@@ -74,8 +74,8 @@ contract SignatureMerkleDrop128 is ISignatureMerkleDrop128, Ownable {
     }
 
     function _verifyAsm(bytes calldata proof, bytes16 root, bytes16 leaf) private view returns (bool valid, uint256 index) {
-        // solhint-disable-next-line no-inline-assembly
-        assembly {
+        /// @solidity memory-safe-assembly
+        assembly {  // solhint-disable-line no-inline-assembly
             let ptr := proof.offset
             let mask := 1
 

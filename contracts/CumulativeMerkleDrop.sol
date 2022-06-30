@@ -57,8 +57,8 @@ contract CumulativeMerkleDrop is Ownable, ICumulativeMerkleDrop {
     // }
 
     function _verifyAsm(bytes32[] calldata proof, bytes32 root, bytes32 leaf) private pure returns (bool valid) {
-        // solhint-disable-next-line no-inline-assembly
-        assembly {
+        /// @solidity memory-safe-assembly
+        assembly {  // solhint-disable-line no-inline-assembly
             let ptr := proof.offset
 
             for { let end := add(ptr, mul(0x20, proof.length)) } lt(ptr, end) { ptr := add(ptr, 0x20) } {
