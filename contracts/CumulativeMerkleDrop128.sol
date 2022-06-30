@@ -4,10 +4,9 @@ pragma solidity 0.8.15;
 pragma abicoder v1;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@1inch/solidity-utils/contracts/libraries/SafeERC20.sol";
 
 import "./interfaces/ICumulativeMerkleDrop128.sol";
-
 
 contract CumulativeMerkleDrop128 is Ownable, ICumulativeMerkleDrop128 {
     using SafeERC20 for IERC20;

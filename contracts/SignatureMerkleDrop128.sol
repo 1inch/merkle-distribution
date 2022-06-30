@@ -7,10 +7,9 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@1inch/solidity-utils/contracts/libraries/SafeERC20.sol";
 
 import "./interfaces/ISignatureMerkleDrop128.sol";
-
 
 contract SignatureMerkleDrop128 is ISignatureMerkleDrop128, Ownable {
     using Address for address payable;
