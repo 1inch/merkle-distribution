@@ -78,8 +78,6 @@ contract CumulativeMerkleDrop128 is Ownable, ICumulativeMerkleDrop128 {
     function _verifyAsm(bytes calldata proof, bytes16 root, bytes16 leaf) private pure returns (bool valid) {
         // solhint-disable-next-line no-inline-assembly
         assembly {
-            let mem1 := mload(0x40)
-            let mem2 := add(mem1, 0x10)
             let ptr := proof.offset
 
             for { let end := add(ptr, proof.length) } lt(ptr, end) { ptr := add(ptr, 0x10) } {
@@ -87,15 +85,15 @@ contract CumulativeMerkleDrop128 is Ownable, ICumulativeMerkleDrop128 {
 
                 switch lt(leaf, node)
                 case 1 {
-                    mstore(mem1, leaf)
-                    mstore(mem2, node)
+                    mstore(0x00, leaf)
+                    mstore(0x10, node)
                 }
                 default {
-                    mstore(mem1, node)
-                    mstore(mem2, leaf)
+                    mstore(0x00, node)
+                    mstore(0x10, leaf)
                 }
 
-                leaf := keccak256(mem1, 32)
+                leaf := keccak256(0x00, 0x20)
             }
 
             valid := iszero(shr(128, xor(root, leaf)))

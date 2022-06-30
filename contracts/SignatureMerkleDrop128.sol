@@ -77,8 +77,6 @@ contract SignatureMerkleDrop128 is ISignatureMerkleDrop128, Ownable {
     function _verifyAsm(bytes calldata proof, bytes16 root, bytes16 leaf) private view returns (bool valid, uint256 index) {
         // solhint-disable-next-line no-inline-assembly
         assembly {
-            let mem1 := mload(0x40)
-            let mem2 := add(mem1, 0x10)
             let ptr := proof.offset
             let mask := 1
 
@@ -87,16 +85,16 @@ contract SignatureMerkleDrop128 is ISignatureMerkleDrop128, Ownable {
 
                 switch lt(leaf, node)
                 case 1 {
-                    mstore(mem1, leaf)
-                    mstore(mem2, node)
+                    mstore(0x00, leaf)
+                    mstore(0x10, node)
                 }
                 default {
-                    mstore(mem1, node)
-                    mstore(mem2, leaf)
+                    mstore(0x00, node)
+                    mstore(0x10, leaf)
                     index := or(mask, index)
                 }
 
-                leaf := keccak256(mem1, 32)
+                leaf := keccak256(0x00, 0x20)
                 mask := shl(1, mask)
             }
 
