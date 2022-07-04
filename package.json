@@ -8,11 +8,11 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@openzeppelin/contracts": "4.6.0",
-    "@1inch/solidity-utils": "2.0.18"
+    "@1inch/solidity-utils": "2.0.18",
+    "@openzeppelin/contracts": "4.6.0"
   },
   "devDependencies": {
-    "qr-image": "3.2.0",
+    "@metamask/eth-sig-util": "^4.0.1",
     "@nomiclabs/hardhat-ethers": "2.0.6",
     "@nomiclabs/hardhat-etherscan": "3.0.3",
     "@nomiclabs/hardhat-truffle5": "2.0.6",
@@ -26,17 +26,17 @@
     "eslint-plugin-n": "15.2.0",
     "eslint-plugin-promise": "6.0.0",
     "eslint-plugin-standard": "5.0.0",
-    "eth-sig-util": "3.0.1",
+    "ethereumjs-wallet": "1.0.2",
     "ethers": "5.6.7",
     "hardhat": "2.9.6",
     "hardhat-deploy": "0.11.10",
     "hardhat-gas-reporter": "1.0.8",
     "keccak256": "1.0.6",
     "merkletreejs": "0.2.31",
+    "qr-image": "3.2.0",
     "rimraf": "3.0.2",
     "solhint": "3.3.7",
-    "solidity-coverage": "0.7.21",
-    "ethereumjs-wallet": "1.0.2"
+    "solidity-coverage": "0.7.21"
   },
   "scripts": {
     "clean": "rimraf artifacts cache coverage coverage.json",
