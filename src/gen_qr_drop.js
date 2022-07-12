@@ -16,8 +16,12 @@ function keccak128 (input) {
 // const AMOUNTS = [ether('1'), ether('5'), ether('15'), ether('25'), ether('50')];
 // const COUNTS = [10, 400, 300, 200, 100];
 
-const AMOUNTS = [ether('1'), ether('20'), ether('50')];
-const COUNTS = [10, 150, 150];
+// const AMOUNTS = [ether('1'), ether('20'), ether('50')];
+// const COUNTS = [10, 150, 150];
+
+const AMOUNTS = [ether('1'), ether('20')];
+const COUNTS = [10, 200];
+const VERSION = 8;
 
 const PREFIX = 'https://app.1inch.io/#/1/qr?';
 
@@ -83,7 +87,7 @@ function uriDecode (s, root) {
 }
 
 function genUrl (priv, amount, proof) {
-    const vBuf = Buffer.from([7]);
+    const vBuf = Buffer.from([VERSION]);
     const kBuf = Buffer.from(priv.substring(32), 'hex');
     const aBuf = Buffer.from(toBN(amount).toString(16, 24), 'hex');
     const pBuf = Buffer.concat(proof.map(p => p.data));
@@ -130,12 +134,12 @@ async function main () {
     for (let i = 0; i < amounts.length; i++) {
         const url = genUrl(privs[i], amounts[i], drop.proofs[i]);
         saveQr(indices[i], i < 10, url);
-        console.log(i, indices[i]);
         assert(uriDecode(url, drop.root));
-        // if (i % 200 == 0) {
-        //     console.log(url, uriDecode(url, drop.root));
-        // }
     }
 }
 
 main();
+
+// const url = '';
+// const root = '';
+// assert(uriDecode(url, root));
