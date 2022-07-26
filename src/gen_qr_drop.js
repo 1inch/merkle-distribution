@@ -64,8 +64,9 @@ function verifyProof (wallet, amount, proof, root) {
     const tree = new MerkleTree([], keccak128, { sortPairs: true });
     const element = wallet + toBN(amount).toString(16, 64);
     const node = MerkleTree.bufferToHex(keccak128(element));
-    // console.log(proof);
+    // console.log('0x' + Buffer.concat(proof).toString('hex'));
     // console.log(node);
+    // console.log(root);
     return tree.verify(proof, node, root);
 }
 
