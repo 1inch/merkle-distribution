@@ -19,9 +19,13 @@ function keccak128 (input) {
 // const AMOUNTS = [ether('1'), ether('20'), ether('50')];
 // const COUNTS = [10, 150, 150];
 
-const AMOUNTS = [ether('1'), ether('20')];
-const COUNTS = [10, 200];
-const VERSION = 8;
+// const AMOUNTS = [ether('1'), ether('20')];
+// const COUNTS = [10, 200];
+
+const AMOUNTS = [ether('1'), ether('20'), ether('30'), ether('40'), ether('50')];
+const COUNTS = [10, 250, 250, 250, 250];
+
+const VERSION = 9;
 
 const PREFIX = 'https://app.1inch.io/#/1/qr?';
 
@@ -60,8 +64,9 @@ function verifyProof (wallet, amount, proof, root) {
     const tree = new MerkleTree([], keccak128, { sortPairs: true });
     const element = wallet + toBN(amount).toString(16, 64);
     const node = MerkleTree.bufferToHex(keccak128(element));
-    // console.log(proof);
+    // console.log('0x' + Buffer.concat(proof).toString('hex'));
     // console.log(node);
+    // console.log(root);
     return tree.verify(proof, node, root);
 }
 
