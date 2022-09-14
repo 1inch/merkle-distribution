@@ -22,10 +22,10 @@ function keccak128 (input) {
 // const AMOUNTS = [ether('1'), ether('20')];
 // const COUNTS = [10, 200];
 
-const AMOUNTS = [ether('1'), ether('20'), ether('40'), ether('50')];
-const COUNTS = [10, 100, 100, 100];
+const AMOUNTS = [ether('1'), ether('20'), ether('30'), ether('40'), ether('50')];
+const COUNTS = [10, 250, 350, 200, 200];
 
-const VERSION = 11;
+const VERSION = 12;
 
 const PREFIX = 'https://app.1inch.io/#/1/qr?';
 
