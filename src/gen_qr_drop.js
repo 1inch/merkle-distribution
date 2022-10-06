@@ -14,9 +14,9 @@ function keccak128 (input) {
 }
 
 const AMOUNTS = [ether('1'), ether('20'), ether('30'), ether('40'), ether('50')];
-const COUNTS = [10, 250, 350, 200, 200];
+const COUNTS = [10, 100, 150, 150, 100];
 
-const VERSION = 14;
+const VERSION = 17;
 
 // 1 - chainId for mainnet
 const PREFIX = 'https://app.1inch.io/#/1/qr?';
@@ -144,6 +144,6 @@ async function main () {
 
 main();
 
-// const url = '';
-// const root = '';
+// const url = '';// qr url
+// const root = '';// merkle root
 // assert(uriDecode(url, root));
