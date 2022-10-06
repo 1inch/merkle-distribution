@@ -13,20 +13,12 @@ function keccak128 (input) {
     return keccak256(input).slice(0, 16);
 }
 
-// const AMOUNTS = [ether('1'), ether('5'), ether('15'), ether('25'), ether('50')];
-// const COUNTS = [10, 400, 300, 200, 100];
-
-// const AMOUNTS = [ether('1'), ether('20'), ether('50')];
-// const COUNTS = [10, 150, 150];
-
-// const AMOUNTS = [ether('1'), ether('20')];
-// const COUNTS = [10, 200];
-
 const AMOUNTS = [ether('1'), ether('20'), ether('30'), ether('40'), ether('50')];
-const COUNTS = [10, 100, 150, 150, 100];
+const COUNTS = [10, 250, 350, 200, 200];
 
-const VERSION = 13;
+const VERSION = 14;
 
+// 1 - chainId for mainnet
 const PREFIX = 'https://app.1inch.io/#/1/qr?';
 
 function makeDrop (wallets, amounts) {
@@ -119,6 +111,11 @@ function shuffle (array) {
 }
 
 async function main () {
+    const latestFile = './src/.latest';
+    const latestVersion = fs.readFileSync(latestFile);
+    // eslint-disable-next-line no-throw-literal
+    if (Number(latestVersion) >= VERSION) throw 'WARNING! Latest version and current version doens\'t match';
+
     const privs = await genPrivs(COUNTS.reduce((s, a) => s + a, 0));
     const accounts = privs.map(p => Wallet.fromPrivateKey(Buffer.from(p, 'hex')).getAddressString());
     let amounts = [];
@@ -141,6 +138,8 @@ async function main () {
         saveQr(indices[i], i < 10, url);
         assert(uriDecode(url, drop.root));
     }
+
+    fs.writeFileSync(latestFile, VERSION.toString());
 }
 
 main();
