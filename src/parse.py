@@ -21,10 +21,19 @@ monthly_files = [
     'data/22_10.json',
 ]
 
+monthly_files_v2 = [
+    'data/22_11.json',
+]
+
 data_in = []
 for filename in monthly_files:
     with open(filename) as in_f:
         data_in.extend(json.load(in_f)['data']['get_result_by_result_id'])
+
+data_in_v2 = []
+for filename in monthly_files_v2:
+    with open(filename) as in_f:
+        data_in_v2.extend(json.load(in_f)['data']['get_execution']['execution_succeeded']['data'])
 
 dataset = []
 for e in data_in:
@@ -36,6 +45,12 @@ for e in data_in:
         # 'inch_price': e['data']['inch_price'],
         'inch_refund': e['data']['inch_refund'],
         # 'eth_used': e['data']['eth_used'],
+    })
+
+for e in data_in_v2:
+    dataset.append({
+        'tx_from': e['tx_from'],
+        'inch_refund': e['inch_refund'],
     })
 
 with open('data/defiracer.csv') as in_f:
