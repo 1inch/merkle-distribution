@@ -13,10 +13,11 @@ function keccak128 (input) {
     return keccak256(input).slice(0, 16);
 }
 
+//100 - 20, 150 - 30, 150 - 40, 100 - 50
 const AMOUNTS = [ether('1'), ether('20'), ether('30'), ether('40'), ether('50')];
 const COUNTS = [10, 100, 150, 150, 100];
 
-const VERSION = 17;
+const VERSION = 18;
 
 // 1 - chainId for mainnet
 const PREFIX = 'https://app.1inch.io/#/1/qr?';
