@@ -13,10 +13,15 @@ function keccak128 (input) {
     return keccak256(input).slice(0, 16);
 }
 
-const AMOUNTS = [ether('1'), ether('20'), ether('30'), ether('40'), ether('50')];
-const COUNTS = [10, 100, 150, 150, 100];
+//100 - 20, 150 - 30, 150 - 40, 100 - 50
+// const AMOUNTS = [ether('1'), ether('20'), ether('30'), ether('40'), ether('50')];
+// const COUNTS = [10, 100, 150, 150, 100];
 
-const VERSION = 17;
+//700 - 5
+const AMOUNTS = [ether('1'), ether('5')];
+const COUNTS = [10, 700];
+
+const VERSION = 19;
 
 // 1 - chainId for mainnet
 const PREFIX = 'https://app.1inch.io/#/1/qr?';
