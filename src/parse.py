@@ -24,6 +24,7 @@ monthly_files = [
 monthly_files_v2 = [
     'data/22_11.json',
     'data/22_12.json',
+    'data/23_01-02.json',
 ]
 
 data_in = []
