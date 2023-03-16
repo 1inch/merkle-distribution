@@ -13,15 +13,18 @@ function keccak128 (input) {
     return keccak256(input).slice(0, 16);
 }
 
+const flagSaveQr = false     // true - generate QR-codes, false - don't
+const flagSaveLink = true   // true - generate links list, false - don't
+
 //100 - 20, 150 - 30, 150 - 40, 100 - 50
 // const AMOUNTS = [ether('1'), ether('20'), ether('30'), ether('40'), ether('50')];
 // const COUNTS = [10, 100, 150, 150, 100];
 
 //700 - 5
-const AMOUNTS = [ether('1'), ether('5')];
-const COUNTS = [10, 700];
+const AMOUNTS = [ether('1'), ether('1')];
+const COUNTS = [10, 990];
 
-const VERSION = 19;
+const VERSION = 20;
 
 // 1 - chainId for mainnet
 const PREFIX = 'https://app.1inch.io/#/1/qr?';
@@ -118,6 +121,7 @@ function shuffle (array) {
 async function main () {
     const latestFile = './src/.latest';
     const latestVersion = fs.readFileSync(latestFile);
+    const linksFile = './src/qr/links.json';
     // eslint-disable-next-line no-throw-literal
     if (Number(latestVersion) >= VERSION) throw 'WARNING! Latest version and current version doens\'t match';
 
@@ -138,10 +142,19 @@ async function main () {
     }
     indices = shuffle(indices);
 
+    let urls = [];
+
     for (let i = 0; i < amounts.length; i++) {
         const url = genUrl(privs[i], amounts[i], drop.proofs[i]);
-        saveQr(indices[i], i < 10, url);
+        urls.push(url);
+        if (flagSaveQr){
+            saveQr(indices[i], i < 10, url);
+        }
         assert(uriDecode(url, drop.root));
+    }
+
+    if (flagSaveLink){
+        fs.writeFileSync(linksFile, JSON.stringify(urls, null, 1));
     }
 
     fs.writeFileSync(latestFile, VERSION.toString());
