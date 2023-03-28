@@ -13,18 +13,20 @@ function keccak128 (input) {
     return keccak256(input).slice(0, 16);
 }
 
-const flagSaveQr = false     // true - generate QR-codes, false - don't
-const flagSaveLink = true   // true - generate links list, false - don't
+// Generation options
+const flagSaveQr = true         // true - generate QR-codes, false - don't
+const flagSaveLink = true       // true - generate links list, false - don't
 
-//100 - 20, 150 - 30, 150 - 40, 100 - 50
-// const AMOUNTS = [ether('1'), ether('20'), ether('30'), ether('40'), ether('50')];
-// const COUNTS = [10, 100, 150, 150, 100];
+//10 - 1, 20 - 30, 30 - 40, 20 - 50
+const AMOUNTS = [ether('1'), ether('20'), ether('30'), ether('40'), ether('50')];
+const COUNTS = [10, 20, 30, 30, 20];
 
-//700 - 5
-const AMOUNTS = [ether('1'), ether('1')];
-const COUNTS = [10, 990];
+const VERSION = 22;
 
-const VERSION = 20;
+// Validation options
+const flagValidateOnly = true  // true - validate link, false - generate qr/links
+const validateUrl = '';// qr url
+const validateRoot = '';// merkle root
 
 // 1 - chainId for mainnet
 const PREFIX = 'https://app.1inch.io/#/1/qr?';
@@ -64,9 +66,11 @@ function verifyProof (wallet, amount, proof, root) {
     const tree = new MerkleTree([], keccak128, { sortPairs: true });
     const element = wallet + toBN(amount).toString(16, 64);
     const node = MerkleTree.bufferToHex(keccak128(element));
-    // console.log('0x' + Buffer.concat(proof).toString('hex'));
-    // console.log(node);
-    // console.log(root);
+    if (flagValidateOnly){
+        console.log('proof: 0x' + Buffer.concat(proof).toString('hex'));
+        console.log('root :' + root);
+        console.log('leaf :' + node);
+    }
     return tree.verify(proof, node, root);
 }
 
@@ -160,8 +164,9 @@ async function main () {
     fs.writeFileSync(latestFile, VERSION.toString());
 }
 
-main();
-
-// const url = '';// qr url
-// const root = '';// merkle root
-// assert(uriDecode(url, root));
+if (!flagValidateOnly){
+    main();
+}
+else{
+    assert(uriDecode(validateUrl, validateRoot));    
+}
