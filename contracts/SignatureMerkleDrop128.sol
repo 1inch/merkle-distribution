@@ -48,6 +48,10 @@ contract SignatureMerkleDrop128 is ISignatureMerkleDrop128, Ownable {
         return _verifyAsm(proof, root, leaf);
     }
 
+    function verify(bytes calldata proof, bytes16 leaf) external view returns (bool valid, uint256 index) {
+        return _verifyAsm(proof, merkleRoot, leaf);
+    }
+
     function isClaimed(uint256 index) external view override returns (bool) {
         uint256 claimedWordIndex = index / 256;
         uint256 claimedBitIndex = index % 256;
