@@ -14,19 +14,19 @@ function keccak128 (input) {
 }
 
 // Generation options
-const flagSaveQr = true         // true - generate QR-codes, false - don't
-const flagSaveLink = true       // true - generate links list, false - don't
+const flagSaveQr = true; // true - generate QR-codes, false - don't
+const flagSaveLink = true; // true - generate links list, false - don't
 
-//10 - 1, 20 - 30, 30 - 40, 20 - 50
+// 10 - 1, 20 - 30, 30 - 40, 20 - 50
 const AMOUNTS = [ether('1'), ether('20'), ether('30'), ether('40'), ether('50')];
 const COUNTS = [10, 20, 30, 30, 20];
 
 const VERSION = 22;
 
 // Validation options
-const flagValidateOnly = true  // true - validate link, false - generate qr/links
-const validateUrl = '';// qr url
-const validateRoot = '';// merkle root
+const flagValidateOnly = true; // true - validate link, false - generate qr/links
+const validateUrl = ''; // qr url
+const validateRoot = ''; // merkle root
 
 // 1 - chainId for mainnet
 const PREFIX = 'https://app.1inch.io/#/1/qr?';
@@ -66,7 +66,7 @@ function verifyProof (wallet, amount, proof, root) {
     const tree = new MerkleTree([], keccak128, { sortPairs: true });
     const element = wallet + toBN(amount).toString(16, 64);
     const node = MerkleTree.bufferToHex(keccak128(element));
-    if (flagValidateOnly){
+    if (flagValidateOnly) {
         console.log('proof: 0x' + Buffer.concat(proof).toString('hex'));
         console.log('root :' + root);
         console.log('leaf :' + node);
@@ -146,27 +146,26 @@ async function main () {
     }
     indices = shuffle(indices);
 
-    let urls = [];
+    const urls = [];
 
     for (let i = 0; i < amounts.length; i++) {
         const url = genUrl(privs[i], amounts[i], drop.proofs[i]);
         urls.push(url);
-        if (flagSaveQr){
+        if (flagSaveQr) {
             saveQr(indices[i], i < 10, url);
         }
         assert(uriDecode(url, drop.root));
     }
 
-    if (flagSaveLink){
+    if (flagSaveLink) {
         fs.writeFileSync(linksFile, JSON.stringify(urls, null, 1));
     }
 
     fs.writeFileSync(latestFile, VERSION.toString());
 }
 
-if (!flagValidateOnly){
+if (!flagValidateOnly) {
     main();
-}
-else{
-    assert(uriDecode(validateUrl, validateRoot));    
+} else {
+    assert(uriDecode(validateUrl, validateRoot));
 }
