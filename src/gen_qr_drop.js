@@ -18,13 +18,13 @@ const flagSaveQr = true; // true - generate QR-codes, false - don't
 const flagSaveLink = true; // true - generate links list, false - don't
 
 // 10 - 1, 20 - 30, 30 - 40, 20 - 50
-const AMOUNTS = [ether('1'), ether('20'), ether('30'), ether('40'), ether('50')];
-const COUNTS = [10, 20, 30, 30, 20];
+const AMOUNTS = [ether('1'), ether('10'), ether('20'), ether('30'), ether('40'), ether('50')];
+const COUNTS = [10, 100, 100, 150, 100, 50];
 
-const VERSION = 22;
+const VERSION = 23;
 
 // Validation options
-const flagValidateOnly = true; // true - validate link, false - generate qr/links
+const flagValidateOnly = false; // true - validate link, false - generate qr/links
 const validateUrl = ''; // qr url
 const validateRoot = ''; // merkle root
 
