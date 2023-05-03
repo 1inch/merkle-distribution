@@ -21,7 +21,7 @@ const flagSaveLink = true; // true - generate links list, false - don't
 const AMOUNTS = [ether('1'), ether('10'), ether('20'), ether('30'), ether('40'), ether('50')];
 const COUNTS = [10, 100, 100, 150, 100, 50];
 
-const VERSION = 23;
+const VERSION = 24;
 
 // Validation options
 const flagValidateOnly = false; // true - validate link, false - generate qr/links
@@ -125,7 +125,7 @@ function shuffle (array) {
 async function main () {
     const latestFile = './src/.latest';
     const latestVersion = fs.readFileSync(latestFile);
-    const linksFile = './src/qr/links.json';
+    const linksFile = './src/gendata/' + VERSION.toString() + '-qr-links.json';
     // eslint-disable-next-line no-throw-literal
     if (Number(latestVersion) >= VERSION) throw 'WARNING! Latest version and current version doens\'t match';
 
