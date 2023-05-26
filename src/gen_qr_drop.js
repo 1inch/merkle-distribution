@@ -167,7 +167,6 @@ async function main () {
 
     const urls = [];
 
-
     for (let i = 0; i < amounts.length; i++) {
         const url = genUrl(privs[i], amounts[i], drop.proofs[i]);
         urls.push(url);
