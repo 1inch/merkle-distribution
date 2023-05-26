@@ -7,6 +7,7 @@ const randomBytesAsync = promisify(require('crypto').randomBytes);
 const { ether, BN } = require('@openzeppelin/test-helpers');
 const qr = require('qr-image');
 const fs = require('fs');
+const path = require('path');
 const { assert } = require('console');
 
 function keccak128 (input) {
@@ -17,11 +18,11 @@ function keccak128 (input) {
 const flagSaveQr = true; // true - generate QR-codes, false - don't
 const flagSaveLink = true; // true - generate links list, false - don't
 
-// 10 - 1, 10 - 40, 20 - 40, 30 - 40, 40 - 30, 50 - 20
+// 10 - 1, 10 - 140, 20 - 140, 30 - 210, 40 - 140, 50 - 70
 const AMOUNTS = [ether('1'), ether('10'), ether('20'), ether('30'), ether('40'), ether('50')];
-const COUNTS = [10, 40, 40, 40, 30, 20];
+const COUNTS = [10, 140, 140, 210, 140, 70];
 
-const VERSION = 25;
+const VERSION = 26;
 
 // Validation options
 const flagValidateOnly = false; // true - validate link, false - generate qr/links
@@ -50,6 +51,20 @@ async function genPrivs (n) {
 
 function uriEncode (b) {
     return encodeURIComponent(b.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '!'));
+}
+
+function cleanDir (directoryPath) {
+    // Check if the directory exists and it's a directory.
+    if (!fs.existsSync(directoryPath) || !fs.statSync(directoryPath).isDirectory()) {
+        throw new Error(`Not a valid directory: ${directoryPath}`);
+    }
+
+    const files = fs.readdirSync(directoryPath);
+    for (const file of files) {
+        console.log(`Deleting ${file}`);
+        const filePath = path.join(directoryPath, file);
+        fs.unlinkSync(filePath);
+    }
 }
 
 function saveQr (i, test, url) {
@@ -147,6 +162,9 @@ async function main () {
     indices = shuffle(indices);
 
     const urls = [];
+
+    cleanDir('./src/qr');
+    cleanDir('./src/test_qr');
 
     for (let i = 0; i < amounts.length; i++) {
         const url = genUrl(privs[i], amounts[i], drop.proofs[i]);

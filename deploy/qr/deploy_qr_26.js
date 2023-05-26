@@ -3,7 +3,7 @@ const hre = require('hardhat');
 const { getChainId } = hre;
 
 // change number
-const VERSION = 25;
+const VERSION = 26;
 
 module.exports = async ({ deployments, getNamedAccounts }) => {
     console.log('running deploy script: deploy script ' + VERSION.toString());
@@ -13,7 +13,7 @@ module.exports = async ({ deployments, getNamedAccounts }) => {
     const { deployer } = await getNamedAccounts();
 
     // 1inch address, merkle root, tree height
-    const args = ['0x111111111117dC0aa78b770fA6A738034120C302', '0x4fc0eb0f1599b344f5abc20231b62cbc', 8];
+    const args = ['0x111111111117dC0aa78b770fA6A738034120C302', '0xc970c7a508455f7a6db588d9e259ac58', 10];
 
     const deployScriptName = 'MerkleDrop128-' + VERSION.toString();
     const merkleDrop128 = await deploy(deployScriptName, {
