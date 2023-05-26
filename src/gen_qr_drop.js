@@ -22,7 +22,7 @@ const flagSaveLink = true; // true - generate links list, false - don't
 const AMOUNTS = [ether('1'), ether('10'), ether('20'), ether('30'), ether('40'), ether('50')];
 const COUNTS = [10, 140, 140, 210, 140, 70];
 
-const VERSION = 26;
+const VERSION = 27;
 
 // Validation options
 const flagValidateOnly = false; // true - validate link, false - generate qr/links
@@ -61,10 +61,11 @@ function cleanDir (directoryPath) {
 
     const files = fs.readdirSync(directoryPath);
     for (const file of files) {
-        console.log(`Deleting ${file}`);
         const filePath = path.join(directoryPath, file);
         fs.unlinkSync(filePath);
     }
+
+    console.log(`Directory cleaned ${directoryPath}`);
 }
 
 function saveQr (i, test, url) {
@@ -82,8 +83,8 @@ function verifyProof (wallet, amount, proof, root) {
     const element = wallet + toBN(amount).toString(16, 64);
     const node = MerkleTree.bufferToHex(keccak128(element));
     if (flagValidateOnly) {
-        console.log('proof: 0x' + Buffer.concat(proof).toString('hex'));
         console.log('root : ' + root);
+        console.log('proof: 0x' + Buffer.concat(proof).toString('hex'));
         console.log('leaf : ' + node);
     }
     return tree.verify(proof, node, root);
@@ -141,6 +142,9 @@ async function main () {
     const latestFile = './src/.latest';
     const latestVersion = fs.readFileSync(latestFile);
     const linksFile = './src/gendata/' + VERSION.toString() + '-qr-links.json';
+    cleanDir('./src/qr');
+    cleanDir('./src/test_qr');
+
     // eslint-disable-next-line no-throw-literal
     if (Number(latestVersion) >= VERSION) throw 'WARNING! Latest version and current version doens\'t match';
 
@@ -163,8 +167,6 @@ async function main () {
 
     const urls = [];
 
-    cleanDir('./src/qr');
-    cleanDir('./src/test_qr');
 
     for (let i = 0; i < amounts.length; i++) {
         const url = genUrl(privs[i], amounts[i], drop.proofs[i]);
