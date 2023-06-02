@@ -19,6 +19,7 @@
     "@nomiclabs/hardhat-web3": "2.0.0",
     "@openzeppelin/test-helpers": "0.5.15",
     "chai": "4.3.6",
+    "commander": "10.0.1",
     "dotenv": "16.0.1",
     "eslint": "8.16.0",
     "eslint-config-standard": "17.0.0",
