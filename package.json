@@ -38,7 +38,7 @@
     "qr-image": "3.2.0",
     "rimraf": "3.0.2",
     "solhint": "3.3.7",
-    "solidity-coverage": "0.7.21"
+    "solidity-coverage": "0.8.2"
   },
   "scripts": {
     "clean": "rimraf artifacts cache coverage coverage.json",
