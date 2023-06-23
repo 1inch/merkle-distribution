@@ -35,4 +35,4 @@ module.exports = async ({ deployments, getNamedAccounts }) => {
     console.log('CumulativeMerkleDrop deployed to:', cumulativeMerkleDrop.address);
 };
 
-module.exports.skip = async () => false;
+module.exports.skip = async () => true;
