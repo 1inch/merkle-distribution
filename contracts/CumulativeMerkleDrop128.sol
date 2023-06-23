@@ -5,37 +5,52 @@ pragma abicoder v1;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@1inch/solidity-utils/contracts/libraries/SafeERC20.sol";
+// import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
-import "./interfaces/ICumulativeMerkleDrop128.sol";
+import "./interfaces/ICumulativeMerkleDrop.sol";
 
-contract CumulativeMerkleDrop128 is Ownable, ICumulativeMerkleDrop128 {
+/// @title CumulativeMerkleDrop
+/// @dev This contract allows for claims of tokens based on a merkle tree.
+contract CumulativeMerkleDrop is Ownable, ICumulativeMerkleDrop {
     using SafeERC20 for IERC20;
+    // using MerkleProof for bytes32[];
 
+    /// @notice The token to be claimed.
     address public immutable override token;
 
-    bytes16 public override merkleRoot;
+    /// @notice The current merkle root for the claims tree.
+    bytes32 public override merkleRoot;
+    /// @notice Tracks the cumulative amount claimed for each address.
     mapping(address => uint256) public cumulativeClaimed;
 
+    /// @param token_ The token to be claimed.
     constructor(address token_) {
         token = token_;
     }
 
-    function setMerkleRoot(bytes16 merkleRoot_) external override onlyOwner {
+    /// @notice Sets a new merkle root for the claims tree.
+    /// @dev Only callable by the owner.
+    /// @param merkleRoot_ The new merkle root.
+    function setMerkleRoot(bytes32 merkleRoot_) external override onlyOwner {
         emit MerkelRootUpdated(merkleRoot, merkleRoot_);
         merkleRoot = merkleRoot_;
     }
 
+    /// @notice Allows an account to claim an amount of the token.
+    /// @param account The address of the account making the claim.
+    /// @param cumulativeAmount The cumulative amount the account is claiming.
+    /// @param expectedMerkleRoot The expected current merkle root.
+    /// @param merkleProof The merkle proof needed to claim the tokens.
     function claim(
-        bytes16 salt,
         address account,
         uint256 cumulativeAmount,
-        bytes16 expectedMerkleRoot,
-        bytes calldata merkleProof
+        bytes32 expectedMerkleRoot,
+        bytes32[] calldata merkleProof
     ) external override {
         require(merkleRoot == expectedMerkleRoot, "CMD: Merkle root was updated");
 
         // Verify the merkle proof
-        bytes16 leaf = bytes16(keccak256((abi.encodePacked(salt, account, cumulativeAmount))));
+        bytes32 leaf = keccak256(abi.encodePacked(account, cumulativeAmount));
         require(_verifyAsm(merkleProof, expectedMerkleRoot, leaf), "CMD: Invalid proof");
 
         // Mark it claimed
@@ -51,51 +66,36 @@ contract CumulativeMerkleDrop128 is Ownable, ICumulativeMerkleDrop128 {
         }
     }
 
-    // function verify(bytes calldata proof, bytes16 root, bytes16 leaf) public pure returns (bool) {
-    //     for (uint256 i = 0; i < proof.length / 16; i++) {
-    //         bytes16 node = _getBytes16(proof[i*16:(i+1)*16]);
-    //         if (leaf < node) {
-    //             leaf = _keccak128(abi.encodePacked(leaf, node));
-    //         } else {
-    //             leaf = _keccak128(abi.encodePacked(node, leaf));
-    //         }
-    //     }
-    //     return leaf == root;
-    // }
-    //
-    // function _keccak128(bytes memory input) internal pure returns(bytes16) {
-    //     return bytes16(keccak256(input));
-    // }
-    //
-    // function _getBytes16(bytes calldata input) internal pure returns(bytes16 res) {
-    //     // solhint-disable-next-line no-inline-assembly
-    //     assembly {
-    //         res := calldataload(input.offset)
-    //     }
+    // function verify(bytes32[] calldata merkleProof, bytes32 root, bytes32 leaf) public pure returns (bool) {
+    //     return merkleProof.verify(root, leaf);
     // }
 
-    function _verifyAsm(bytes calldata proof, bytes16 root, bytes16 leaf) private pure returns (bool valid) {
+    /// @dev Verifies a merkle proof in assembly.
+    /// @param proof The merkle proof.
+    /// @param root The root of the merkle tree.
+    /// @param leaf The leaf being proven.
+    function _verifyAsm(bytes32[] calldata proof, bytes32 root, bytes32 leaf) private pure returns (bool valid) {
         /// @solidity memory-safe-assembly
         assembly {  // solhint-disable-line no-inline-assembly
             let ptr := proof.offset
 
-            for { let end := add(ptr, proof.length) } lt(ptr, end) { ptr := add(ptr, 0x10) } {
+            for { let end := add(ptr, mul(0x20, proof.length)) } lt(ptr, end) { ptr := add(ptr, 0x20) } {
                 let node := calldataload(ptr)
 
                 switch lt(leaf, node)
                 case 1 {
                     mstore(0x00, leaf)
-                    mstore(0x10, node)
+                    mstore(0x20, node)
                 }
                 default {
                     mstore(0x00, node)
-                    mstore(0x10, leaf)
+                    mstore(0x20, leaf)
                 }
 
-                leaf := keccak256(0x00, 0x20)
+                leaf := keccak256(0x00, 0x40)
             }
 
-            valid := iszero(shr(128, xor(root, leaf)))
+            valid := eq(root, leaf)
         }
     }
 }
