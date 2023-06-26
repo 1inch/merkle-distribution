@@ -12,7 +12,7 @@ module.exports = async ({ deployments, getNamedAccounts }) => {
     const { deployer } = await getNamedAccounts();
 
     // 1inch address, merkle root, tree height
-    // Must to be replaced by real values
+    // Must be replaced with real values
     const args = ['address', 'merkle root', 0];
 
     const deploymentName = 'MerkleDrop128-' + VERSION.toString();
