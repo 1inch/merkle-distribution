@@ -5,7 +5,7 @@
 
 # Merkle Distribution
 [![Build Status](https://github.com/1inch/merkle-distribution/actions/workflows/test.yml/badge.svg)](https://github.com/1inch/merkle-distribution/actions)
-[![Coverage Status](https://coveralls.io/repos/github/1inch/merkle-distribution/badge.svg?branch=master)](https://coveralls.io/github/1inch/merkle-distribution?branch=master)
+[![Coverage Status](https://codecov.io/gh/1inch/merkle-distribution/branch/master/graph/badge.svg?token=4AY5FRY8HN)](https://codecov.io/gh/1inch/merkle-distribution)
 
 Set of smart contracts for gas efficient merkle tree drops. 
 
