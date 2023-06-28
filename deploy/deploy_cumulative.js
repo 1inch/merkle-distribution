@@ -13,8 +13,8 @@ module.exports = async ({ deployments, getNamedAccounts }) => {
     const args = ['token address'];
     // Must be replaced with real value
     const merkleRoot = 'merkle root';
-    const maxFeePerGas = 100000000000;
-    const maxPriorityFeePerGas = 2000000000;
+    const maxFeePerGas = 1e11;
+    const maxPriorityFeePerGas = 2e9;
 
     const cumulativeMerkleDrop = await deployAndGetContract({
         contractName: 'CumulativeMerkleDrop',
@@ -30,7 +30,7 @@ module.exports = async ({ deployments, getNamedAccounts }) => {
             maxPriorityFeePerGas,
         },
     );
-    await txn;
+    await txn.wait();
 
     console.log('CumulativeMerkleDrop deployed to:', cumulativeMerkleDrop.address);
 };
