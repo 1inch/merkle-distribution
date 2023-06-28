@@ -28,7 +28,7 @@ module.exports = async ({ deployments, getNamedAccounts }) => {
             maxPriorityFeePerGas: 2000000000,
         },
     );
-    await txn;
+    await txn.wait();
 
     console.log('CumulativeMerkleDrop deployed to:', merkleDrop.address);
 
