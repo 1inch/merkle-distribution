@@ -32,7 +32,7 @@ module.exports = async ({ deployments, getNamedAccounts }) => {
     );
     await txn.wait();
 
-    console.log('CumulativeMerkleDrop deployed to:', cumulativeMerkleDrop.address);
+    console.log('CumulativeMerkleDrop deployed to:', await cumulativeMerkleDrop.getAddress());
 };
 
 module.exports.skip = async () => true;
