@@ -2,7 +2,6 @@ const { expect } = require('chai');
 const { expectRevert } = require('@openzeppelin/test-helpers');
 const { MerkleTree } = require('merkletreejs');
 const keccak256 = require('keccak256');
-const { toBN } = require('./helpers/utils');
 const { personalSign } = require('@metamask/eth-sig-util');
 const Wallet = require('ethereumjs-wallet').default;
 
@@ -14,7 +13,7 @@ function keccak128 (input) {
 }
 
 async function makeDrop (token, accountWithDropValues, deposit) {
-    const elements = accountWithDropValues.map((w) => '0x' + w.account.substr(2) + toBN(w.amount).toString(16, 64));
+    const elements = accountWithDropValues.map((w) => '0x' + w.account.substr(2) + BigInt(w.amount).toString(16).padStart(64, '0'));
     const hashedElements = elements.map(keccak128).map(x => MerkleTree.bufferToHex(x));
     const tree = new MerkleTree(elements, keccak128, { hashLeaves: true, sort: true });
     const root = tree.getHexRoot();
@@ -78,7 +77,7 @@ contract('SignatureMerkleDrop128', async function ([addr1, w1, w2, w3, w4]) {
             for (let i = 0; i < this.proofs.length; i++) {
                 const result = await this.drop.verify(this.proofs[findSortedIndex(this, i)], this.root, this.leaves[findSortedIndex(this, i)]);
                 expect(result.valid).to.be.true;
-                expect(result.index).to.be.bignumber.equal(toBN(findSortedIndex(this, i)));
+                expect(BigInt(result.index)).to.be.equal(BigInt(findSortedIndex(this, i)));
             }
         });
 

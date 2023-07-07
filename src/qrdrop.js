@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
+const { ethers } = require('hardhat');
 const fs = require('fs');
 const path = require('path');
 const { assert } = require('console');
-const { ether } = require('@openzeppelin/test-helpers');
 const qrdrop = require('./gen_qr_lib.js');
 
 const commander = require('commander');
@@ -41,9 +41,9 @@ const VERSION = Number(options.version);
 const flagGenerateCodes = options.gencodes;
 const flagSaveQr = options.qrs;
 const flagSaveLink = options.links;
-const COUNTS = options.numbers === undefined ? [] : options.numbers.split(',').map(x => Number(x));
-const AMOUNTS = options.amounts === undefined ? [] : options.amounts.split(',').map(x => Number(x));
-const testCode = options.testcodes.split(',').map(x => Number(x));
+const COUNTS = options.numbers === undefined ? [] : options.numbers.split(',').map(x => BigInt(x));
+const AMOUNTS = options.amounts === undefined ? [] : options.amounts.split(',').map(x => BigInt(x));
+const testCode = options.testcodes.split(',').map(x => BigInt(x));
 const flagNoDeploy = options.nodeploy;
 const flagCleanup = options.cleanup;
 const flagValidateOnly = options.validate;
@@ -68,7 +68,7 @@ if (flagGenerateCodes) {
 
     COUNTS.unshift(testCode[0]);
     AMOUNTS.unshift(testCode[1]);
-    AMOUNTS.forEach((element, index) => { AMOUNTS[index] = ether(element.toString()); });
+    AMOUNTS.forEach((element, index) => { AMOUNTS[index] = ethers.parseEther(element.toString()); });
 
     qrdrop.generateCodes(settings);
 }
@@ -137,7 +137,7 @@ function validateArgs () {
 }
 
 function isNotIntegerAboveZero (value) {
-    return !(Number.isInteger(value) && value > 0);
+    return !(value > 0);
 }
 
 function validateVersion (version, latestFile) {

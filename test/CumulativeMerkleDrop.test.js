@@ -1,7 +1,5 @@
-const { BN } = require('@openzeppelin/test-helpers');
 const { MerkleTree } = require('merkletreejs');
 const keccak256 = require('keccak256');
-const { toBN } = require('./helpers/utils');
 
 // const { gasspectEVM } = require('./helpers/profileEVM');
 
@@ -17,7 +15,7 @@ const TokenMock = artifacts.require('TokenMock');
 const CumulativeMerkleDrop = artifacts.require('CumulativeMerkleDrop');
 
 async function makeDrop (token, drop, wallets, amounts, deposit) {
-    const elements = wallets.map((w, i) => w + toBN(amounts[i]).toString(16, 64));
+    const elements = wallets.map((w, i) => w + BigInt(amounts[i]).toString(16).padStart(64, '0'));
     const hashedElements = elements.map(keccak256).map(x => MerkleTree.bufferToHex(x));
     const tree = new MerkleTree(elements, keccak256, { hashLeaves: true, sort: true });
     const root = tree.getHexRoot();
@@ -44,7 +42,7 @@ contract('CumulativeMerkleDrop', async function ([_, w1, w2, w3, w4]) {
     });
 
     it('Benchmark 30000 wallets (merkle tree height 15)', async function () {
-        const accounts = Array(30000).fill().map((_, i) => '0x' + (new BN(w1.substr(2), 16)).addn(i).toString('hex'));
+        const accounts = Array(30000).fill().map((_, i) => '0x' + (BigInt(w1) + BigInt(i)).toString(16));
         const amounts = Array(30000).fill().map((_, i) => i + 1);
 
         const { hashedElements, leaves, root, proofs } = await makeDrop(this.token, this.drop, accounts, amounts, 1000000);
