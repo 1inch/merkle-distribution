@@ -1,6 +1,6 @@
+require('@nomicfoundation/hardhat-chai-matchers');
 require('@nomicfoundation/hardhat-ethers');
 require('@nomicfoundation/hardhat-verify');
-require('@nomiclabs/hardhat-truffle5');
 require('dotenv').config();
 require('hardhat-dependency-compiler');
 require('hardhat-deploy');
