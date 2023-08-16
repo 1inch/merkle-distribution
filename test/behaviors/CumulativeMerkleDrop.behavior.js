@@ -1,110 +1,77 @@
-const { expectEvent, expectRevert } = require('@openzeppelin/test-helpers');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { ethers } = require('hardhat');
+const { expect } = require('@1inch/solidity-utils');
 
-function claimedEvent (account, amount) {
-    return { account, amount };
-}
-
-function shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234 (errorPrefix, _, wallets, findSortedIndex, makeFirstDrop, makeSecondDrop, is128version = false) {
+function shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234 ({
+    errorPrefix,
+    initContracts,
+    functions: { makeFirstDrop, makeSecondDrop, findSortedIndex },
+    is128version = false,
+    makeFirstDropParams,
+    makeSecondDropParams,
+}) {
     describe('First wallet checks', async function () {
-        beforeEach(async function () {
-            await makeFirstDrop(this);
-        });
+        async function deployContractsFixture () {
+            const wallets = await ethers.getSigners();
 
-        it('should success to claim 1 token, second drop and claim 2 tokens', async function () {
-            await expectEvent(
-                (
-                    is128version
-                        ? await this.drop.claim(this.salts[0], wallets[0], 1, this.root, this.proofs[findSortedIndex(this, 0)])
-                        : await this.drop.claim(wallets[0], 1, this.root, this.proofs[findSortedIndex(this, 0)])
-                ),
-                'Claimed', claimedEvent(wallets[0], '1'),
-            );
+            const { token, drop } = await initContracts();
+            const params = await makeFirstDrop(token, drop, wallets, makeFirstDropParams);
 
-            await makeSecondDrop(this);
+            return {
+                constracts: { token, drop },
+                wallets,
+                other: { params },
+            };
+        }
 
-            await expectEvent(
-                (
-                    is128version
-                        ? await this.drop.claim(this.salts[0], wallets[0], 3, this.root, this.proofs[findSortedIndex(this, 0)])
-                        : await this.drop.claim(wallets[0], 3, this.root, this.proofs[findSortedIndex(this, 0)])
-                ),
-                'Claimed', claimedEvent(wallets[0], '2'),
-            );
+        it.only('should success to claim 1 token, second drop and claim 2 tokens twice', async function () {
+            const {
+                constracts: { token, drop },
+                wallets,
+                other: { params },
+            } = await loadFixture(deployContractsFixture);
 
-            await expectRevert(
-                (
-                    is128version
-                        ? this.drop.claim(this.salts[0], wallets[0], 3, this.root, this.proofs[findSortedIndex(this, 0)])
-                        : this.drop.claim(wallets[0], 3, this.root, this.proofs[findSortedIndex(this, 0)])
-                ),
-                `${errorPrefix}: Nothing to claim`,
-            );
-        });
+            await expect(
+                is128version
+                    ? await drop.claim(params.salts[0], params.wallets[0], 1, params.root, params.proofs[findSortedIndex(params, 0)])
+                    : await drop.claim(params.wallets[0], 1, params.root, params.proofs[findSortedIndex(params, 0)]),
+            ).to.emit(drop, 'Claimed').withArgs(params.wallets[0].address, '1');
 
-        it('should success to claim 1 token, second drop and claim 2 tokens twice', async function () {
-            await expectEvent(
-                (
-                    is128version
-                        ? await this.drop.claim(this.salts[0], wallets[0], 1, this.root, this.proofs[findSortedIndex(this, 0)])
-                        : await this.drop.claim(wallets[0], 1, this.root, this.proofs[findSortedIndex(this, 0)])
-                ),
-                'Claimed', claimedEvent(wallets[0], '1'),
-            );
+            await makeSecondDrop(token, drop, wallets, makeSecondDropParams);
 
-            await makeSecondDrop(this);
+            await expect(
+                is128version
+                    ? await drop.claim(params.salts[0], params.wallets[0], 3, params.root, params.proofs[findSortedIndex(params, 0)])
+                    : await drop.claim(params.wallets[0], 3, params.root, params.proofs[findSortedIndex(params, 0)]),
+            ).to.emit(drop, 'Claimed').withArgs(params.wallets[0].address, '2');
 
-            await expectEvent(
-                (
-                    is128version
-                        ? await this.drop.claim(this.salts[0], wallets[0], 3, this.root, this.proofs[findSortedIndex(this, 0)])
-                        : await this.drop.claim(wallets[0], 3, this.root, this.proofs[findSortedIndex(this, 0)])
-                ),
-                'Claimed', claimedEvent(wallets[0], '2'),
-            );
-
-            await expectRevert(
-                (
-                    is128version
-                        ? this.drop.claim(this.salts[0], wallets[0], 3, this.root, this.proofs[findSortedIndex(this, 0)])
-                        : this.drop.claim(wallets[0], 3, this.root, this.proofs[findSortedIndex(this, 0)])
-                ),
-                `${errorPrefix}: Nothing to claim`,
-            );
-        });
-
-        it('should success to claim all 3 tokens after second drop', async function () {
-            await makeSecondDrop(this);
-
-            await expectEvent(
-                (
-                    is128version
-                        ? await this.drop.claim(this.salts[0], wallets[0], 3, this.root, this.proofs[findSortedIndex(this, 0)])
-                        : await this.drop.claim(wallets[0], 3, this.root, this.proofs[findSortedIndex(this, 0)])
-                ),
-                'Claimed', claimedEvent(wallets[0], '3'),
-            );
+            await expect(
+                is128version
+                    ? drop.claim(params.salts[0], params.wallets[0], 3, params.root, params.proofs[findSortedIndex(params, 0)])
+                    : drop.claim(params.wallets[0], 3, params.root, params.proofs[findSortedIndex(params, 0)]),
+            ).to.be.revertedWith(`${errorPrefix}: Nothing to claim`);
         });
 
         it('should fail to claim after succelfful claim of all 3 tokens after second drop', async function () {
-            await makeSecondDrop(this);
+            const {
+                constracts: { token, drop },
+                wallets,
+                other: { params },
+            } = await loadFixture(deployContractsFixture);
 
-            await expectEvent(
-                (
-                    is128version
-                        ? await this.drop.claim(this.salts[0], wallets[0], 3, this.root, this.proofs[findSortedIndex(this, 0)])
-                        : await this.drop.claim(wallets[0], 3, this.root, this.proofs[findSortedIndex(this, 0)])
-                ),
-                'Claimed', claimedEvent(wallets[0], '3'),
-            );
+            await makeSecondDrop(token, drop, wallets, makeSecondDropParams);
 
-            await expectRevert(
-                (
-                    is128version
-                        ? this.drop.claim(this.salts[0], wallets[0], 3, this.root, this.proofs[findSortedIndex(this, 0)])
-                        : this.drop.claim(wallets[0], 3, this.root, this.proofs[findSortedIndex(this, 0)])
-                ),
-                `${errorPrefix}: Nothing to claim`,
-            );
+            await expect(
+                is128version
+                    ? await drop.claim(params.salts[0], params.wallets[0], 3, params.root, params.proofs[findSortedIndex(params, 0)])
+                    : await drop.claim(params.wallets[0], 3, params.root, params.proofs[findSortedIndex(params, 0)]),
+            ).to.emit(drop, 'Claimed').withArgs(params.wallets[0].address, '3');
+
+            await expect(
+                is128version
+                    ? drop.claim(params.salts[0], params.wallets[0], 3, params.root, params.proofs[findSortedIndex(params, 0)])
+                    : drop.claim(params.wallets[0], 3, params.root, params.proofs[findSortedIndex(params, 0)]),
+            ).to.be.revertedWith(`${errorPrefix}: Nothing to claim`);
         });
     });
 }

@@ -1,11 +1,11 @@
-require('@nomicfoundation/hardhat-chai-matchers');
+require('@nomiclabs/hardhat-etherscan');
 require('@nomicfoundation/hardhat-ethers');
-require('@nomicfoundation/hardhat-verify');
-require('dotenv').config();
+require('@nomicfoundation/hardhat-chai-matchers');
 require('hardhat-dependency-compiler');
 require('hardhat-deploy');
 require('hardhat-gas-reporter');
 require('solidity-coverage');
+require('dotenv').config();
 
 const { networks, etherscan } = require('./hardhat.networks');
 
