@@ -83,20 +83,20 @@ describe('SignatureMerkleDrop128', function () {
         const { accounts: { alice }, constracts: { drop }, others: { signature } } = await loadFixture(deployContractsFixture);
         await expect(
             drop.claim(alice, 1, '0x', signature),
-        ).to.be.revertedWith('MD: Invalid proof');
+        ).to.be.revertedWithCustomError(drop, 'InvalidProof');
     });
 
     it('Should disallow invalid receiver', async function () {
         const { accounts: { bob }, constracts: { drop }, others: { hashedElements, leaves, proofs, signature } } = await loadFixture(deployContractsFixture);
         await expect(
             drop.claim(bob, 1, proofs[leaves.indexOf(hashedElements[0])], signature),
-        ).to.be.revertedWith('MD: Invalid proof');
+        ).to.be.revertedWithCustomError(drop, 'InvalidProof');
     });
 
     it('Should disallow double claim', async function () {
         const { accounts: { alice }, constracts: { drop }, others: { hashedElements, leaves, proofs, signature } } = await loadFixture(deployContractsFixture);
         const fn = () => drop.claim(alice, 1, proofs[leaves.indexOf(hashedElements[0])], signature);
         await fn();
-        await expect(fn()).to.be.revertedWith('MD: Drop already claimed');
+        await expect(fn()).to.be.revertedWithCustomError(drop, 'DropAlreadyClaimed');
     });
 });

@@ -3,7 +3,6 @@ const { ethers } = require('hardhat');
 const { expect } = require('@1inch/solidity-utils');
 
 function shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234 ({
-    errorPrefix,
     walletsCount,
     initContracts,
     functions: { makeDrop, findSortedIndex },
@@ -54,7 +53,7 @@ function shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234 ({
                         is128version
                             ? drop.claim(params.salts[i], params.wallets[i], i + 1, params.root, params.proofs[findSortedIndex(params, i)])
                             : drop.claim(params.wallets[i], i + 1, params.root, params.proofs[findSortedIndex(params, i)]),
-                    ).to.be.revertedWith(`${errorPrefix}: Nothing to claim`);
+                    ).to.be.revertedWithCustomError(drop, 'NothingToClaim');
                 });
             });
         }

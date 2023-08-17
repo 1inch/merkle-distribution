@@ -1,23 +1,26 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.15;
-pragma abicoder v1;
+pragma solidity 0.8.19;
 
-import "@openzeppelin/contracts/utils/math/Math.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@1inch/solidity-utils/contracts/libraries/SafeERC20.sol";
-import "@1inch/solidity-utils/contracts/libraries/ECDSA.sol";
+import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+import { Ownable } from  "@openzeppelin/contracts/access/Ownable.sol";
+import { SafeERC20, IERC20 } from  "@1inch/solidity-utils/contracts/libraries/SafeERC20.sol";
+import { ECDSA } from  "@1inch/solidity-utils/contracts/libraries/ECDSA.sol";
 
-import "./interfaces/ISignatureMerkleDrop128.sol";
+import { ISignatureMerkleDrop128 } from  "./interfaces/ISignatureMerkleDrop128.sol";
 
 contract SignatureMerkleDrop128 is ISignatureMerkleDrop128, Ownable {
     using Address for address payable;
     using SafeERC20 for IERC20;
+    error InvalidProof();
+    error DropAlreadyClaimed();
 
+    /* solhint-disable immutable-vars-naming */
     address public immutable override token;
     bytes16 public immutable override merkleRoot;
     uint256 public immutable override depth;
+    /* solhint-enable immutable-vars-naming */
 
     // This is a packed array of booleans.
     mapping(uint256 => uint256) private _claimedBitMap;
@@ -38,7 +41,7 @@ contract SignatureMerkleDrop128 is ISignatureMerkleDrop128, Ownable {
         // Verify the merkle proof.
         bytes16 node = bytes16(keccak256(abi.encodePacked(account, amount)));
         (bool valid, uint256 index) = _verifyAsm(merkleProof, merkleRoot, node);
-        require(valid, "MD: Invalid proof");
+        if (!valid) revert InvalidProof();
         _invalidate(index);
         IERC20(token).safeTransfer(receiver, amount);
         _cashback();
@@ -73,7 +76,7 @@ contract SignatureMerkleDrop128 is ISignatureMerkleDrop128, Ownable {
         uint256 claimedBitIndex = index & 0xff;
         uint256 claimedWord = _claimedBitMap[claimedWordIndex];
         uint256 newClaimedWord = claimedWord | (1 << claimedBitIndex);
-        require(claimedWord != newClaimedWord, "MD: Drop already claimed");
+        if (claimedWord == newClaimedWord) revert DropAlreadyClaimed();
         _claimedBitMap[claimedWordIndex] = newClaimedWord;
     }
 

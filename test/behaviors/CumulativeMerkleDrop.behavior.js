@@ -49,7 +49,7 @@ function shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234 ({
                 is128version
                     ? drop.claim(newParams.salts[0], newParams.wallets[0], 3, newParams.root, newParams.proofs[findSortedIndex(newParams, 0)])
                     : drop.claim(newParams.wallets[0], 3, newParams.root, newParams.proofs[findSortedIndex(newParams, 0)]),
-            ).to.be.revertedWith(`${errorPrefix}: Nothing to claim`);
+            ).to.be.revertedWithCustomError(drop, 'NothingToClaim');
         });
 
         it('should fail to claim after succelfful claim of all 3 tokens after second drop', async function () {
@@ -70,7 +70,7 @@ function shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234 ({
                 is128version
                     ? drop.claim(params.salts[0], params.wallets[0], 3, params.root, params.proofs[findSortedIndex(params, 0)])
                     : drop.claim(params.wallets[0], 3, params.root, params.proofs[findSortedIndex(params, 0)]),
-            ).to.be.revertedWith(`${errorPrefix}: Nothing to claim`);
+            ).to.be.revertedWithCustomError(drop, 'NothingToClaim');
         });
     });
 }

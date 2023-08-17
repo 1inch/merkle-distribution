@@ -1,18 +1,21 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.15;
-pragma abicoder v1;
+pragma solidity 0.8.19;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@1inch/solidity-utils/contracts/libraries/SafeERC20.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { SafeERC20, IERC20 } from "@1inch/solidity-utils/contracts/libraries/SafeERC20.sol";
 // import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
-import "./interfaces/ICumulativeMerkleDrop.sol";
+import { ICumulativeMerkleDrop } from "./interfaces/ICumulativeMerkleDrop.sol";
 
 contract CumulativeMerkleDrop is Ownable, ICumulativeMerkleDrop {
     using SafeERC20 for IERC20;
     // using MerkleProof for bytes32[];
+    error InvalidProof();
+    error NothingToClaim();
+    error MerkleRootWasUpdated();
 
+    // solhint-disable-next-line immutable-vars-naming
     address public immutable override token;
 
     bytes32 public override merkleRoot;
@@ -33,15 +36,15 @@ contract CumulativeMerkleDrop is Ownable, ICumulativeMerkleDrop {
         bytes32 expectedMerkleRoot,
         bytes32[] calldata merkleProof
     ) external override {
-        require(merkleRoot == expectedMerkleRoot, "CMD: Merkle root was updated");
+        if (merkleRoot != expectedMerkleRoot) revert MerkleRootWasUpdated();
 
         // Verify the merkle proof
         bytes32 leaf = keccak256(abi.encodePacked(account, cumulativeAmount));
-        require(_verifyAsm(merkleProof, expectedMerkleRoot, leaf), "CMD: Invalid proof");
+        if (!_verifyAsm(merkleProof, expectedMerkleRoot, leaf)) revert InvalidProof();
 
         // Mark it claimed
         uint256 preclaimed = cumulativeClaimed[account];
-        require(preclaimed < cumulativeAmount, "CMD: Nothing to claim");
+        if (preclaimed >= cumulativeAmount) revert NothingToClaim();
         cumulativeClaimed[account] = cumulativeAmount;
 
         // Send the token
