@@ -84,7 +84,6 @@ describe('CumulativeMerkleDrop128', async function () {
 
         describe('Single drop for 4 wallets: [1, 2, 3, 4]', async function () {
             shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234({
-                errorPrefix: 'CMD',
                 walletsCount: 4,
                 initContracts,
                 functions: { makeDrop: makeDropForSomeAccounts, findSortedIndex },
@@ -98,7 +97,6 @@ describe('CumulativeMerkleDrop128', async function () {
 
         describe('Double drop for 4 wallets: [1, 2, 3, 4] + [2, 3, 4, 5] = [3, 5, 7, 9]', async function () {
             shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234({
-                errorPrefix: 'CMD',
                 initContracts,
                 functions: {
                     makeFirstDrop: makeDropForSomeAccounts,

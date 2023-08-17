@@ -3,7 +3,6 @@ const { ethers } = require('hardhat');
 const { expect } = require('@1inch/solidity-utils');
 
 function shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234 ({
-    errorPrefix,
     initContracts,
     functions: { makeFirstDrop, makeSecondDrop, findSortedIndex },
     is128version = false,
