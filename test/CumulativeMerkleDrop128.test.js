@@ -19,14 +19,14 @@ function keccak128 (input) {
 
 async function makeDrop (token, drop, walletsAddresses, amounts, deposit) {
     const salts = walletsAddresses.map(_ => generateSalt());
-    const elements = walletsAddresses.map((w, i) => salts[i] + w.substr(2) + BigInt(amounts[i]).toString(16).padStart(64, '0'));
+    const elements = walletsAddresses.map((w, i) => salts[i] + w.slice(2) + BigInt(amounts[i]).toString(16).padStart(64, '0'));
     const hashedElements = elements.map(keccak128).map(x => MerkleTree.bufferToHex(x));
     const tree = new MerkleTree(elements, keccak128, { hashLeaves: true, sort: true });
     const root = tree.getHexRoot();
     const leaves = tree.getHexLeaves();
     const proofs = leaves
         .map(tree.getHexProof, tree)
-        .map(proof => '0x' + proof.map(p => p.substr(2)).join(''));
+        .map(proof => '0x' + proof.map(p => p.slice(2)).join(''));
 
     await drop.setMerkleRoot(root);
     await token.mint(drop, deposit);
@@ -49,7 +49,7 @@ describe('CumulativeMerkleDrop128', async function () {
         const [owner, alice, bob, carol, dan] = await ethers.getSigners();
 
         const { token, drop } = await initContracts();
-        [alice, bob, carol, dan].map(async (w) => await token.mint(w, 1n));
+        await Promise.all([alice, bob, carol, dan].map(w => token.mint(w, 1n)));
 
         return {
             accounts: { owner, alice, bob, carol, dan },

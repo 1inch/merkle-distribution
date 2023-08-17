@@ -43,7 +43,7 @@ describe('CumulativeMerkleDrop', function () {
         const [owner, alice, bob, carol, dan] = await ethers.getSigners();
 
         const { token, drop } = await initContracts();
-        [alice, bob, carol, dan].map(async (w) => await token.mint(w, 1n));
+        await Promise.all([alice, bob, carol, dan].map(w => token.mint(w, 1n)));
 
         return {
             accounts: { owner, alice, bob, carol, dan },
