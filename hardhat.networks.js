@@ -5,6 +5,9 @@ function register (name, chainId, url, privateKey, etherscanNetworkName, ethersc
     if (url && privateKey && etherscanKey) {
         networks[name] = {
             url,
+            httpHeaders: {
+                'auth-key': process.env.RPC_AUTH_HEADER,
+            },
             chainId,
             accounts: [privateKey],
         };
