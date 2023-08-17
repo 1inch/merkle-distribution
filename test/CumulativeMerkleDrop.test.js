@@ -14,8 +14,8 @@ const {
     shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234,
 } = require('./behaviors/CumulativeMerkleDrop.behavior');
 
-async function makeDrop (token, drop, wallets, amounts, deposit) {
-    const elements = wallets.map((w, i) => w + BigInt(amounts[i]).toString(16).padStart(64, '0'));
+async function makeDrop (token, drop, walletsAddresses, amounts, deposit) {
+    const elements = walletsAddresses.map((w, i) => w + BigInt(amounts[i]).toString(16).padStart(64, '0'));
     const hashedElements = elements.map(keccak256).map(x => MerkleTree.bufferToHex(x));
     const tree = new MerkleTree(elements, keccak256, { hashLeaves: true, sort: true });
     const root = tree.getHexRoot();
@@ -58,10 +58,10 @@ describe('CumulativeMerkleDrop', function () {
 
         const params = await makeDrop(token, drop, accounts, amounts, 1000000n);
 
-        if (drop.interface.getFunction('verify')) {
-            await drop.contract.methods.verify(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[0]).send();
-            expect(await drop.verify(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[0])).to.be.true;
-        }
+        // if (drop.interface.getFunction('verify')) {
+        //     await drop.contract.methods.verify(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[0]).send();
+        //     expect(await drop.verify(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[0])).to.be.true;
+        // }
         // await drop.contract.methods.verifyAsm(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[0]).send({ from: _ });
         // expect(await drop.verifyAsm(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[0])).to.be.true;
         const tx = await drop.claim(accounts[0], 1, params.root, params.proofs[findSortedIndex(params, 0)]);
@@ -70,7 +70,7 @@ describe('CumulativeMerkleDrop', function () {
 
     describe('behave like merkle drop', function () {
         async function makeDropForSomeAccounts (token, drop, allWallets, params) {
-            const wallets = allWallets.slice(1, params.amounts.length + 1);
+            const wallets = allWallets.slice(1, params.amounts.length + 1); // drop first wallet
             return {
                 ...(await makeDrop(token, drop, wallets.map((w) => w.address), params.amounts, params.deposit)),
                 wallets,

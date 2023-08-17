@@ -24,7 +24,7 @@ function shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234 ({
             };
         }
 
-        it.only('should success to claim 1 token, second drop and claim 2 tokens twice', async function () {
+        it('should success to claim 1 token, second drop and claim 2 tokens twice', async function () {
             const {
                 constracts: { token, drop },
                 wallets,
@@ -37,18 +37,18 @@ function shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234 ({
                     : await drop.claim(params.wallets[0], 1, params.root, params.proofs[findSortedIndex(params, 0)]),
             ).to.emit(drop, 'Claimed').withArgs(params.wallets[0].address, '1');
 
-            await makeSecondDrop(token, drop, wallets, makeSecondDropParams);
+            const newParams = await makeSecondDrop(token, drop, wallets, makeSecondDropParams);
 
             await expect(
                 is128version
-                    ? await drop.claim(params.salts[0], params.wallets[0], 3, params.root, params.proofs[findSortedIndex(params, 0)])
-                    : await drop.claim(params.wallets[0], 3, params.root, params.proofs[findSortedIndex(params, 0)]),
-            ).to.emit(drop, 'Claimed').withArgs(params.wallets[0].address, '2');
+                    ? await drop.claim(newParams.salts[0], newParams.wallets[0], 3, newParams.root, newParams.proofs[findSortedIndex(newParams, 0)])
+                    : await drop.claim(newParams.wallets[0], 3, newParams.root, newParams.proofs[findSortedIndex(newParams, 0)]),
+            ).to.emit(drop, 'Claimed').withArgs(newParams.wallets[0].address, '2');
 
             await expect(
                 is128version
-                    ? drop.claim(params.salts[0], params.wallets[0], 3, params.root, params.proofs[findSortedIndex(params, 0)])
-                    : drop.claim(params.wallets[0], 3, params.root, params.proofs[findSortedIndex(params, 0)]),
+                    ? drop.claim(newParams.salts[0], newParams.wallets[0], 3, newParams.root, newParams.proofs[findSortedIndex(newParams, 0)])
+                    : drop.claim(newParams.wallets[0], 3, newParams.root, newParams.proofs[findSortedIndex(newParams, 0)]),
             ).to.be.revertedWith(`${errorPrefix}: Nothing to claim`);
         });
 
@@ -56,10 +56,9 @@ function shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234 ({
             const {
                 constracts: { token, drop },
                 wallets,
-                other: { params },
             } = await loadFixture(deployContractsFixture);
 
-            await makeSecondDrop(token, drop, wallets, makeSecondDropParams);
+            const params = await makeSecondDrop(token, drop, wallets, makeSecondDropParams);
 
             await expect(
                 is128version
