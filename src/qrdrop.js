@@ -137,7 +137,7 @@ function validateArgs () {
 }
 
 function isNotIntegerAboveZero (value) {
-    return !(value > 0);
+    return !(Number.isInteger(value) && value > 0);
 }
 
 function validateVersion (version, latestFile) {
