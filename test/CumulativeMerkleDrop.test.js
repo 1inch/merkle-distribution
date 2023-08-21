@@ -1,3 +1,6 @@
+const { ethers } = require('hardhat');
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { deployContract, expect } = require('@1inch/solidity-utils');
 const { MerkleTree } = require('merkletreejs');
 const keccak256 = require('keccak256');
 
@@ -11,11 +14,8 @@ const {
     shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234,
 } = require('./behaviors/CumulativeMerkleDrop.behavior');
 
-const TokenMock = artifacts.require('TokenMock');
-const CumulativeMerkleDrop = artifacts.require('CumulativeMerkleDrop');
-
-async function makeDrop (token, drop, wallets, amounts, deposit) {
-    const elements = wallets.map((w, i) => w + BigInt(amounts[i]).toString(16).padStart(64, '0'));
+async function makeDrop (token, drop, walletsAddresses, amounts, deposit) {
+    const elements = walletsAddresses.map((w, i) => w + BigInt(amounts[i]).toString(16).padStart(64, '0'));
     const hashedElements = elements.map(keccak256).map(x => MerkleTree.bufferToHex(x));
     const tree = new MerkleTree(elements, keccak256, { hashLeaves: true, sort: true });
     const root = tree.getHexRoot();
@@ -23,72 +23,89 @@ async function makeDrop (token, drop, wallets, amounts, deposit) {
     const proofs = leaves.map(tree.getHexProof, tree);
 
     await drop.setMerkleRoot(root);
-    await token.mint(drop.address, deposit);
+    await token.mint(drop, deposit);
 
     return { hashedElements, leaves, root, proofs };
 }
 
-contract('CumulativeMerkleDrop', async function ([_, w1, w2, w3, w4]) {
-    const wallets = [w1, w2, w3, w4];
-
+describe('CumulativeMerkleDrop', function () {
     function findSortedIndex (self, i) {
         return self.leaves.indexOf(self.hashedElements[i]);
     }
 
-    beforeEach(async function () {
-        this.token = await TokenMock.new('1INCH Token', '1INCH');
-        this.drop = await CumulativeMerkleDrop.new(this.token.address);
-        await Promise.all(wallets.map(w => this.token.mint(w, 1)));
-    });
+    async function initContracts () {
+        const token = await deployContract('TokenMock', ['1INCH Token', '1INCH']);
+        const drop = await deployContract('CumulativeMerkleDrop', [token]);
+        return { token, drop };
+    };
+
+    async function deployContractsFixture () {
+        const [owner, alice, bob, carol, dan] = await ethers.getSigners();
+
+        const { token, drop } = await initContracts();
+        await Promise.all([alice, bob, carol, dan].map(w => token.mint(w, 1n)));
+
+        return {
+            accounts: { owner, alice, bob, carol, dan },
+            contracts: { token, drop },
+        };
+    }
 
     it('Benchmark 30000 wallets (merkle tree height 15)', async function () {
-        const accounts = Array(30000).fill().map((_, i) => '0x' + (BigInt(w1) + BigInt(i)).toString(16));
+        const { accounts: { alice }, contracts: { token, drop } } = await loadFixture(deployContractsFixture);
+        const accounts = Array(30000).fill().map((_, i) => '0x' + (BigInt(alice.address) + BigInt(i)).toString(16));
         const amounts = Array(30000).fill().map((_, i) => i + 1);
 
-        const { hashedElements, leaves, root, proofs } = await makeDrop(this.token, this.drop, accounts, amounts, 1000000);
-        this.hashedElements = hashedElements;
-        this.leaves = leaves;
-        this.root = root;
-        this.proofs = proofs;
+        const params = await makeDrop(token, drop, accounts, amounts, 1000000n);
 
-        if (this.drop.contract.methods.verify) {
-            await this.drop.contract.methods.verify(this.proofs[findSortedIndex(this, 0)], this.root, this.leaves[0]).send({ from: _ });
-            expect(await this.drop.verify(this.proofs[findSortedIndex(this, 0)], this.root, this.leaves[0])).to.be.true;
-        }
-        // await this.drop.contract.methods.verifyAsm(this.proofs[findSortedIndex(this, 0)], this.root, this.leaves[0]).send({ from: _ });
-        // expect(await this.drop.verifyAsm(this.proofs[findSortedIndex(this, 0)], this.root, this.leaves[0])).to.be.true;
-        await this.drop.claim(accounts[0], 1, this.root, this.proofs[findSortedIndex(this, 0)]);
+        // if (drop.interface.getFunction('verify')) {
+        //     await drop.contract.methods.verify(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[0]).send();
+        //     expect(await drop.verify(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[0])).to.be.true;
+        // }
+        // await drop.contract.methods.verifyAsm(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[0]).send({ from: _ });
+        // expect(await drop.verifyAsm(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[0])).to.be.true;
+        const tx = await drop.claim(accounts[0], 1, params.root, params.proofs[findSortedIndex(params, 0)]);
+        await expect(tx).to.changeTokenBalances(token, [accounts[0], drop], [1, -1]);
     });
 
-    describe('Single drop for 4 wallets: [1, 2, 3, 4]', async function () {
-        beforeEach(async function () {
-            const { hashedElements, leaves, root, proofs } = await makeDrop(this.token, this.drop, [w1, w2, w3, w4], [1, 2, 3, 4], 10);
-            this.hashedElements = hashedElements;
-            this.leaves = leaves;
-            this.root = root;
-            this.proofs = proofs;
+    describe('behave like merkle drop', function () {
+        async function makeDropForSomeAccounts (token, drop, allWallets, params) {
+            const wallets = allWallets.slice(1, params.amounts.length + 1); // drop first wallet
+            return {
+                ...(await makeDrop(token, drop, wallets.map((w) => w.address), params.amounts, params.deposit)),
+                wallets,
+            };
+        }
+
+        describe('Single drop for 4 wallets: [1, 2, 3, 4]', function () {
+            shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234({
+                walletsCount: 4,
+                initContracts,
+                functions: { makeDrop: makeDropForSomeAccounts, findSortedIndex },
+                makeDropParams: {
+                    amounts: [1n, 2n, 3n, 4n],
+                    deposit: 10n,
+                },
+            });
         });
 
-        shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234('CMD', [w1, w2, w3, w4], findSortedIndex);
-    });
-
-    describe('Double drop for 4 wallets: [1, 2, 3, 4] + [2, 3, 4, 5] = [3, 5, 7, 9]', async function () {
-        async function makeFirstDrop (self) {
-            const { hashedElements, leaves, root, proofs } = await makeDrop(self.token, self.drop, [w1, w2, w3, w4], [1, 2, 3, 4], 1 + 2 + 3 + 4);
-            self.hashedElements = hashedElements;
-            self.leaves = leaves;
-            self.root = root;
-            self.proofs = proofs;
-        }
-
-        async function makeSecondDrop (self) {
-            const { hashedElements, leaves, root, proofs } = await makeDrop(self.token, self.drop, [w1, w2, w3, w4], [3, 5, 7, 9], 2 + 3 + 4 + 5);
-            self.hashedElements = hashedElements;
-            self.leaves = leaves;
-            self.root = root;
-            self.proofs = proofs;
-        }
-
-        shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234('CMD', _, [w1, w2, w3, w4], findSortedIndex, makeFirstDrop, makeSecondDrop);
+        describe('Double drop for 4 wallets: [1, 2, 3, 4] + [2, 3, 4, 5] = [3, 5, 7, 9]', async function () {
+            shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234({
+                initContracts,
+                functions: {
+                    makeFirstDrop: makeDropForSomeAccounts,
+                    makeSecondDrop: makeDropForSomeAccounts,
+                    findSortedIndex,
+                },
+                makeFirstDropParams: {
+                    amounts: [1n, 2n, 3n, 4n],
+                    deposit: 1n + 2n + 3n + 4n,
+                },
+                makeSecondDropParams: {
+                    amounts: [3n, 5n, 7n, 9n],
+                    deposit: 2n + 3n + 4n + 5n,
+                },
+            });
+        });
     });
 });
