@@ -17,7 +17,7 @@ function shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234 ({
             const params = await makeFirstDrop(token, drop, wallets, makeFirstDropParams);
 
             return {
-                constracts: { token, drop },
+                contracts: { token, drop },
                 wallets,
                 other: { params },
             };
@@ -25,7 +25,7 @@ function shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234 ({
 
         it('should success to claim 1 token, second drop and claim 2 tokens twice', async function () {
             const {
-                constracts: { token, drop },
+                contracts: { token, drop },
                 wallets,
                 other: { params },
             } = await loadFixture(deployContractsFixture);
@@ -53,7 +53,7 @@ function shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234 ({
 
         it('should fail to claim after succelfful claim of all 3 tokens after second drop', async function () {
             const {
-                constracts: { token, drop },
+                contracts: { token, drop },
                 wallets,
             } = await loadFixture(deployContractsFixture);
 

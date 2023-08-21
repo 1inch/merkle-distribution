@@ -47,12 +47,12 @@ describe('CumulativeMerkleDrop', function () {
 
         return {
             accounts: { owner, alice, bob, carol, dan },
-            constracts: { token, drop },
+            contracts: { token, drop },
         };
     }
 
     it('Benchmark 30000 wallets (merkle tree height 15)', async function () {
-        const { accounts: { alice }, constracts: { token, drop } } = await loadFixture(deployContractsFixture);
+        const { accounts: { alice }, contracts: { token, drop } } = await loadFixture(deployContractsFixture);
         const accounts = Array(30000).fill().map((_, i) => '0x' + (BigInt(alice.address) + BigInt(i)).toString(16));
         const amounts = Array(30000).fill().map((_, i) => i + 1);
 

@@ -9,9 +9,6 @@ import { ICumulativeMerkleDrop128 } from  "./interfaces/ICumulativeMerkleDrop128
 
 contract CumulativeMerkleDrop128 is Ownable, ICumulativeMerkleDrop128 {
     using SafeERC20 for IERC20;
-    error InvalidProof();
-    error NothingToClaim();
-    error MerkleRootWasUpdated();
 
     // solhint-disable-next-line immutable-vars-naming
     address public immutable override token;

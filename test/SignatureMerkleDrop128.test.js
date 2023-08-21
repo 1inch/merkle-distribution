@@ -59,13 +59,13 @@ describe('SignatureMerkleDrop128', function () {
 
         return {
             accounts: { owner, alice, bob, carol, dan },
-            constracts: { token, drop },
+            contracts: { token, drop },
             others: { hashedElements, leaves, proofs, signature },
         };
     }
 
     it('Should enumerate items properly', async function () {
-        const { constracts: { drop }, others: { hashedElements, leaves, proofs } } = await loadFixture(deployContractsFixture);
+        const { contracts: { drop }, others: { hashedElements, leaves, proofs } } = await loadFixture(deployContractsFixture);
         for (let i = 0; i < proofs.length; i++) {
             const index = leaves.indexOf(hashedElements[i]);
             const result = await drop.verify(proofs[index], leaves[index]);
@@ -75,26 +75,26 @@ describe('SignatureMerkleDrop128', function () {
     });
 
     it('Should transfer money to another wallet', async function () {
-        const { accounts: { alice }, constracts: { drop }, others: { hashedElements, leaves, proofs, signature } } = await loadFixture(deployContractsFixture);
+        const { accounts: { alice }, contracts: { drop }, others: { hashedElements, leaves, proofs, signature } } = await loadFixture(deployContractsFixture);
         await drop.claim(alice, 1, proofs[leaves.indexOf(hashedElements[0])], signature);
     });
 
     it('Should disallow invalid proof', async function () {
-        const { accounts: { alice }, constracts: { drop }, others: { signature } } = await loadFixture(deployContractsFixture);
+        const { accounts: { alice }, contracts: { drop }, others: { signature } } = await loadFixture(deployContractsFixture);
         await expect(
             drop.claim(alice, 1, '0x', signature),
         ).to.be.revertedWithCustomError(drop, 'InvalidProof');
     });
 
     it('Should disallow invalid receiver', async function () {
-        const { accounts: { bob }, constracts: { drop }, others: { hashedElements, leaves, proofs, signature } } = await loadFixture(deployContractsFixture);
+        const { accounts: { bob }, contracts: { drop }, others: { hashedElements, leaves, proofs, signature } } = await loadFixture(deployContractsFixture);
         await expect(
             drop.claim(bob, 1, proofs[leaves.indexOf(hashedElements[0])], signature),
         ).to.be.revertedWithCustomError(drop, 'InvalidProof');
     });
 
     it('Should disallow double claim', async function () {
-        const { accounts: { alice }, constracts: { drop }, others: { hashedElements, leaves, proofs, signature } } = await loadFixture(deployContractsFixture);
+        const { accounts: { alice }, contracts: { drop }, others: { hashedElements, leaves, proofs, signature } } = await loadFixture(deployContractsFixture);
         const fn = () => drop.claim(alice, 1, proofs[leaves.indexOf(hashedElements[0])], signature);
         await fn();
         await expect(fn()).to.be.revertedWithCustomError(drop, 'DropAlreadyClaimed');

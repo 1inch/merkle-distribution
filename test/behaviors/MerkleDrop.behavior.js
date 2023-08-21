@@ -17,7 +17,7 @@ function shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234 ({
             const params = await makeDrop(token, drop, wallets, makeDropParams);
 
             return {
-                constracts: { drop },
+                contracts: { drop },
                 other: { params },
             };
         }
@@ -26,7 +26,7 @@ function shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234 ({
             describe(`Wallet ${i + 1}`, function () {
                 it('should succeed to claim', async function () {
                     const {
-                        constracts: { drop },
+                        contracts: { drop },
                         other: { params },
                     } = await loadFixture(deployContractsFixture);
 
@@ -39,7 +39,7 @@ function shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234 ({
 
                 it('should fail to claim second time', async function () {
                     const {
-                        constracts: { drop },
+                        contracts: { drop },
                         other: { params },
                     } = await loadFixture(deployContractsFixture);
 

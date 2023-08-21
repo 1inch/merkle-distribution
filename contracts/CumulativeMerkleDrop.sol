@@ -11,9 +11,6 @@ import { ICumulativeMerkleDrop } from "./interfaces/ICumulativeMerkleDrop.sol";
 contract CumulativeMerkleDrop is Ownable, ICumulativeMerkleDrop {
     using SafeERC20 for IERC20;
     // using MerkleProof for bytes32[];
-    error InvalidProof();
-    error NothingToClaim();
-    error MerkleRootWasUpdated();
 
     // solhint-disable-next-line immutable-vars-naming
     address public immutable override token;

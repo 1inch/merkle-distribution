@@ -13,8 +13,6 @@ import { ISignatureMerkleDrop128 } from  "./interfaces/ISignatureMerkleDrop128.s
 contract SignatureMerkleDrop128 is ISignatureMerkleDrop128, Ownable {
     using Address for address payable;
     using SafeERC20 for IERC20;
-    error InvalidProof();
-    error DropAlreadyClaimed();
 
     /* solhint-disable immutable-vars-naming */
     address public immutable override token;
