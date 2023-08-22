@@ -57,18 +57,18 @@ describe('CumulativeMerkleDrop128', async function () {
         };
     }
 
-    it('Benchmark 30000 wallets (merkle tree height 15)', async function () {
+    it.skip('Benchmark 30000 wallets (merkle tree height 15)', async function () { // if you want to run this test, add verify & verifyAsm to CumulativeMerkleDrop.sol
         const { accounts: { alice }, contracts: { token, drop } } = await loadFixture(deployContractsFixture);
         const accounts = Array(30000).fill().map((_, i) => '0x' + (BigInt(alice.address) + BigInt(i)).toString(16));
         const amounts = Array(30000).fill().map((_, i) => i + 1);
         const params = await makeDrop(token, drop, accounts, amounts, 1000000);
 
-        // if (drop.interface.getFunction('verify')) {
-        //     await drop.contract.methods.verify(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[findSortedIndex(params, 0)]).send({ from: _ });
-        //     expect(await drop.verify(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[findSortedIndex(params, 0)])).to.be.true;
-        // }
-        // await drop.contract.methods.verifyAsm(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[findSortedIndex(params, 0)]).send({ from: _ });
-        // expect(await drop.verifyAsm(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[findSortedIndex(params, 0)])).to.be.true;
+        if (drop.interface.getFunction('verify')) {
+            await drop.contract.methods.verify(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[findSortedIndex(params, 0)]).send();
+            expect(await drop.verify(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[findSortedIndex(params, 0)])).to.be.true;
+        }
+        await drop.contract.methods.verifyAsm(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[findSortedIndex(params, 0)]).send();
+        expect(await drop.verifyAsm(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[findSortedIndex(params, 0)])).to.be.true;
         const tx = await drop.claim(params.salts[0], accounts[0], 1, params.root, params.proofs[findSortedIndex(params, 0)]);
         await expect(tx).to.changeTokenBalances(token, [accounts[0], drop], [1, -1]);
     });
