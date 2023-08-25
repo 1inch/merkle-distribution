@@ -1,10 +1,9 @@
+const { ethers } = require('hardhat');
 const { MerkleTree } = require('merkletreejs');
 const keccak256 = require('keccak256');
-const { toBN } = require('../test/helpers/utils');
 const Wallet = require('ethereumjs-wallet').default;
 const { promisify } = require('util');
 const randomBytesAsync = promisify(require('crypto').randomBytes);
-const { ether, BN } = require('@openzeppelin/test-helpers');
 const qr = require('qr-image');
 const fs = require('fs');
 const path = require('path');
@@ -19,7 +18,7 @@ const flagSaveQr = true; // true - generate QR-codes, false - don't
 const flagSaveLink = true; // true - generate links list, false - don't
 
 // 10 - 1, 10 - 140, 20 - 140, 30 - 210, 40 - 140, 50 - 70
-const AMOUNTS = [ether('1'), ether('10'), ether('20'), ether('30'), ether('40'), ether('50')];
+const AMOUNTS = [ethers.parseEther('1'), ethers.parseEther('10'), ethers.parseEther('20'), ethers.parseEther('30'), ethers.parseEther('40'), ethers.parseEther('50')];
 const COUNTS = [10, 140, 140, 210, 140, 70];
 
 const VERSION = 27;
@@ -33,7 +32,7 @@ const validateRoot = ''; // merkle root
 const PREFIX = 'https://app.1inch.io/#/1/qr?';
 
 function makeDrop (wallets, amounts) {
-    const elements = wallets.map((w, i) => w + toBN(amounts[i]).toString(16, 64));
+    const elements = wallets.map((w, i) => w + amounts[i].toString(16).padStart(64, '0'));
     const leaves = elements.map(keccak128).map(x => MerkleTree.bufferToHex(x));
     const tree = new MerkleTree(leaves, keccak128, { sortPairs: true });
     const root = tree.getHexRoot();
@@ -80,7 +79,7 @@ function saveQr (i, test, url) {
 
 function verifyProof (wallet, amount, proof, root) {
     const tree = new MerkleTree([], keccak128, { sortPairs: true });
-    const element = wallet + toBN(amount).toString(16, 64);
+    const element = wallet + amount.toString(16).padStart(64, '0');
     const node = MerkleTree.bufferToHex(keccak128(element));
     if (flagValidateOnly) {
         console.log('root : ' + root);
@@ -106,7 +105,7 @@ function uriDecode (s, root) {
 
     const key = kBuf.toString('hex').padStart(64, '0');
     const wallet = Wallet.fromPrivateKey(Buffer.from(key, 'hex')).getAddressString();
-    const amount = new BN(aBuf.toString('hex'), 16).toString();
+    const amount = BigInt('0x' + aBuf.toString('hex'));
 
     return verifyProof(wallet, amount, proof, root);
 }
@@ -114,7 +113,7 @@ function uriDecode (s, root) {
 function genUrl (priv, amount, proof) {
     const vBuf = Buffer.from([VERSION]);
     const kBuf = Buffer.from(priv.substring(32), 'hex');
-    const aBuf = Buffer.from(toBN(amount).toString(16, 24), 'hex');
+    const aBuf = Buffer.from(amount.toString(16).padStart(24, '0'), 'hex');
     const pBuf = Buffer.concat(proof.map(p => p.data));
 
     const baseArgs = uriEncode(Buffer.concat([vBuf, kBuf, aBuf, pBuf]));
@@ -157,7 +156,7 @@ async function main () {
     console.log('total:', amounts.length);
     const drop = makeDrop(accounts, amounts);
 
-    console.log(drop.root, amounts.reduce((acc, v) => acc.add(v), toBN('0')).toString());
+    console.log(drop.root, amounts.reduce((acc, v) => acc + v, 0n).toString());
 
     let indices = [];
     for (let i = 0; i < amounts.length; i++) {

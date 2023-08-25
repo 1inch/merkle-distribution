@@ -1,11 +1,11 @@
-require('@nomiclabs/hardhat-ethers');
-require('@nomiclabs/hardhat-etherscan');
-require('@nomiclabs/hardhat-truffle5');
-require('dotenv').config();
+require('@nomicfoundation/hardhat-verify');
+require('@nomicfoundation/hardhat-ethers');
+require('@nomicfoundation/hardhat-chai-matchers');
 require('hardhat-dependency-compiler');
 require('hardhat-deploy');
 require('hardhat-gas-reporter');
 require('solidity-coverage');
+require('dotenv').config();
 
 const { networks, etherscan } = require('./hardhat.networks');
 
@@ -18,7 +18,7 @@ module.exports = {
                 runs: 1000000,
             },
         },
-        version: '0.8.15',
+        version: '0.8.19',
     },
     namedAccounts: {
         deployer: {

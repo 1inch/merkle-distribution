@@ -1,10 +1,8 @@
 const { MerkleTree } = require('merkletreejs');
 const keccak256 = require('keccak256');
-const { toBN } = require('../test/helpers/utils');
 const Wallet = require('ethereumjs-wallet').default;
 const { promisify } = require('util');
 const randomBytesAsync = promisify(require('crypto').randomBytes);
-const { BN } = require('@openzeppelin/test-helpers');
 const qr = require('qr-image');
 
 const fs = require('fs');
@@ -34,7 +32,7 @@ function keccak128 (input) {
 }
 
 function makeDrop (wallets, amounts) {
-    const elements = wallets.map((w, i) => w + toBN(amounts[i]).toString(16, 64));
+    const elements = wallets.map((w, i) => w + BigInt(amounts[i]).toString(16).padStart(64, '0'));
     const leaves = elements.map(keccak128).map(x => MerkleTree.bufferToHex(x));
     const tree = new MerkleTree(leaves, keccak128, { sortPairs: true });
     const root = tree.getHexRoot();
@@ -63,7 +61,7 @@ function saveQr (i, url, dir) {
 
 function verifyProof (wallet, amount, proof, root, displayResults) {
     const tree = new MerkleTree([], keccak128, { sortPairs: true });
-    const element = wallet + toBN(amount).toString(16, 64);
+    const element = wallet + BigInt(amount).toString(16).padStart(64, '0');
     const node = MerkleTree.bufferToHex(keccak128(element));
     if (displayResults) {
         console.log('root : ' + root);
@@ -89,7 +87,7 @@ function uriDecode (s, root, PREFIX, displayResults) {
 
     const key = kBuf.toString('hex').padStart(64, '0');
     const wallet = Wallet.fromPrivateKey(Buffer.from(key, 'hex')).getAddressString();
-    const amount = new BN(aBuf.toString('hex'), 16).toString();
+    const amount = BigInt('0x' + aBuf.toString('hex'));
 
     return verifyProof(wallet, amount, proof, root, displayResults);
 }
@@ -97,7 +95,7 @@ function uriDecode (s, root, PREFIX, displayResults) {
 function genUrl (priv, amount, proof, version, prefix) {
     const vBuf = Buffer.from([version]);
     const kBuf = Buffer.from(priv.substring(32), 'hex');
-    const aBuf = Buffer.from(toBN(amount).toString(16, 24), 'hex');
+    const aBuf = Buffer.from(amount.toString(16).padStart(24, '0'), 'hex');
     const pBuf = Buffer.concat(proof.map(p => p.data));
 
     const baseArgs = uriEncode(Buffer.concat([vBuf, kBuf, aBuf, pBuf]));
@@ -126,16 +124,16 @@ async function main (settings) {
     const COUNTS = settings.codeCounts;
     const AMOUNTS = settings.codeAmounts;
 
-    const privs = await genPrivs(COUNTS.reduce((s, a) => s + a, 0));
+    const privs = await genPrivs(Number(COUNTS.reduce((s, a) => s + a, 0n)));
     const accounts = privs.map(p => Wallet.fromPrivateKey(Buffer.from(p, 'hex')).getAddressString());
     let amounts = [];
     for (let i = 0; i < COUNTS.length; i++) {
-        amounts = amounts.concat(Array(COUNTS[i]).fill(AMOUNTS[i]));
+        amounts = amounts.concat(Array(Number(COUNTS[i])).fill(AMOUNTS[i]));
     }
     console.log('total:', amounts.length);
     const drop = makeDrop(accounts, amounts);
 
-    console.log(drop.root, amounts.reduce((acc, v) => acc.add(v), toBN('0')).toString());
+    console.log(drop.root, amounts.reduce((acc, v) => acc + v, 0n).toString());
 
     let indices = [];
     for (let i = 0; i < amounts.length; i++) {
