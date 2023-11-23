@@ -13,6 +13,7 @@ class DropSettings {
     fileLatest = './src/.latest';
     pathQr = './src/qr';
     pathTestQr = './src/test_qr';
+    pathZip = './src/gendata';
 
     constructor (flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, chainId, flagNoVersionUpdate = false) {
         this.flagSaveQr = flagSaveQr;
@@ -133,7 +134,7 @@ async function main (settings) {
     console.log('total:', amounts.length);
     const drop = makeDrop(accounts, amounts);
 
-    console.log(drop.root, amounts.reduce((acc, v) => acc + v, 0n).toString());
+    console.log(`root: ${drop.root}`, amounts.reduce((acc, v) => acc + v, 0n).toString());
 
     let indices = [];
     for (let i = 0; i < amounts.length; i++) {

@@ -5,15 +5,16 @@ const fs = require('fs');
 const path = require('path');
 const { assert } = require('console');
 const qrdrop = require('./gen_qr_lib.js');
+const archive = require('./zip_lib.js');
 
 const commander = require('commander');
 const { exit } = require('process');
 const program = new commander.Command();
 
-// Example usage: node ./src/gen_qr_drop_cmd.js -gqlcv 28 -a 10,20,30,40,50 -n 140,140,210,140,70
-// Example usage: node ./src/gen_qr_drop_cmd.js -gqlv 28 -a 10,20,30,40,50 -n 140,140,210,140,70
-// Example usage: node ./src/gen_qr_drop_cmd.js -x -u "https://app.1inch.io/#/1/qr?d=IgA..." -r "0x347b0605206ea9851b1172ad9c2a935f"
-// Example usage: node ./src/gen_qr_drop_cmd.js -c
+// Example usage: node ./src/qrdrop.js -gqlczv 33 -a 5,10,20,30,40,50 -n 40,70,80,100,70,40
+// Example usage: node ./src/qrdrop.js -gqlv 28 -a 10,20,30,40,50 -n 140,140,210,140,70
+// Example usage: node ./src/qrdrop.js -x -u "https://app.1inch.io/#/1/qr?d=IgA..." -r "0x347b0605206ea9851b1172ad9c2a935f"
+// Example usage: node ./src/qrdrop.js -c
 program
     // generation mode
     .option('-v, --version <version>', 'deployment instance version', false)
@@ -25,6 +26,7 @@ program
     .option('-t, --testcodes <codes>', 'test codes', '10,1')
     .option('-s, --nodeploy', 'test run, ignores version', false)
     .option('-c, --cleanup', 'cleanup qr directories before codes generation', false)
+    .option('-z, --zip', 'zip qr-codes', false)
     // verification mode
     .option('-x, --validate', 'validation mode', false)
     .option('-u, --url <url>', 'qr url')
@@ -46,6 +48,7 @@ const AMOUNTS = options.amounts === undefined ? [] : options.amounts.split(',').
 const testCode = options.testcodes.split(',').map(x => BigInt(x));
 const flagNoDeploy = options.nodeploy;
 const flagCleanup = options.cleanup;
+const flagZip = options.zip;
 const flagValidateOnly = options.validate;
 const validateUrl = options.url;
 const validateRoot = options.root;
@@ -53,35 +56,45 @@ const flagWipe = options.wipe;
 const chainId = Number(options.chainid);
 
 validateArgs();
+execute();
 
-if (flagGenerateCodes) {
-    const settings = qrdrop.createNewDropSettings(flagSaveQr, flagSaveLink, COUNTS, AMOUNTS, VERSION, chainId, flagNoDeploy);
+async function execute(){
+    if (flagGenerateCodes) {
+        const settings = qrdrop.createNewDropSettings(flagSaveQr, flagSaveLink, COUNTS, AMOUNTS, VERSION, chainId, flagNoDeploy);
 
-    if (!flagNoDeploy) {
-        validateVersion(settings.version, settings.fileLatest);
+        if (!flagNoDeploy) {
+            validateVersion(settings.version, settings.fileLatest);
+        }
+
+        if (flagCleanup) {
+            archive.cleanDirs([settings.pathTestQr, settings.pathQr]);
+        }
+
+        COUNTS.unshift(testCode[0]);
+        AMOUNTS.unshift(testCode[1]);
+        AMOUNTS.forEach((element, index) => { AMOUNTS[index] = ethers.parseEther(element.toString()); });
+
+        await qrdrop.generateCodes(settings);
+
+        if (flagZip) {
+            const year_month = new Date().toISOString().slice(0, 7);
+
+            production_qr = path.join(settings.pathZip, `${settings.version}-qr-drop-${year_month}.zip`);
+            test_qr = path.join(settings.pathZip, `${settings.version}-qr-drop-test-${year_month}.zip`);
+
+            archive.zipFolders([settings.pathQr, settings.pathTestQr], [production_qr, test_qr]);
+        }
     }
 
-    if (flagCleanup) {
-        cleanDir(settings.pathTestQr);
-        cleanDir(settings.pathQr);
+    if (flagValidateOnly) {
+        const settings = qrdrop.createNewDropSettings(false, false, null, null, null, chainId, true);
+        assert(qrdrop.verifyLink(validateUrl, validateRoot, settings.prefix));
     }
 
-    COUNTS.unshift(testCode[0]);
-    AMOUNTS.unshift(testCode[1]);
-    AMOUNTS.forEach((element, index) => { AMOUNTS[index] = ethers.parseEther(element.toString()); });
-
-    qrdrop.generateCodes(settings);
-}
-
-if (flagValidateOnly) {
-    const settings = qrdrop.createNewDropSettings(false, false, null, null, null, chainId, true);
-    assert(qrdrop.verifyLink(validateUrl, validateRoot, settings.prefix));
-}
-
-if (flagWipe) {
-    const settings = qrdrop.createNewDropSettings();
-    cleanDir(settings.pathTestQr);
-    cleanDir(settings.pathQr);
+    if (flagWipe || flagZip) {
+        const settings = qrdrop.createNewDropSettings();
+        archive.cleanDirs([settings.pathTestQr, settings.pathQr]);
+    }
 }
 
 function validateArgs () {
@@ -160,19 +173,4 @@ function getLatestVersion (latestFile) {
     }
 
     return latestVersion;
-}
-
-function cleanDir (directoryPath) {
-    // Check if the directory exists and it's a directory.
-    if (!fs.existsSync(directoryPath) || !fs.statSync(directoryPath).isDirectory()) {
-        throw new Error(`Not a valid directory: ${directoryPath}`);
-    }
-
-    const files = fs.readdirSync(directoryPath);
-    for (const file of files) {
-        const filePath = path.join(directoryPath, file);
-        fs.unlinkSync(filePath);
-    }
-
-    console.log(`Directory cleaned ${directoryPath}`);
 }
