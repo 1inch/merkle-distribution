@@ -1,15 +1,15 @@
-const AdmZip = require("adm-zip");
+const AdmZip = require('adm-zip');
 const fs = require('fs');
 const path = require('path');
 
-function zipFolder(sourceDir, outputFile) {
+function zipFolder (sourceDir, outputFile) {
     const zip = new AdmZip();
     zip.addLocalFolder(sourceDir);
     zip.writeZip(outputFile);
     console.log(`Created ${outputFile}`);
 }
 
-function zipFolders(sourceDirs, outputFiles) {
+function zipFolders (sourceDirs, outputFiles) {
     if (sourceDirs.length !== outputFiles.length) {
         throw new Error('Source and output directories must be the same length');
     }
@@ -30,20 +30,18 @@ function cleanDir (directoryPath) {
         const filePath = path.join(directoryPath, file);
         fs.unlinkSync(filePath);
     }
-
-    //console.log(`Directory cleaned ${directoryPath}`);
 }
 
 function cleanDirs (directoryPaths) {
     for (const directoryPath of directoryPaths) {
         cleanDir(directoryPath);
     }
-    console.log(`Directories cleaned`);
+    console.log('Directories cleaned');
 }
-  
+
 module.exports = {
     zipFolder,
     zipFolders,
     cleanDir,
-    cleanDirs
+    cleanDirs,
 };

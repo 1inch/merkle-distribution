@@ -58,7 +58,7 @@ const chainId = Number(options.chainid);
 validateArgs();
 execute();
 
-async function execute(){
+async function execute () {
     if (flagGenerateCodes) {
         const settings = qrdrop.createNewDropSettings(flagSaveQr, flagSaveLink, COUNTS, AMOUNTS, VERSION, chainId, flagNoDeploy);
 
@@ -77,12 +77,12 @@ async function execute(){
         await qrdrop.generateCodes(settings);
 
         if (flagZip) {
-            const year_month = new Date().toISOString().slice(0, 7);
+            const dateString = new Date().toISOString().slice(0, 7);
 
-            production_qr = path.join(settings.pathZip, `${settings.version}-qr-drop-${year_month}.zip`);
-            test_qr = path.join(settings.pathZip, `${settings.version}-qr-drop-test-${year_month}.zip`);
+            const productionQr = path.join(settings.pathZip, `${settings.version}-qr-drop-${dateString}.zip`);
+            const testQr = path.join(settings.pathZip, `${settings.version}-qr-drop-test-${dateString}.zip`);
 
-            archive.zipFolders([settings.pathQr, settings.pathTestQr], [production_qr, test_qr]);
+            archive.zipFolders([settings.pathQr, settings.pathTestQr], [productionQr, testQr]);
         }
     }
 

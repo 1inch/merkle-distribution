@@ -10,7 +10,6 @@ module.exports = async ({ deployments, getNamedAccounts }) => {
     console.log('running deploy script: deploy script ' + VERSION.toString());
     console.log('network id ', await getChainId());
 
-    const { deploy } = deployments;
     const { deployer } = await getNamedAccounts();
 
     // 1inch address, merkle root, tree height
