@@ -154,7 +154,15 @@ async function main (settings) {
     }
 
     if (settings.flagSaveLink) {
-        fs.writeFileSync(settings.fileLinks, JSON.stringify(urls, null, 1));
+        const info = [];
+        for(let i = 0; i < amounts.length; i++) {
+            info.push({
+                url: urls[i],
+                amount: amounts[i].toString(),
+                index: indices[i],
+            });
+        }
+        fs.writeFileSync(settings.fileLinks, JSON.stringify(info, null, 1));
     }
 
     if (!settings.flagNoDeploy) {
