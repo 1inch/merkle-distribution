@@ -155,7 +155,7 @@ async function main (settings) {
 
     if (settings.flagSaveLink) {
         const info = [];
-        for(let i = 0; i < amounts.length; i++) {
+        for (let i = 0; i < amounts.length; i++) {
             info.push({
                 url: urls[i],
                 amount: amounts[i].toString(),
