@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.19;
+pragma solidity 0.8.23;
 
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { SafeERC20, IERC20 } from "@1inch/solidity-utils/contracts/libraries/SafeERC20.sol";
@@ -18,7 +18,7 @@ contract CumulativeMerkleDrop is Ownable, ICumulativeMerkleDrop {
     bytes32 public override merkleRoot;
     mapping(address => uint256) public cumulativeClaimed;
 
-    constructor(address token_) {
+    constructor(address token_) Ownable(msg.sender) {
         token = token_;
     }
 
