@@ -6,8 +6,9 @@ require('hardhat-deploy');
 require('hardhat-gas-reporter');
 require('solidity-coverage');
 require('dotenv').config();
+const { Networks, getNetwork } = require('@1inch/solidity-utils/hardhat-setup');
 
-const { networks, etherscan } = require('./hardhat.networks');
+const { networks, etherscan } = (new Networks()).registerAll();
 
 module.exports = {
     etherscan,
@@ -17,8 +18,9 @@ module.exports = {
                 enabled: true,
                 runs: 1000000,
             },
+            evmVersion: networks[getNetwork()]?.hardfork || 'shanghai',
         },
-        version: '0.8.19',
+        version: '0.8.23',
     },
     namedAccounts: {
         deployer: {

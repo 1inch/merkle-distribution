@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.19;
+pragma solidity 0.8.23;
 
 import { Math } from "@openzeppelin/contracts/utils/math/Math.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
@@ -27,7 +27,7 @@ contract SignatureMerkleDrop128 is ISignatureMerkleDrop128, Ownable {
 
     receive() external payable {}  // solhint-disable-line no-empty-blocks
 
-    constructor(address token_, bytes16 merkleRoot_, uint256 depth_) {
+    constructor(address token_, bytes16 merkleRoot_, uint256 depth_) Ownable(msg.sender) {
         token = token_;
         merkleRoot = merkleRoot_;
         depth = depth_;
