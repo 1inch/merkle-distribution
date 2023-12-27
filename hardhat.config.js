@@ -12,15 +12,11 @@ const { task } = require("hardhat/config");
 
 const { networks, etherscan } = (new Networks()).registerAll();
 
-// Define a new task called 'deployWithParams'
 task("deploy:qr", "Deploys contracts with custom parameters")
     .addParam("r", "Merkle root")
     .addParam("v", "Deployment version")
     .addParam("h", "Merkle tree height")
     .setAction(async (taskArgs, hre) => {
-        // You can access the parameter using taskArgs.myParam
-        console.log("Custom parameters:", taskArgs);
-
         const deploymentScript = require('./deploy/deploy_qr.js');
         const { deployments, getNamedAccounts } = hre;
         await deploymentScript({ 
