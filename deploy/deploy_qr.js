@@ -24,4 +24,3 @@ module.exports = async ({ deployments, getNamedAccounts, version, merkleRoot, me
 };
 
 module.exports.skip = async () => false;
-

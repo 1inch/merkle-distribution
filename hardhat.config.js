@@ -6,28 +6,26 @@ require('hardhat-deploy');
 require('hardhat-gas-reporter');
 require('solidity-coverage');
 require('dotenv').config();
+const { task } = require('hardhat/config');
 const { Networks, getNetwork } = require('@1inch/solidity-utils/hardhat-setup');
-const { task } = require("hardhat/config");
-
 
 const { networks, etherscan } = (new Networks()).registerAll();
 
-task("deploy:qr", "Deploys contracts with custom parameters")
-    .addParam("r", "Merkle root")
-    .addParam("v", "Deployment version")
-    .addParam("h", "Merkle tree height")
+task('deploy:qr', 'Deploys contracts with custom parameters')
+    .addParam('r', 'Merkle root')
+    .addParam('v', 'Deployment version')
+    .addParam('h', 'Merkle tree height')
     .setAction(async (taskArgs, hre) => {
         const deploymentScript = require('./deploy/deploy_qr.js');
         const { deployments, getNamedAccounts } = hre;
-        await deploymentScript({ 
+        await deploymentScript({
             deployments,
             getNamedAccounts,
             version: taskArgs.v,
             merkleRoot: taskArgs.r,
-            merkleHeight: taskArgs.h
-         });
+            merkleHeight: taskArgs.h,
+        });
     });
- 
 
 module.exports = {
     etherscan,
