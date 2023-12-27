@@ -44,6 +44,8 @@
     "coverage": "hardhat coverage",
     "deploy": "hardhat deploy --network",
     "deploy:test": "hardhat deploy",
+    "qr:deploy": "hardhat deploy:qr --network",
+    "qr:create": "node ./src/qrdrop.js -gqlczv",
     "lint": "yarn run lint:js && yarn run lint:sol",
     "lint:fix": "yarn run lint:js:fix && yarn run lint:sol:fix",
     "lint:js": "eslint .",
