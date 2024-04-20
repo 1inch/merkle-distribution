@@ -8,7 +8,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@1inch/solidity-utils": "4.0.0",
+    "@1inch/solidity-utils": "4.2.0",
     "@openzeppelin/contracts": "5.0.2",
     "adm-zip": "^0.5.12"
   },
@@ -17,7 +17,7 @@
     "@nomicfoundation/hardhat-chai-matchers": "2.0.6",
     "@nomicfoundation/hardhat-ethers": "3.0.5",
     "@nomicfoundation/hardhat-verify": "2.0.5",
-    "chai": "4.3.10",
+    "chai": "4.4.0",
     "commander": "12.0.0",
     "dotenv": "16.4.5",
     "eslint": "8.57.0",
