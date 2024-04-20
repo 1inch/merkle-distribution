@@ -11,8 +11,8 @@ const { Networks, getNetwork } = require('@1inch/solidity-utils/hardhat-setup');
 
 const { networks, etherscan } = (new Networks()).registerAll();
 
-// example : yarn qr:deploy hardhat --v 35 --r 0xc8f9f70ceaa4d05d893e74c933eed42b --h 9
 // usage   : yarn qr:deploy hardhat --v <version> --r <root> --h <height>
+// example : yarn qr:deploy hardhat --v 35 --r 0xc8f9f70ceaa4d05d893e74c933eed42b --h 9
 task('deploy:qr', 'Deploys contracts with custom parameters')
     .addParam('r', 'Merkle root')
     .addParam('v', 'Deployment version')
