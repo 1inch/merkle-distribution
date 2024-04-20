@@ -15,7 +15,7 @@ const oneInchAddresses = [
     {
         networkId: 8453, // base
         addr: '0xc5fecC3a29Fb57B5024eEc8a2239d4621e111CBE',
-    }
+    },
 ];
 
 module.exports = async ({ deployments, getNamedAccounts, version, merkleRoot, merkleHeight }) => {
@@ -24,7 +24,7 @@ module.exports = async ({ deployments, getNamedAccounts, version, merkleRoot, me
     console.log(`running deploy script: deploy script ${version} with parameters: ${merkleRoot} ${merkleHeight}`);
     console.log('network id ', chainId);
 
-    const rewardToken = oneInchAddresses.find((token) => token.networkId == chainId);
+    const rewardToken = oneInchAddresses.find((token) => token.networkId === chainId);
     if (rewardToken === undefined) {
         console.log('No reward token mapped for the chain', chainId);
         return;
