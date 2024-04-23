@@ -133,8 +133,8 @@ async function main (settings) {
     }
     console.log('total:', amounts.length);
     const drop = makeDrop(accounts, amounts);
-
-    console.log(`root: ${drop.root}`, amounts.reduce((acc, v) => acc + v, 0n).toString());
+    const totalAmount = amounts.reduce((acc, v) => acc + v, 0n);
+    console.log(`root: ${drop.root} ${totalAmount}`);
 
     let indices = [];
     for (let i = 0; i < amounts.length; i++) {
@@ -162,7 +162,16 @@ async function main (settings) {
                 index: indices[i],
             });
         }
-        fs.writeFileSync(settings.fileLinks, JSON.stringify(info, null, 1));
+
+        const fileContent = {
+            count: amounts.length,
+            root: drop.root,
+            amount: totalAmount.toString(),
+            version: settings.version,
+            codes: info,
+        };
+
+        fs.writeFileSync(settings.fileLinks, JSON.stringify(fileContent, null, 1));
     }
 
     if (!settings.flagNoDeploy) {
