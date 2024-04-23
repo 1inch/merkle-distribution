@@ -24,8 +24,9 @@ module.exports = async ({ deployments, getNamedAccounts, version, merkleRoot, me
     console.log(`running deploy script: deploy script ${version} with parameters: ${merkleRoot} ${merkleHeight}`);
     console.log('network id ', chainId);
 
-    const rewardToken = oneInchAddresses.find((token) => token.networkId === chainId);
-    if (rewardToken === undefined) {
+    const rewardToken = oneInchAddresses.find((token) => token.networkId == chainId); // eslint-disable-line eqeqeq
+
+    if (rewardToken === undefined || rewardToken.addr === undefined) {
         console.log('No reward token mapped for the chain', chainId);
         return;
     }
