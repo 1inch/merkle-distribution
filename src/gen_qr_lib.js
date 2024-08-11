@@ -32,6 +32,19 @@ function keccak128 (input) {
     return keccak256(input).slice(0, 16);
 }
 
+function ensureDirectoryExistence(dir) {
+    // Ensure the directory exists, create it recursively if not
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+}
+
+function saveFile(filePath, fileContent) {
+    const dir = path.dirname(filePath);
+    ensureDirectoryExistence(dir);
+    fs.writeFileSync(filePath, fileContent);
+}
+
 function makeDrop (wallets, amounts) {
     const elements = wallets.map((w, i) => w + BigInt(amounts[i]).toString(16).padStart(64, '0'));
     const leaves = elements.map(keccak128).map(x => MerkleTree.bufferToHex(x));
@@ -57,7 +70,7 @@ function saveQr (i, url, dir) {
     // console.log(url);
     const code = qr.imageSync(url, { type: 'png' });
     const qrfile = path.join(dir, `${i}.png`);
-    fs.writeFileSync(qrfile, code);
+    saveFile(qrfile, code);
 }
 
 function verifyProof (wallet, amount, proof, root, displayResults) {
@@ -171,11 +184,11 @@ async function main (settings) {
             codes: info,
         };
 
-        fs.writeFileSync(settings.fileLinks, JSON.stringify(fileContent, null, 1));
+        saveFile(settings.fileLinks, JSON.stringify(fileContent, null, 1));
     }
 
     if (!settings.flagNoDeploy) {
-        fs.writeFileSync(settings.fileLatest, settings.version.toString());
+        saveFile(settings.fileLatest, settings.version.toString());
     }
 }
 
