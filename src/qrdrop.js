@@ -9,6 +9,7 @@ const archive = require('./zip_lib.js');
 
 const commander = require('commander');
 const { exit } = require('process');
+const {DropSettings} = require("./gen_qr_lib");
 const program = new commander.Command();
 
 // Example usage: node ./src/qrdrop.js -gqlczv 33 -a 5,10,20,30,40,50 -n 40,70,80,100,70,40
@@ -92,8 +93,7 @@ async function execute () {
     }
 
     if (flagWipe || flagZip) {
-        const settings = qrdrop.createNewDropSettings();
-        archive.cleanDirs([settings.pathTestQr, settings.pathQr]);
+        archive.cleanDirs([DropSettings.pathTestQr, DropSettings.pathQr]);
     }
 }
 
