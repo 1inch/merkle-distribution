@@ -1,5 +1,5 @@
 /*
- generate merkle tree, to pass to INFTMerkleDrop.sol as well as urls and qr codes
+ generate merkle tree, to pass to NFTMerkleDrop.sol as well as urls and qr codes
  uses qrdrop.js as a base but receive another input format vlow and generates output under /nft_drop subdir
   input:
     {
