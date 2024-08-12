@@ -7,11 +7,14 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { MerkleProof } from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
-import { INFTMerkleDrop } from "./INFTMerkleDrop.sol";
+import { INFTMerkleDrop } from  "./interfaces/INFTMerkleDrop.sol";
 
 contract NFTMerkleDrop is Ownable, INFTMerkleDrop {
     bytes32 public override merkleRoot;
     mapping(address => bool) public claimed;
+
+    // Constructor to pass the initial owner address to the Ownable contract
+    constructor(address initialOwner) Ownable(initialOwner) {}
 
     function setMerkleRoot(bytes32 merkleRoot_) external override onlyOwner {
         emit MerkelRootUpdated(merkleRoot, merkleRoot_);
