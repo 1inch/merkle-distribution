@@ -6,12 +6,21 @@
         nft_id -> account
     }
 
-Example:
+Generation example:
     /usr/local/bin/node ./src/nft_drop/nft_drop.js -gqlzm 0=0x742d35Cc6634C0532925a3b844Bc454e4438f44e,1=0x53d284357ec70ce289d6d64134dfac8e511c8a3d
 Output:
     root: 0x877f9206c3851f0b52f6db59bf278d09 leaves num: 2
     Created src/nft_drop/gendata/1-nft-drop-2024-08.zip
     Created src/nft_drop/gendata/1-nft-drop-test-2024-08.zip
+
+Validation example:
+    /usr/local/bin/node /Users/Arseniy/PycharmProjects/merkle-distribution/src/nft_drop/nft_drop.js -x -u https://app.lostbodystore.io/#/1/qr?d=AadSkmoSppsdyp5WO54eGESWBMNqxOvkvqPVipyiiwD1 -r 0x877f9206c3851f0b52f6db59bf278d09
+Output:
+    root : 0x877f9206c3851f0b52f6db59bf278d09
+    proof: 9604c36ac4ebe4bea3d58a9ca28b00f5
+    leaf : a752926a12a69b1dca9e563b9e1e1844
+    version : 1
+    isValid : true
 
 */
 
@@ -19,8 +28,11 @@ const { program } = require('commander');
 const fs = require('fs');
 const path = require('path');
 const archive = require('./../zip_lib.js');
-const { createNewNFTDropSettings, generateNFTCodes, NFTDropSettings} = require('./gen_nft_lib');
+const { createNewNFTDropSettings, generateNFTCodes, NFTDropSettings, nftUriDecode} = require('./gen_nft_lib');
 const { ensureDirectoryExistence, getLatestVersion, validateVersion } = require('./../gen_qr_lib');
+const {exit} = require("process");
+const qrdrop = require("../gen_qr_lib");
+const {assert} = require("console");
 
 program
     // generation mode
@@ -31,8 +43,16 @@ program
     .option('-m, --mapping <mapping>', 'NFT ID to account mapping (JSON format or as key=value pairs separated by commas)')
     .option('-s, --nodeploy', 'test run, ignores version', false)
     .option('-c, --cleanup', 'cleanup directories before codes generation', false)
-    .option('-z, --zip', 'zip generated codes', false)
+    .option('-z, --zip', 'zip qr-codes', false)
+    // verification mode
+    .option('-x, --validate', 'validation mode', false)
+    .option('-u, --url <url>', 'qr url')
+    .option('-r, --root <root>', 'merkle root')
+    // cleanup mode
+    .option('-w, --wipe', 'clean up qr directories', false)
+    // general parameters generation and validation
     .option('-b, --chainid <chainid>', 'chain id', '1');
+
 
 program.parse(process.argv);
 
@@ -52,13 +72,17 @@ const flagCleanup = options.cleanup;
 const flagZip = options.zip;
 const chainId = Number(options.chainid);
 
+const flagValidateOnly = options.validate;
+const validateUrl = options.url;
+const validateRoot = options.root;
+const flagWipe = options.wipe;
+
 validateArgs();
 execute();
 
 async function execute() {
+    const settings = createNewNFTDropSettings(flagSaveQr, flagSaveLink, nftMapping, VERSION, chainId, flagNoDeploy);
     if (flagGenerateCodes) {
-        const settings = createNewNFTDropSettings(flagSaveQr, flagSaveLink, nftMapping, VERSION, chainId, flagNoDeploy);
-
         if (!flagNoDeploy) {
             validateVersion(settings.version, settings.fileLatest);
         }
@@ -80,9 +104,19 @@ async function execute() {
             archive.zipFolders([settings.pathQr, settings.pathTestQr], [productionQr, testQr]);
         }
     }
+    if (flagValidateOnly) {
+        assert(nftUriDecode(validateUrl, validateRoot, settings.prefix, null, true));
+    }
+
+    if (flagWipe || (flagGenerateCodes && flagZip)) {
+        archive.cleanDirs([settings.pathTestQr, settings.pathQr]);
+    }
 }
 
 function parseMapping(mapping) {
+    if (!mapping) {
+        return {};
+    }
     try {
         return JSON.parse(mapping);
     } catch {
@@ -100,12 +134,13 @@ function isValidVersion(version) {
 }
 
 function validateArgs() {
-    if (Number(flagGenerateCodes) !== 1) {
-        console.error('Please specify mode: "generate codes" (-g)');
-        process.exit(1);
+    // Validate input
+    if (Number(flagGenerateCodes) + Number(flagValidateOnly) + Number(flagWipe) !== 1) {
+        console.error('please specify mode, either "generate codes" or "validate code" or "cleanup": -g or -x or -c, respectively');
+        exit(1);
     }
 
-    if (!nftMapping || typeof nftMapping !== 'object' || Object.keys(nftMapping).length === 0) {
+    if (Number(flagGenerateCodes) === 1 && (!nftMapping || typeof nftMapping !== 'object' || Object.keys(nftMapping).length === 0)) {
         console.error('Invalid NFT ID to account mapping. Provide in JSON format or as key=value pairs.');
         process.exit(1);
     }
@@ -118,6 +153,13 @@ function validateArgs() {
     if (isNaN(chainId) || chainId <= 0) {
         console.error('Invalid chain ID. Must be a positive integer.');
         process.exit(1);
+    }
+
+    if (flagValidateOnly) {
+        if (!validateUrl || !validateRoot) {
+            console.error('please specify url and root for validation: -u and -r, respectively');
+            exit(1);
+        }
     }
 }
 

@@ -36,7 +36,7 @@ function cleanDirs (directoryPaths) {
     for (const directoryPath of directoryPaths) {
         cleanDir(directoryPath);
     }
-    console.log('Directories cleaned');
+    console.log(`Directories cleaned: ${directoryPaths}`);
 }
 
 module.exports = {

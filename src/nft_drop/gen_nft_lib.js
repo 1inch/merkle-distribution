@@ -63,7 +63,7 @@ function makeNFTDrop(nftMapping, settings) {
         const url = nftGenUrl(leaf, proof, settings.version, settings.prefix);
 
         // Assert to check if the URL can be correctly decoded and verified against the Merkle root
-        assert(nftUriDecode(url, root, settings.prefix, settings.version, false));
+        assert(nftUriDecode(url, root, settings.prefix, settings.version));
 
         // Create a new Recipient object and add it to the recipients array
         const recipient = new Recipient(url, tokenId, account, leaf);
@@ -82,7 +82,7 @@ function nftGenUrl (leaf, proof, version, prefix) {
     return prefix + 'd=' + uriEncode(Buffer.concat([vBuf, lBuf, pBuf]));
 }
 
-function nftUriDecode(s, root, prefix, expectedVersion, displayResults) {
+function nftUriDecode(s, root, prefix, expectedVersion = null, displayResults = false) {
     // Decode the base64-encoded string from the URL
     const b = Buffer.from(s.substring(prefix.length + 2).replace(/-/g, '+').replace(/_/g, '/').replace(/!/g, '='), 'base64');
 
@@ -90,7 +90,7 @@ function nftUriDecode(s, root, prefix, expectedVersion, displayResults) {
     const version = b.subarray(0, 1).readUInt8(0);
 
     // Compare the extracted version with the expected version
-    if (version !== expectedVersion) {
+    if (expectedVersion !== null && version !== expectedVersion) {
         throw new Error(`Version mismatch: expected ${expectedVersion}, but got ${version}`);
     }
 
@@ -162,4 +162,5 @@ module.exports = {
     generateNFTCodes: main,
     createNewNFTDropSettings,
     NFTDropSettings,
+    nftUriDecode,
 };
