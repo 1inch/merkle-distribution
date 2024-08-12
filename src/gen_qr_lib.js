@@ -9,13 +9,12 @@ const fs = require('fs');
 const path = require('path');
 const { assert } = require('console');
 
-class DropSettings {
-    fileLatest = './src/.latest';
-    pathQr = './src/qr';
-    pathTestQr = './src/test_qr';
-    pathZip = './src/gendata';
+class AbstractDropSettings {
+    constructor(flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, chainId = 1, flagNoVersionUpdate = false) {
+        if (new.target === AbstractDropSettings) {
+            throw new Error("Cannot instantiate an abstract class.");
+        }
 
-    constructor (flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, chainId, flagNoVersionUpdate = false) {
         this.flagSaveQr = flagSaveQr;
         this.flagSaveLink = flagSaveLink;
         this.flagNoDeploy = flagNoVersionUpdate;
@@ -23,8 +22,25 @@ class DropSettings {
         this.codeAmounts = codeAmounts;
         this.version = version;
         this.chainId = chainId;
-        this.fileLinks = `./src/gendata/${version}-qr-links.json`;
+
+        // Derived paths using the abstract root path
+        this.fileLatest = `${this.constructor.root}/.latest`;
+        this.pathQr = `${this.constructor.root}/qr`;
+        this.pathTestQr = `${this.constructor.root}/test_qr`;
+        this.pathZip = `${this.constructor.root}/gendata`;
+        this.fileLinks = `${this.pathZip}/${version}-qr-links.json`;
         this.prefix = `https://app.1inch.io/#/${chainId}/qr?`;
+    }
+
+    // Abstract getter for the root path (should be overridden by subclasses)
+    static get root() {
+        throw new Error("Subclasses must define a root path.");
+    }
+}
+
+class DropSettings extends AbstractDropSettings {
+    static get root() {
+        return './src';
     }
 }
 
@@ -45,12 +61,24 @@ function saveFile(filePath, fileContent) {
     fs.writeFileSync(filePath, fileContent);
 }
 
-function makeDrop (wallets, amounts) {
+function makeDrop(wallets, amounts) {
+    // Create an array of elements by concatenating each wallet address with the corresponding amount
+    // in hexadecimal format, padded to 64 characters.
     const elements = wallets.map((w, i) => w + BigInt(amounts[i]).toString(16).padStart(64, '0'));
+
+    // Generate a Merkle Tree leaf by hashing each element with keccak128 and converting it to a hexadecimal string.
     const leaves = elements.map(keccak128).map(x => MerkleTree.bufferToHex(x));
+
+    // Create a Merkle Tree from the leaves using keccak128 as the hashing function and sort the pairs for consistency.
     const tree = new MerkleTree(leaves, keccak128, { sortPairs: true });
+
+    // Obtain the Merkle root, which is the top node of the tree.
     const root = tree.getHexRoot();
+
+    // Generate a proof for each leaf in the Merkle Tree. A proof is used to verify that a leaf is part of the tree.
     const proofs = leaves.map(tree.getProof, tree);
+
+    // Return an object containing the elements, leaves, Merkle root, and proofs.
     return { elements, leaves, root, proofs };
 }
 
@@ -138,7 +166,8 @@ async function main (settings) {
     const COUNTS = settings.codeCounts;
     const AMOUNTS = settings.codeAmounts;
 
-    const privs = await genPrivs(Number(COUNTS.reduce((s, a) => s + a, 0n)));
+    const totalCodes = Number(COUNTS.reduce((s, a) => s + a, 0n));
+    const privs = await genPrivs(totalCodes);
     const accounts = privs.map(p => Wallet.fromPrivateKey(Buffer.from(p, 'hex')).getAddressString());
     let amounts = [];
     for (let i = 0; i < COUNTS.length; i++) {
@@ -196,13 +225,19 @@ function verifyLink (url, root, prefix) {
     return uriDecode(url, root, prefix, true);
 }
 
-function createNewDropSettings (flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, flagNoDeploy, chainId) {
-    const settings = new DropSettings(flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, flagNoDeploy, chainId);
-    return settings;
+function createNewDropSettings (flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, chainId, flagNoDeploy) {
+    return new DropSettings(flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, chainId, flagNoDeploy);
 }
 
 module.exports = {
     generateCodes: main,
     verifyLink,
     createNewDropSettings,
+    AbstractDropSettings,
+    DropSettings,
+    keccak128,
+    uriEncode,
+    saveFile,
+    saveQr,
+    ensureDirectoryExistence,
 };
