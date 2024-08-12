@@ -8,6 +8,7 @@ const qr = require('qr-image');
 const fs = require('fs');
 const path = require('path');
 const { assert } = require('console');
+const {exit} = require("process");
 
 class AbstractDropSettings {
     constructor(flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, chainId = 1, flagNoVersionUpdate = false) {
@@ -23,18 +24,42 @@ class AbstractDropSettings {
         this.version = version;
         this.chainId = chainId;
 
-        // Derived paths using the abstract root path
-        this.fileLatest = `${this.constructor.root}/.latest`;
-        this.pathQr = `${this.constructor.root}/qr`;
-        this.pathTestQr = `${this.constructor.root}/test_qr`;
-        this.pathZip = `${this.constructor.root}/gendata`;
-        this.fileLinks = `${this.pathZip}/${version}-qr-links.json`;
+        // Class-specific
+        this.fileLatest = this.constructor.fileLatest;
+        this.root = this.constructor.root;
+        this.pathQr = this.constructor.pathQr;
+        this.pathTestQr = this.constructor.pathTestQr;
+        this.pathZip = this.constructor.pathZip;
+
+        // Instance-specific
+        this.fileLinks = `${this.constructor.pathZip}/${version}-qr-links.json`;
         this.prefix = `https://app.1inch.io/#/${chainId}/qr?`;
     }
 
-    // Abstract getter for the root path (should be overridden by subclasses)
+    // Static getter for the root path (should be overridden by subclasses)
     static get root() {
         throw new Error("Subclasses must define a root path.");
+    }
+
+    // Static getter for fileLatest
+    static get fileLatest() {
+        return `${this.root}/.latest`;
+    }
+    // Instance getter for fileLatest
+
+    // Static getter for pathQr
+    static get pathQr() {
+        return `${this.root}/qr`;
+    }
+
+    // Static getter for pathTestQr
+    static get pathTestQr() {
+        return `${this.root}/test_qr`;
+    }
+
+    // Static getter for pathZip
+    static get pathZip() {
+        return `${this.root}/gendata`;
     }
 }
 
@@ -229,6 +254,30 @@ function createNewDropSettings (flagSaveQr, flagSaveLink, codeCounts, codeAmount
     return new DropSettings(flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, chainId, flagNoDeploy);
 }
 
+
+function validateVersion (version, latestFile) {
+    const latestVersion = getLatestVersion(latestFile);
+    if (version <= latestVersion) {
+        console.error('version should be greater than ' + latestVersion.toString());
+        exit(1);
+    }
+}
+
+function getLatestVersion (latestFile) {
+    if (!fs.existsSync(latestFile)) {
+        saveFile(latestFile, '0');
+        return 0;
+    }
+
+    const latestVersion = Number(fs.readFileSync(latestFile));
+    if (isNaN(latestVersion) || latestVersion < 0) {
+        console.log('WARNING! version file is corrupted');
+        exit(1);
+    }
+
+    return latestVersion;
+}
+
 module.exports = {
     generateCodes: main,
     verifyLink,
@@ -240,4 +289,6 @@ module.exports = {
     saveFile,
     saveQr,
     ensureDirectoryExistence,
+    validateVersion,
+    getLatestVersion,
 };

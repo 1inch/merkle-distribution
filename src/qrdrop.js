@@ -63,7 +63,7 @@ async function execute () {
         const settings = qrdrop.createNewDropSettings(flagSaveQr, flagSaveLink, COUNTS, AMOUNTS, VERSION, chainId, flagNoDeploy);
 
         if (!flagNoDeploy) {
-            validateVersion(settings.version, settings.fileLatest);
+            qrdrop.validateVersion(settings.version, settings.fileLatest);
         }
 
         if (flagCleanup) {
@@ -151,26 +151,4 @@ function validateArgs () {
 
 function isNotIntegerAboveZero (value) {
     return !(value > 0);
-}
-
-function validateVersion (version, latestFile) {
-    const latestVersion = getLatestVersion(latestFile);
-    if (version <= latestVersion) {
-        console.error('version should be greater than ' + latestVersion.toString());
-        exit(1);
-    }
-}
-
-function getLatestVersion (latestFile) {
-    if (!fs.existsSync(latestFile)) {
-        return 0;
-    }
-
-    const latestVersion = Number(fs.readFileSync(latestFile));
-    if (isNaN(latestVersion) || latestVersion < 0) {
-        console.log('WARNING! version file is corrupted');
-        exit(1);
-    }
-
-    return latestVersion;
 }

@@ -7,19 +7,24 @@
     }
 
 Example:
-    src/nft_drop/nft_drop.js -gsqlzv 45 -m node nft_drop.js -gsqlzv 45 -m 0=0x742d35Cc6634C0532925a3b844Bc454e4438f44e,1=0x53d284357ec70ce289d6d64134dfac8e511c8a3d
+    /usr/local/bin/node ./src/nft_drop/nft_drop.js -gqlzm 0=0x742d35Cc6634C0532925a3b844Bc454e4438f44e,1=0x53d284357ec70ce289d6d64134dfac8e511c8a3d
+Output:
+    root: 0x877f9206c3851f0b52f6db59bf278d09 leaves num: 2
+    Created src/nft_drop/gendata/1-nft-drop-2024-08.zip
+    Created src/nft_drop/gendata/1-nft-drop-test-2024-08.zip
+
 */
 
 const { program } = require('commander');
 const fs = require('fs');
 const path = require('path');
 const archive = require('./../zip_lib.js');
-const { createNewNFTDropSettings, generateNFTCodes } = require('./gen_nft_lib');
-const { ensureDirectoryExistence } = require('./../gen_qr_lib');
+const { createNewNFTDropSettings, generateNFTCodes, NFTDropSettings} = require('./gen_nft_lib');
+const { ensureDirectoryExistence, getLatestVersion, validateVersion } = require('./../gen_qr_lib');
 
 program
     // generation mode
-    .option('-v, --version <version>', 'deployment instance version', false)
+    .option('-v, --version', 'deployment instance version', false)
     .option('-g, --gencodes', 'generate NFT drop codes mode', false)
     .option('-q, --qrs', 'generate qr: ', false)
     .option('-l, --links', 'generate links: ', false)
@@ -32,7 +37,12 @@ program
 program.parse(process.argv);
 
 const options = program.opts();
-const VERSION = Number(options.version);
+let _v = Number(options.version);
+if (!isValidVersion(_v)) {
+    _v = getLatestVersion(NFTDropSettings.fileLatest) + 1;
+}
+const VERSION = _v;
+
 const flagGenerateCodes = options.gencodes;
 const flagSaveQr = options.qrs;
 const flagSaveLink = options.links;
@@ -85,6 +95,10 @@ function parseMapping(mapping) {
     }
 }
 
+function isValidVersion(version) {
+    return !(isNaN(version) || version <= 0);
+}
+
 function validateArgs() {
     if (Number(flagGenerateCodes) !== 1) {
         console.error('Please specify mode: "generate codes" (-g)');
@@ -96,8 +110,8 @@ function validateArgs() {
         process.exit(1);
     }
 
-    if (isNaN(VERSION) || VERSION <= 0) {
-        console.error('Invalid version. Must be a positive integer.');
+    if (!isValidVersion(VERSION)) {
+        console.error(`Invalid version ${VERSION}. Must be a positive integer.`);
         process.exit(1);
     }
 
@@ -107,19 +121,6 @@ function validateArgs() {
     }
 }
 
-function getLatestVersion(latestFile) {
-    if (!fs.existsSync(latestFile)) {
-        return 0;
-    }
-
-    const latestVersion = Number(fs.readFileSync(latestFile));
-    if (isNaN(latestVersion) || latestVersion < 0) {
-        console.log('WARNING! Version file is corrupted');
-        process.exit(1);
-    }
-
-    return latestVersion;
-}
 
 module.exports = {
     execute
