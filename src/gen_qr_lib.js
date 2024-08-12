@@ -11,8 +11,8 @@ const { assert } = require('console');
 
 class DropSettings {
     fileLatest = './src/.latest';
-    pathQr = './src/qr';
-    pathTestQr = './src/test_qr';
+    static pathQr = './src/qr';
+    static pathTestQr = './src/test_qr';
     pathZip = './src/gendata';
 
     constructor (flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, chainId, flagNoVersionUpdate = false) {
@@ -25,6 +25,9 @@ class DropSettings {
         this.chainId = chainId;
         this.fileLinks = `./src/gendata/${version}-qr-links.json`;
         this.prefix = `https://app.1inch.io/#/${chainId}/qr?`;
+        // Copy static properties to the instance
+        this.pathQr = DropSettings.pathQr;
+        this.pathTestQr = DropSettings.pathTestQr;
     }
 }
 
@@ -32,12 +35,37 @@ function keccak128 (input) {
     return keccak256(input).slice(0, 16);
 }
 
-function makeDrop (wallets, amounts) {
+function ensureDirectoryExistence(dir) {
+    // Ensure the directory exists, create it recursively if not
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+}
+
+function saveFile(filePath, fileContent) {
+    const dir = path.dirname(filePath);
+    ensureDirectoryExistence(dir);
+    fs.writeFileSync(filePath, fileContent);
+}
+
+function makeDrop(wallets, amounts) {
+    // Create an array of elements by concatenating each wallet address with the corresponding amount
+    // in hexadecimal format, padded to 64 characters.
     const elements = wallets.map((w, i) => w + BigInt(amounts[i]).toString(16).padStart(64, '0'));
+
+    // Generate a Merkle Tree leaf by hashing each element with keccak128 and converting it to a hexadecimal string.
     const leaves = elements.map(keccak128).map(x => MerkleTree.bufferToHex(x));
+
+    // Create a Merkle Tree from the leaves using keccak128 as the hashing function and sort the pairs for consistency.
     const tree = new MerkleTree(leaves, keccak128, { sortPairs: true });
+
+    // Obtain the Merkle root, which is the top node of the tree.
     const root = tree.getHexRoot();
+
+    // Generate a proof for each leaf in the Merkle Tree. A proof is used to verify that a leaf is part of the tree.
     const proofs = leaves.map(tree.getProof, tree);
+
+    // Return an object containing the elements, leaves, Merkle root, and proofs.
     return { elements, leaves, root, proofs };
 }
 
@@ -57,7 +85,7 @@ function saveQr (i, url, dir) {
     // console.log(url);
     const code = qr.imageSync(url, { type: 'png' });
     const qrfile = path.join(dir, `${i}.png`);
-    fs.writeFileSync(qrfile, code);
+    saveFile(qrfile, code);
 }
 
 function verifyProof (wallet, amount, proof, root, displayResults) {
@@ -125,7 +153,8 @@ async function main (settings) {
     const COUNTS = settings.codeCounts;
     const AMOUNTS = settings.codeAmounts;
 
-    const privs = await genPrivs(Number(COUNTS.reduce((s, a) => s + a, 0n)));
+    const totalCodes = Number(COUNTS.reduce((s, a) => s + a, 0n));
+    const privs = await genPrivs(totalCodes);
     const accounts = privs.map(p => Wallet.fromPrivateKey(Buffer.from(p, 'hex')).getAddressString());
     let amounts = [];
     for (let i = 0; i < COUNTS.length; i++) {
@@ -171,11 +200,11 @@ async function main (settings) {
             codes: info,
         };
 
-        fs.writeFileSync(settings.fileLinks, JSON.stringify(fileContent, null, 1));
+        saveFile(settings.fileLinks, JSON.stringify(fileContent, null, 1));
     }
 
     if (!settings.flagNoDeploy) {
-        fs.writeFileSync(settings.fileLatest, settings.version.toString());
+        saveFile(settings.fileLatest, settings.version.toString());
     }
 }
 
@@ -183,13 +212,13 @@ function verifyLink (url, root, prefix) {
     return uriDecode(url, root, prefix, true);
 }
 
-function createNewDropSettings (flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, flagNoDeploy, chainId) {
-    const settings = new DropSettings(flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, flagNoDeploy, chainId);
-    return settings;
+function createNewDropSettings (flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, chainId, flagNoDeploy) {
+    return new DropSettings(flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, chainId, flagNoDeploy);
 }
 
 module.exports = {
     generateCodes: main,
     verifyLink,
     createNewDropSettings,
+    DropSettings,
 };
