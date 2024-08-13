@@ -13,6 +13,7 @@ class NFTDropSettings extends AbstractDropSettings {
         super(flagSaveQr, flagSaveLink, Object.keys(nftMapping), Object.values(nftMapping), version, chainId, flagNoVersionUpdate);
         this.nftMapping = nftMapping;
         // TODO move to config
+        this.fileLinks = `${this.constructor.pathZip}/${version}-ntf-drop.json`;
         this.prefix = `https://app.lostbodystore.io/#/${chainId}/qr?`;
     }
 }
@@ -22,12 +23,20 @@ function createNewNFTDropSettings(flagSaveQr, flagSaveLink, nftMapping, version,
 }
 
 class Recipient {
-    constructor(url, tokenId, account, leaf) {
+    constructor(url, tokenId, account, proof) {
         this.url = url;           // The drop URL
         this.tokenId = tokenId;   // The NFT ID
         this.account = account;   // The associated Ethereum account
-        this.leaf = leaf;         // The leaf node in the Merkle tree
+        this.proof = proof;       // The leaf proof from the Merkle tree in hex
     }
+}
+function formatProof(proof) {
+    return proof.map(p => {
+        return {
+            position: p.position,
+            data: '0x' + p.data.toString('hex')
+        };
+    });
 }
 
 function makeNFTDrop(nftMapping, settings) {
@@ -62,11 +71,13 @@ function makeNFTDrop(nftMapping, settings) {
         // Generate the URL using the leaf and proof
         const url = nftGenUrl(leaf, proof, settings.version, settings.prefix);
 
+        const formattedProof = formatProof(proof);
+
         // Assert to check if the URL can be correctly decoded and verified against the Merkle root
         assert(nftUriDecode(url, root, settings.prefix, settings.version));
 
         // Create a new Recipient object and add it to the recipients array
-        const recipient = new Recipient(url, tokenId, account, leaf);
+        const recipient = new Recipient(url, tokenId, account, formattedProof);
         recipients.push(recipient);
     });
 
@@ -128,28 +139,28 @@ async function main(settings) {
 
     const drop = makeNFTDrop(nftMapping, settings);
 
-    console.log(`root: ${drop.root} leaves num: ${drop.recipients.length}`);
+    console.log(`Generated NFT drop version ${settings.version}; root: ${drop.root}; proofs num: ${drop.recipients.length}`);
 
     const recipients = drop.recipients;
-    recipients.forEach(recipient => {
-        // Store the URL in the mapping
 
-        // Optionally save the QR code if required
-        if (settings.flagSaveQr) {
+    // Optionally save the QR code if required
+    if (settings.flagSaveQr) {
+        recipients.forEach(recipient => {
             saveQr(recipient.tokenId, recipient.url, settings.pathQr);
-        }
-    });
+        });
+    }
 
+    // Optionally (but by default): store metadata
     if (settings.flagSaveLink) {
         const fileContent = {
             root: drop.root,
-            nftMapping: nftMapping.toString(),
             version: settings.version,
             totalRecipients: drop.recipients.length,
             recipients: recipients,
         };
 
         saveFile(settings.fileLinks, JSON.stringify(fileContent, null, 1));
+        console.log(`Output saved to: ${settings.fileLinks}`);
     }
 
     if (!settings.flagNoDeploy) {

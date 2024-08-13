@@ -32,13 +32,30 @@ function cleanDir (directoryPath) {
     }
 }
 
-function cleanDirs (directoryPaths) {
+function cleanDirs(directoryPaths) {
     for (const directoryPath of directoryPaths) {
-        cleanDir(directoryPath);
-    }
-    console.log(`Directories cleaned: ${directoryPaths}`);
-}
+        if (fs.existsSync(directoryPath)) {
+            const files = fs.readdirSync(directoryPath);
+            const fileGroups = {};
 
+            for (const file of files) {
+                const ext = path.extname(file) || 'no extension';
+                if (!fileGroups[ext]) {
+                    fileGroups[ext] = 0;
+                }
+                fileGroups[ext] += 1;
+
+                const filePath = path.join(directoryPath, file);
+                fs.unlinkSync(filePath);
+            }
+
+            console.log(`Cleaned files from: ${directoryPath}`);
+            for (const [ext, count] of Object.entries(fileGroups)) {
+                console.log(` - ${count} file(s) with ${ext === 'no extension' ? 'no extension' : `${ext} extension`}`);
+            }
+        }
+    }
+}
 module.exports = {
     zipFolder,
     zipFolders,

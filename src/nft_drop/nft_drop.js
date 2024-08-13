@@ -1,37 +1,64 @@
-/*
- generate merkle tree, to pass to NFTMerkleDrop.sol as well as urls and qr codes
- uses qrdrop.js as a base but receive another input format vlow and generates output under /nft_drop subdir
-  input:
-    {
-        nft_id -> account
-    }
-
-Generation example:
-    /usr/local/bin/node ./src/nft_drop/nft_drop.js -gqlzm 0=0x742d35Cc6634C0532925a3b844Bc454e4438f44e,1=0x53d284357ec70ce289d6d64134dfac8e511c8a3d
-Output:
-    root: 0x877f9206c3851f0b52f6db59bf278d09 leaves num: 2
-    Created src/nft_drop/gendata/1-nft-drop-2024-08.zip
-    Created src/nft_drop/gendata/1-nft-drop-test-2024-08.zip
-
-Validation example:
-    /usr/local/bin/node /Users/Arseniy/PycharmProjects/merkle-distribution/src/nft_drop/nft_drop.js -x -u https://app.lostbodystore.io/#/1/qr?d=AadSkmoSppsdyp5WO54eGESWBMNqxOvkvqPVipyiiwD1 -r 0x877f9206c3851f0b52f6db59bf278d09
-Output:
-    root : 0x877f9206c3851f0b52f6db59bf278d09
-    proof: 9604c36ac4ebe4bea3d58a9ca28b00f5
-    leaf : a752926a12a69b1dca9e563b9e1e1844
-    version : 1
-    isValid : true
-
-*/
+/**
+ * NFT Drop Generation and Validation Script
+ *
+ * This script generates a Merkle tree for NFT drops, which can be passed to the `NFTMerkleDrop.sol` contract.
+ * Additionally, it generates URLs and QR codes for each NFT drop and outputs the results under the `/nft_drop` subdirectory.
+ * The script is based on `qrdrop.js` but uses a different input format and output structure.
+ *
+ * ## Generation Example:
+ *
+ * Command:
+ * ```
+ * /usr/local/bin/node /Users/Arseniy/PycharmProjects/merkle-distribution/src/nft_drop/nft_drop.js -gf ./input/0.json
+ * ```
+ * Output:
+ * ```
+ * Generated NFT drop version 9; root: 0x877f9206c3851f0b52f6db59bf278d09; proofs num: 2
+ * Output saved to: ./src/nft_drop/gendata/9-nft-drop.json
+ * ```
+ *
+ * ## Example Using Mapping Passed via Arguments:
+ *
+ * This example also creates QR codes and ZIP archives:
+ *
+ * Command:
+ * ```
+ * /usr/local/bin/node ./src/nft_drop/nft_drop.js -gqlzm 0=0x742d35Cc6634C0532925a3b844Bc454e4438f44e,1=0x53d284357ec70ce289d6d64134dfac8e511c8a3d
+ * ```
+ * Output:
+ * ```
+ * Output saved to: ./src/nft_drop/gendata/10-nft-drop.json
+ * Created src/nft_drop/gendata/10-nft-drop-2024-08.zip
+ * Created src/nft_drop/gendata/10-nft-drop-test-2024-08.zip
+ * Directories cleaned: ./src/nft_drop/test_qr,./src/nft_drop/qr
+ * ```
+ *
+ * ## Validation Example:
+ *
+ * Command:
+ * ```
+ * /usr/local/bin/node /Users/Arseniy/PycharmProjects/merkle-distribution/src/nft_drop/nft_drop.js -x -u https://app.lostbodystore.io/#/1/qr?d=AadSkmoSppsdyp5WO54eGESWBMNqxOvkvqPVipyiiwD1 -r 0x877f9206c3851f0b52f6db59bf278d09
+ * ```
+ * Output:
+ * ```
+ * root : 0x877f9206c3851f0b52f6db59bf278d09
+ * proof: 9604c36ac4ebe4bea3d58a9ca28b00f5
+ * leaf : a752926a12a69b1dca9e563b9e1e1844
+ * version : 1
+ * isValid : true
+ * ```
+ *
+ * This documentation provides detailed examples of how to use the script for generating NFT drops and validating them against a Merkle root.
+ */
 
 const { program } = require('commander');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const archive = require('./../zip_lib.js');
 const { createNewNFTDropSettings, generateNFTCodes, NFTDropSettings, nftUriDecode} = require('./gen_nft_lib');
 const { ensureDirectoryExistence, getLatestVersion, validateVersion } = require('./../gen_qr_lib');
 const {exit} = require("process");
-const qrdrop = require("../gen_qr_lib");
 const {assert} = require("console");
 
 program
@@ -39,8 +66,9 @@ program
     .option('-v, --version', 'deployment instance version', false)
     .option('-g, --gencodes', 'generate NFT drop codes mode', false)
     .option('-q, --qrs', 'generate qr: ', false)
-    .option('-l, --links', 'generate links: ', false)
+    .option('-l, --links', 'generate links: ', true)
     .option('-m, --mapping <mapping>', 'NFT ID to account mapping (JSON format or as key=value pairs separated by commas)')
+    .option('-f, --file <file>', 'filepath to NFT ID to account mapping (JSON format or as key=value pairs separated by commas)')
     .option('-s, --nodeploy', 'test run, ignores version', false)
     .option('-c, --cleanup', 'cleanup directories before codes generation', false)
     .option('-z, --zip', 'zip qr-codes', false)
@@ -66,7 +94,8 @@ const VERSION = _v;
 const flagGenerateCodes = options.gencodes;
 const flagSaveQr = options.qrs;
 const flagSaveLink = options.links;
-const nftMapping = parseMapping(options.mapping);
+let _mappingSource = options.mapping || (options.file && fs.readFileSync(resolveFilePath(options.file), 'utf-8'));
+const nftMapping = parseMapping(_mappingSource);
 const flagNoDeploy = options.nodeploy;
 const flagCleanup = options.cleanup;
 const flagZip = options.zip;
@@ -82,13 +111,14 @@ execute();
 
 async function execute() {
     const settings = createNewNFTDropSettings(flagSaveQr, flagSaveLink, nftMapping, VERSION, chainId, flagNoDeploy);
+    let output_dirs = [settings.pathTestQr, settings.pathQr, settings.pathZip];
     if (flagGenerateCodes) {
         if (!flagNoDeploy) {
             validateVersion(settings.version, settings.fileLatest);
         }
 
         if (flagCleanup) {
-            archive.cleanDirs([settings.pathTestQr, settings.pathQr]);
+            archive.cleanDirs(output_dirs);
         }
 
         await generateNFTCodes(settings);
@@ -109,8 +139,21 @@ async function execute() {
     }
 
     if (flagWipe || (flagGenerateCodes && flagZip)) {
-        archive.cleanDirs([settings.pathTestQr, settings.pathQr]);
+        archive.cleanDirs(output_dirs);
     }
+}
+
+// Resolve the file path, expanding `~` to the user's home directory
+function resolveFilePath(filePath) {
+    if (!filePath) return null;
+
+    // Expand `~` to the home directory
+    if (filePath.startsWith('~')) {
+        filePath = path.join(os.homedir(), filePath.slice(1));
+    }
+
+    // Resolve the path to an absolute path
+    return path.resolve(filePath);
 }
 
 function parseMapping(mapping) {
