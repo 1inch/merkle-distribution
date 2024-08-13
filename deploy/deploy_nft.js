@@ -1,3 +1,35 @@
+/**
+ * Deploys the NFTMerkleDrop contract to the specified network.
+ *
+ * This script deploys the NFTMerkleDrop smart contract to a blockchain network
+ * and verifies it on Etherscan. It uses the specified network and merkle root
+ * to initialize the contract. If the contract has already been deployed and
+ * verified on Etherscan, the script will acknowledge this and provide the
+ * Etherscan link to the verified contract.
+ *
+ * Prerequisites:
+ *  - Ensure that the following environment variables are set in your `.env` file:
+ *    - `PRIVATE_KEY`: The private key of the deployer's account.
+ *    - `POLYGONSCAN_API_KEY`: The API key for verifying contracts on PolygonScan (for Polygon networks).
+ *    - `INFURA_API_KEY`: The Infura API key for connecting to the network (used for Polygon and other supported networks).
+ *
+ * Example Usage:
+ *  - Deploying to Polygon Amoy network with a specific NFT contract and merkle root from input/0.json:
+ *    `npx hardhat deploy:nft --network polygonAmoi --n 0x16B9563f4105a873e756479FC9716ab71E419b7D --r 0x877f9206c3851f0b52f6db59bf278d09`
+ *
+ * Expected Output:
+ *  - Deploys the NFTMerkleDrop contract to the specified network.
+ *  - If the contract is already verified on Etherscan, it will acknowledge this and provide the Etherscan link.
+ *  - Outputs the deployed contract address.
+ *
+ * Example Output:
+ *  - Deploying NFTMerkleDrop to network ID 80002 with merkleRoot 0x00000000000000000000000000000000877f9206c3851f0b52f6db59bf278d09
+ *  - The contract 0x293c897d9C4c67Ba09cC3f2ad4691D6445809515 has already been verified on Etherscan.
+ *  - https://amoy.polygonscan.com/address/0x293c897d9C4c67Ba09cC3f2ad4691D6445809515#code
+ *  - NFTMerkleDrop deployed to: 0x293c897d9C4c67Ba09cC3f2ad4691D6445809515
+ */
+
+
 // Load Hardhat environment
 require('hardhat/config');
 
