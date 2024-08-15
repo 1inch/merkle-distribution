@@ -106,9 +106,6 @@ const validateUrl = options.url;
 const validateRoot = options.root;
 const flagWipe = options.wipe;
 
-validateArgs();
-execute();
-
 async function execute() {
     const settings = createNewNFTDropSettings(flagSaveQr, flagSaveLink, nftMapping, VERSION, chainId, flagNoDeploy);
     let output_dirs = [settings.pathTestQr, settings.pathQr, settings.pathZip];
@@ -121,6 +118,7 @@ async function execute() {
             archive.cleanDirs(output_dirs);
         }
 
+        /* main */
         await generateNFTCodes(settings);
 
         if (flagZip) {
@@ -157,20 +155,87 @@ function resolveFilePath(filePath) {
 }
 
 function parseMapping(mapping) {
+    /*
+    handle formats:
+        account -> [tokenIds] (already formatted correctly).
+        tokenId -> account (old format).
+        Comma-separated string format (either account=tokenId,... or tokenId=account,...).
+    and convert them into the desired account -> [tokenIds] structure.
+    */
     if (!mapping) {
         return {};
     }
+
     try {
-        return JSON.parse(mapping);
+        const parsed = JSON.parse(mapping);
+        const map = {};
+
+        // Check if the mapping is in the correct format (account -> [tokenIds])
+        if (Object.values(parsed).every(value => Array.isArray(value))) {
+            return parsed;  // Already in the correct format
+        }
+
+        // Determine if the format is tokenId -> account
+        if (typeof Object.values(parsed)[0] === 'string') {
+            // Convert from tokenId -> account to account -> [tokenIds]
+            Object.entries(parsed).forEach(([tokenId, account]) => {
+                if (!map[account]) {
+                    map[account] = [];
+                }
+                map[account].push(tokenId);
+            });
+        } else {
+            // Convert from account -> tokenId format to account -> [tokenIds]
+            Object.entries(parsed).forEach(([account, tokenId]) => {
+                if (!map[account]) {
+                    map[account] = [];
+                }
+                map[account].push(tokenId);
+            });
+        }
+
+        return map;
+
     } catch {
+        // Handle comma-separated input
         const map = {};
         mapping.split(',').forEach(pair => {
             const [key, value] = pair.split('=');
-            map[key] = value;
+
+            if (!key || !value) {
+                // Handle cases where the key or value might be undefined
+                throw new Error(`Invalid mapping pair: ${pair}`);
+            }
+
+            // Check if the value is a list (enclosed in brackets)
+            if (value.startsWith('[') && value.endsWith(']')) {
+                // Convert the stringified list into an array
+                const tokenIds = JSON.parse(value);
+                if (!map[key]) {
+                    map[key] = [];
+                }
+                map[key] = map[key].concat(tokenIds);
+            } else if (isNaN(parseInt(key))) {
+                // Handle account=tokenId format
+                if (!map[key]) {
+                    map[key] = [];
+                }
+                map[key].push(value);
+            } else {
+                // Handle tokenId=account format
+                const tokenId = key;
+                const account = value;
+                if (!map[account]) {
+                    map[account] = [];
+                }
+                map[account].push(tokenId);
+            }
         });
         return map;
     }
 }
+
+
 
 function isValidVersion(version) {
     return !(isNaN(version) || version <= 0);
@@ -206,7 +271,13 @@ function validateArgs() {
     }
 }
 
+// Run the script only if it was called directly from the command line
+if (require.main === module) {
+    validateArgs();
+    return execute();
+}
 
 module.exports = {
-    execute
+    execute,
+    parseMapping,
 };

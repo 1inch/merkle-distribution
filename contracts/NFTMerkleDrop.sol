@@ -44,11 +44,9 @@ contract NFTMerkleDrop is Ownable, INFTMerkleDrop {
         // Check if already claimed
         if (claimed[account]) revert NothingToClaim();
 
-        // Verify merkle proof for each token
-        for (uint256 i = 0; i < tokenIds.length; i++) {
-            bytes32 leaf = keccak256(abi.encodePacked(account, tokenIds[i]));
-            if (!MerkleProof.verify(merkleProof, expectedMerkleRoot, leaf)) revert InvalidProof();
-        }
+        // Verify merkle proof
+        bytes32 leaf = keccak256(abi.encodePacked(account, tokenIds));
+        if (!MerkleProof.verify(merkleProof, expectedMerkleRoot, leaf)) revert InvalidProof();
 
         // Mark it claimed
         claimed[account] = true;

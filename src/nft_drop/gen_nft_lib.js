@@ -2,6 +2,7 @@ const {AbstractDropSettings, keccak128, uriEncode, saveFile, saveQr} = require("
 const {default: Wallet} = require("ethereumjs-wallet");
 const {assert} = require("console");
 const {MerkleTree} = require("merkletreejs");
+const keccak256 = require('keccak256');
 
 
 class NFTDropSettings extends AbstractDropSettings {
@@ -40,30 +41,33 @@ function formatProof(proof) {
 }
 
 function makeNFTDrop(nftMapping, settings) {
-    const recipients = [];
     const orderedEntries = Object.entries(nftMapping);  // Store the order explicitly
 
-    // Create an array of elements and leaves by concatenating each NFT ID with the corresponding account address.
     const leaves = [];
-    orderedEntries.forEach(([tokenId, account]) => {
-        // Convert NFT ID to a hex string and pad it to 64 characters
-        const tokenIdHex = BigInt(tokenId).toString(16).padStart(64, '0');
-        // Concatenate the account address with the padded NFT ID
-        const element = account + tokenIdHex;
+    orderedEntries.forEach(([account, tokenIds]) => {
+        tokenIds.sort(); // Sort tokenIds for consistency
 
-        // Generate the leaf for the Merkle tree
-        const leaf = MerkleTree.bufferToHex(keccak128(element));
+        // Concatenate the account and token IDs similarly to abi.encodePacked
+        const element = Buffer.concat([
+            Buffer.from(account.slice(2), 'hex'),
+            Buffer.from(tokenIds.map(tokenId => BigInt(tokenId).toString(16).padStart(64, '0')).join(''), 'hex')
+        ]);
+
+        // Generate the leaf for the Merkle tree using keccak256
+        const leaf = MerkleTree.bufferToHex(keccak256(element));
         leaves.push(leaf);
     });
 
-    // Create a Merkle Tree from the leaves using keccak128 as the hashing function and sort the pairs for consistency.
-    const tree = new MerkleTree(leaves, keccak128, { sortPairs: true });
+    // Create a Merkle Tree from the leaves using keccak256 as the hashing function and sort the pairs for consistency.
+    const tree = new MerkleTree(leaves, keccak256, { sortPairs: true });
 
     // Obtain the Merkle root, which is the top node of the tree.
     const root = tree.getHexRoot();
 
+    const recipients = [];
+
     // Generate the list of recipients with URLs, proofs, and associated data
-    orderedEntries.forEach(([tokenId, account], index) => {
+    orderedEntries.forEach(([account, tokenIds], index) => {
         // The proof for this specific leaf
         const leaf = leaves[index];
         const proof = tree.getProof(leaf);
@@ -77,7 +81,7 @@ function makeNFTDrop(nftMapping, settings) {
         assert(nftUriDecode(url, root, settings.prefix, settings.version));
 
         // Create a new Recipient object and add it to the recipients array
-        const recipient = new Recipient(url, tokenId, account, formattedProof);
+        const recipient = new Recipient(url, tokenIds, account, formattedProof);
         recipients.push(recipient);
     });
 
@@ -105,20 +109,20 @@ function nftUriDecode(s, root, prefix, expectedVersion = null, displayResults = 
         throw new Error(`Version mismatch: expected ${expectedVersion}, but got ${version}`);
     }
 
-    // Extract the leaf (next 16 bytes if using keccak128)
-    const lBuf = b.subarray(1, 17);
+    // Extract the leaf (next 32 bytes if using keccak256)
+    const lBuf = b.subarray(1, 33);  // 32 bytes for keccak256
     let leaf = lBuf.toString('hex');
 
-    // Extract the proof from the remaining bytes
-    let pBuf = b.subarray(17);
+    // Extract the proof from the remaining bytes (each proof element is 32 bytes)
+    let pBuf = b.subarray(33);
     const proof = [];
     while (pBuf.length > 0) {
-        proof.push({ data: pBuf.subarray(0, 16) });
-        pBuf = pBuf.subarray(16);
+        proof.push({ data: pBuf.subarray(0, 32) });  // 32 bytes per proof element
+        pBuf = pBuf.subarray(32);
     }
 
     // Verify the proof against the Merkle root
-    const tree = new MerkleTree([], keccak128, { sortPairs: true });
+    const tree = new MerkleTree([], keccak256, { sortPairs: true });
     const isValid = tree.verify(proof, Buffer.from(leaf, 'hex'), root);
 
     if (displayResults) {
@@ -133,10 +137,10 @@ function nftUriDecode(s, root, prefix, expectedVersion = null, displayResults = 
 }
 
 
-async function main(settings) {
-    // console.log('dropSettings', settings);
+async function generateNFTCodes(settings) {
     const nftMapping = settings.nftMapping;
 
+    /* main */
     const drop = makeNFTDrop(nftMapping, settings);
 
     console.log(`Generated NFT drop version ${settings.version}; root: ${drop.root}; proofs num: ${drop.recipients.length}`);
@@ -170,7 +174,7 @@ async function main(settings) {
 
 // Export the new settings
 module.exports = {
-    generateNFTCodes: main,
+    generateNFTCodes,
     createNewNFTDropSettings,
     NFTDropSettings,
     nftUriDecode,
