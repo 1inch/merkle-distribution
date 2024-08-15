@@ -25,15 +25,8 @@ async function main() {
         process.exit(1);
     }
 
-    // Ensure that the selected network is available in the Hardhat config
-    if (!hre.config.networks[network]) {
-        console.error(`Network ${network} is not configured in the Hardhat config.`);
-        process.exit(1);
-    }
-
-    // Use the provider from the Hardhat network configuration
-    const provider = hre.network.provider;
-    const signer = (await ethers.getSigners())[0]; // Get the first signer from the configured accounts
+    // Use the signer from the configured accounts
+    const [signer] = await ethers.getSigners();
 
     console.log(`Claiming NFTs on ${network} network...`);
     console.log(`NFT Contract address: ${nftContract}`);
@@ -45,7 +38,7 @@ async function main() {
 
     const nftContractInstance = new ethers.Contract(nftContract, [
         "function ownerOf(uint256 tokenId) public view returns (address)"
-    ], provider);
+    ], signer);  // Use signer for both read and write operations
 
     console.log("\nChecking ownership before the claim:");
     const tokenIdsArray = tokenIds.split(',').map(id => BigInt(id.trim())); // Convert to BigInt
@@ -77,12 +70,12 @@ async function main() {
         console.log(`Token ID ${tokenId.toString()}: Owned by ${ownerAfter}`);
     }
 
-    const ownershipTransferSuccess = tokenIdsArray.every(async tokenId => {
+    const ownershipTransferSuccess = await Promise.all(tokenIdsArray.map(async tokenId => {
         const ownerAfter = await nftContractInstance.ownerOf(tokenId);
         return ownerAfter === account;
-    });
+    }));
 
-    if (ownershipTransferSuccess) {
+    if (ownershipTransferSuccess.every(success => success)) {
         console.log("\nAll NFTs have been successfully transferred to the recipient.");
     } else {
         console.log("\nError: Not all NFTs have been transferred to the recipient.");
