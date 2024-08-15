@@ -15,7 +15,7 @@
  *
  * Example Usage:
  *  - Deploying to Polygon Amoy network with a specific NFT contract and merkle root from input/0.json:
- *    `npx hardhat deploy:nft --network polygonAmoi --n 0x16B9563f4105a873e756479FC9716ab71E419b7D --r 0x877f9206c3851f0b52f6db59bf278d09`
+ *    `npx hardhat deploy:nft --network polygonAmoy --n 0x16B9563f4105a873e756479FC9716ab71E419b7D --r 0x877f9206c3851f0b52f6db59bf278d09`
  *
  * Expected Output:
  *  - Deploys the NFTMerkleDrop contract to the specified network.
@@ -35,31 +35,24 @@ require('hardhat/config');
 
 const hre = require('hardhat');
 const { deployAndGetContract } = require('@1inch/solidity-utils');
+const { ethers } = hre;
 
-// Helper function to pad hex strings to 32 bytes
-function padHexToBytes32(hexValue) {
-    const value = hexValue.startsWith('0x') ? hexValue.slice(2) : hexValue;
-    const paddedValue = value.padStart(64, '0');
-    return '0x' + paddedValue;
-}
 
 // Main function to deploy the NFTMerkleDrop contract
 async function main({ nftContract, merkleRoot, deployments, getNamedAccounts }) {
     const chainId = await ethers.provider.getNetwork().then(net => net.chainId);
     const { deployer } = await getNamedAccounts();
 
-    const merkleRoot32 = padHexToBytes32(merkleRoot);
-
-    console.log(`Deploying NFTMerkleDrop to network ID ${chainId} with merkleRoot ${merkleRoot32}`);
+    console.log(`Deploying NFTMerkleDrop to network ID ${chainId} with nftContract ${nftContract} and merkleRoot ${merkleRoot}`);
 
     // Setting the gas fees to avoid the 'transaction underpriced' error
-    const maxFeePerGas = 50e9 ; // 50 gwei
+    const maxFeePerGas = 50e9; // 50 gwei
     const maxPriorityFeePerGas = 2e9; // 2 gwei
 
     // Deploy the contract with the constructor arguments
     const nftMerkleDrop = await deployAndGetContract({
         contractName: 'NFTMerkleDrop',
-        constructorArgs: [nftContract, merkleRoot32],
+        constructorArgs: [nftContract, merkleRoot],
         deployments,
         deployer,
         overrides: {
@@ -68,7 +61,7 @@ async function main({ nftContract, merkleRoot, deployments, getNamedAccounts }) 
         },
     });
 
-    console.log('NFTMerkleDrop deployed to:', await nftMerkleDrop.getAddress(), nftMerkleDrop.address);
+    console.log('NFTMerkleDrop deployed to:', await nftMerkleDrop.getAddress());
 }
 
 // Allow the script to be used both as a task in Hardhat and as a standalone Node.js script
