@@ -59,8 +59,8 @@ validateArgs();
 execute();
 
 async function execute () {
-    if (flagGenerateCodes) {
-        const settings = qrdrop.createNewDropSettings(flagSaveQr, flagSaveLink, COUNTS, AMOUNTS, VERSION, chainId, flagNoDeploy);
+    const settings = qrdrop.createNewDropSettings(flagGenerateCodes, flagSaveQr, flagSaveLink, COUNTS, AMOUNTS, VERSION, chainId, flagNoDeploy);
+    if (settings.flagGenerateCodes) {
 
         if (!flagNoDeploy) {
             qrdrop.validateVersion(settings.version, settings.fileLatest);
@@ -87,12 +87,10 @@ async function execute () {
     }
 
     if (flagValidateOnly) {
-        const settings = qrdrop.createNewDropSettings(false, false, null, null, null, chainId, true);
         assert(qrdrop.verifyLink(validateUrl, validateRoot, settings.prefix));
     }
 
     if (flagWipe || flagZip) {
-        const settings = qrdrop.createNewDropSettings();
         archive.cleanDirs([settings.pathTestQr, settings.pathQr]);
     }
 }

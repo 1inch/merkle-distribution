@@ -10,8 +10,8 @@ class NFTDropSettings extends AbstractDropSettings {
         return './src/nft_drop';
     }
 
-    constructor(flagSaveQr, flagSaveLink, nftMapping, version, chainId = 1, flagNoVersionUpdate = false) {
-        super(flagSaveQr, flagSaveLink, Object.keys(nftMapping), Object.values(nftMapping), version, chainId, flagNoVersionUpdate);
+    constructor(flagGenerateCodes, flagSaveQr, flagSaveLink, nftMapping, version, chainId = 1, flagNoVersionUpdate = false) {
+        super(flagGenerateCodes, flagSaveQr, flagSaveLink, Object.keys(nftMapping), Object.values(nftMapping), version, chainId, flagNoVersionUpdate);
         this.nftMapping = nftMapping;
         // TODO move to config
         this.fileLinks = `${this.constructor.pathZip}/${version}-ntf-drop.json`;
@@ -19,8 +19,8 @@ class NFTDropSettings extends AbstractDropSettings {
     }
 }
 
-function createNewNFTDropSettings(flagSaveQr, flagSaveLink, nftMapping, version, chainId, flagNoDeploy) {
-    return new NFTDropSettings(flagSaveQr, flagSaveLink, nftMapping, version, chainId, flagNoDeploy);
+function createNewNFTDropSettings(flagGenerateCodes, flagSaveQr, flagSaveLink, nftMapping, version, chainId, flagNoDeploy) {
+    return new NFTDropSettings(flagGenerateCodes, flagSaveQr, flagSaveLink, nftMapping, version, chainId, flagNoDeploy);
 }
 
 class Recipient {
@@ -170,6 +170,8 @@ async function generateNFTCodes(settings) {
     if (!settings.flagNoDeploy) {
         saveFile(settings.fileLatest, settings.version.toString());
     }
+
+    return drop.root
 }
 
 // Export the new settings

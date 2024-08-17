@@ -106,10 +106,10 @@ const validateUrl = options.url;
 const validateRoot = options.root;
 const flagWipe = options.wipe;
 
-async function execute() {
-    const settings = createNewNFTDropSettings(flagSaveQr, flagSaveLink, nftMapping, VERSION, chainId, flagNoDeploy);
+async function generate_nft_drop(settings) {
     let output_dirs = [settings.pathTestQr, settings.pathQr, settings.pathZip];
-    if (flagGenerateCodes) {
+    let root = null;
+    if (settings.flagGenerateCodes) {
         if (!flagNoDeploy) {
             validateVersion(settings.version, settings.fileLatest);
         }
@@ -119,7 +119,7 @@ async function execute() {
         }
 
         /* main */
-        await generateNFTCodes(settings);
+        root = await generateNFTCodes(settings);
 
         if (flagZip) {
             const dateString = new Date().toISOString().slice(0, 7);
@@ -139,6 +139,8 @@ async function execute() {
     if (flagWipe || (flagGenerateCodes && flagZip)) {
         archive.cleanDirs(output_dirs);
     }
+
+    return root;
 }
 
 // Resolve the file path, expanding `~` to the user's home directory
@@ -274,10 +276,11 @@ function validateArgs() {
 // Run the script only if it was called directly from the command line
 if (require.main === module) {
     validateArgs();
-    return execute();
+    const settings = createNewNFTDropSettings(flagGenerateCodes, flagSaveQr, flagSaveLink, nftMapping, VERSION, chainId, flagNoDeploy);
+    return generate_nft_drop(settings);
 }
 
 module.exports = {
-    execute,
+    generate_nft_drop,
     parseMapping,
 };

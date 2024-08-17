@@ -11,17 +11,17 @@ const { assert } = require('console');
 const {exit} = require("process");
 
 class AbstractDropSettings {
-    constructor(flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, chainId = 1, flagNoVersionUpdate = false) {
+    constructor(flagGenerateCodes, flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, chainId = 1, flagNoVersionUpdate = false) {
         if (new.target === AbstractDropSettings) {
             throw new Error("Cannot instantiate an abstract class.");
         }
 
+        this.flagGenerateCodes = flagGenerateCodes;
         this.flagSaveQr = flagSaveQr;
         this.flagSaveLink = flagSaveLink;
         this.flagNoDeploy = flagNoVersionUpdate;
         this.codeCounts = codeCounts;
         this.codeAmounts = codeAmounts;
-        this.version = version;
         this.chainId = chainId;
 
         // Class-specific
@@ -34,6 +34,12 @@ class AbstractDropSettings {
         // Instance-specific
         this.fileLinks = `${this.constructor.pathZip}/${version}-qr-links.json`;
         this.prefix = `https://app.1inch.io/#/${chainId}/qr?`;
+
+        if (version == null) {
+            version = getLatestVersion(this.fileLatest) + 1;
+            console.log(`Auto-incremented version ${version} chosen for the new generation`);
+        }
+        this.version = version;
     }
 
     // Static getter for the root path (should be overridden by subclasses)
@@ -250,8 +256,8 @@ function verifyLink (url, root, prefix) {
     return uriDecode(url, root, prefix, true);
 }
 
-function createNewDropSettings (flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, chainId, flagNoDeploy) {
-    return new DropSettings(flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, chainId, flagNoDeploy);
+function createNewDropSettings (flagGenerateCodes, flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, chainId, flagNoDeploy) {
+    return new DropSettings(flagGenerateCodes, flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, chainId, flagNoDeploy);
 }
 
 
