@@ -45,24 +45,44 @@ function parseCommandLineArgs() {
     return program.opts();
 }
 
-function initializeParameters(params) {
-    if (!isValidVersion(params.version)) {
-        params.version = getLatestVersion(NFTDropSettings.fileLatest) + 1;
+// Initialize Arguments and Parameters
+function initializeArguments(options) {
+    // Ensure version is valid, or set it to the latest + 1
+    if (!isValidVersion(options.version)) {
+        options.version = getLatestVersion(NFTDropSettings.fileLatest) + 1;
     }
 
+    // Ensure that at least one of the generation modes is active
     if (
-        Number(params.flagGenerateCodes) +
-        Number(params.flagValidateOnly) +
-        Number(params.flagWipe) === 0
+        Number(options.gencodes) +
+        Number(options.validate) +
+        Number(options.wipe) === 0
     ) {
-        params.flagGenerateCodes = true;
+        options.gencodes = true;
     }
 
-    params.nftMapping = params.mapping || (params.file && parseMapping(fs.readFileSync(resolveFilePath(params.file), 'utf-8'))) || getDefaultMapping();
+    // Handle the mapping logic
+    options.mapping = options.mapping ||
+                      (options.file && parseMapping(fs.readFileSync(resolveFilePath(options.file), 'utf-8'))) ||
+                      getDefaultMapping();
 
-    return params;
+    return {
+        flagGenerateCodes: options.gencodes,
+        flagSaveQr: options.qrs,
+        flagSaveLink: options.links,
+        nftMapping: options.mapping,
+        version: options.version,
+        flagNoDeploy: options.nodeploy,
+        flagCleanup: options.cleanup,
+        flagZip: options.zip,
+        flagValidateOnly: options.validate,
+        validateUrl: options.url,
+        validateRoot: options.root,
+        flagWipe: options.wipe,
+    };
 }
 
+// Validate Parameters
 function validateParameters(params) {
     if (!isValidVersion(params.version)) {
         console.error(`Invalid version ${params.version}. Must be a positive integer.`);
@@ -82,32 +102,73 @@ function validateParameters(params) {
     }
 }
 
-function initializeSettings(params) {
-    return createNewNFTDropSettings(
-        params.flagGenerateCodes,
-        params.flagSaveQr,
-        params.flagSaveLink,
-        params.nftMapping,
-        params.version,
-        params.flagNoDeploy,
-        params.flagCleanup,
-        params.flagZip,
-        params.flagValidateOnly,
-        params.validateUrl,
-        params.validateRoot,
-        params.flagWipe
-    );
+// Set Default Values for Parameters
+function setDefaults({
+    flagGenerateCodes = true,
+    flagSaveQr = false,
+    flagSaveLink = false,
+    nftMapping = getDefaultMapping(),
+    version = null,
+    flagNoDeploy = false,
+    flagCleanup = false,
+    flagZip = false,
+    flagValidateOnly = false,
+    validateUrl = null,
+    validateRoot = null,
+    flagWipe = false,
+}) {
+    return {
+        flagGenerateCodes,
+        flagSaveQr,
+        flagSaveLink,
+        nftMapping,
+        version,
+        flagNoDeploy,
+        flagCleanup,
+        flagZip,
+        flagValidateOnly,
+        validateUrl,
+        validateRoot,
+        flagWipe,
+    };
 }
 
-async function generateNFTDrop(params) {
-    // Initialize Parameters
-    params = initializeParameters(params);
+// Generate NFT Drop
+async function generateNFTDrop({
+    flagGenerateCodes,
+    flagSaveQr,
+    flagSaveLink,
+    nftMapping,
+    version,
+    flagNoDeploy,
+    flagCleanup,
+    flagZip,
+    flagValidateOnly,
+    validateUrl,
+    validateRoot,
+    flagWipe,
+} = {}) {
+    // Initialize Parameters with Defaults
+    const params = setDefaults({
+        flagGenerateCodes,
+        flagSaveQr,
+        flagSaveLink,
+        nftMapping,
+        version,
+        flagNoDeploy,
+        flagCleanup,
+        flagZip,
+        flagValidateOnly,
+        validateUrl,
+        validateRoot,
+        flagWipe,
+    });
 
     // Validate Parameters
     validateParameters(params);
 
     // Create Settings
-    const settings = initializeSettings(params);
+    const settings = createNewNFTDropSettings(...params);
 
     // Output Directories
     const outputDirs = [settings.pathTestQr, settings.pathQr, settings.pathZip];
@@ -149,7 +210,8 @@ async function generateNFTDrop(params) {
 // CLI Entry Point
 if (require.main === module) {
     const options = parseCommandLineArgs();
-    generateNFTDrop(options);
+    const params = initializeArguments(options);
+    generateNFTDrop(params);
 }
 
 module.exports = {

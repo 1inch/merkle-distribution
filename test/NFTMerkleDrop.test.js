@@ -14,13 +14,24 @@ async function deployContractsFixture () {
     const myNFT = await deployContract('MyERC721Token', ['My NFT', 'MNFT', deployer.address]);
 
     // Generate Merkle Drop
+    // Get the chain ID
     const chainId = await getChainId();
+
+    // Load and parse the mapping file
     const dropMapping = parseMapping(fs.readFileSync(path.resolve('./input/testMapping.json'), 'utf8'));
-    const settings = createNewNFTDropSettings(true, false, false, dropMapping, null, chainId, true);
+
+    // Pass only the necessary parameters, others will be set to their defaults
+    const params = {
+        nftMapping: dropMapping,
+        flagNoDeploy: true,
+    };
+
+    // Generate the NFT Drop
+    const dropResult = await generateNFTDrop(params);
     /**
      * @type {DropResult}
      */
-    const dropResult = await generateNFTDrop(settings);
+    const dropResult = await generateNFTDrop();
 
     // Deploy NFTMerkleDrop contract
     const nftDrop = await deployContract('NFTMerkleDrop', [myNFT.target, dropResult.root]);
