@@ -1,16 +1,14 @@
-const {AbstractDropSettings, keccak128, uriEncode, saveFile, saveQr} = require("./../gen_qr_lib");
-const {default: Wallet} = require("ethereumjs-wallet");
-const {assert} = require("console");
-const {MerkleTree} = require("merkletreejs");
+const { AbstractDropSettings, uriEncode, saveFile, saveQr } = require('./../gen_qr_lib');
+const { assert } = require('console');
+const { MerkleTree } = require('merkletreejs');
 const keccak256 = require('keccak256');
 
-
 class NFTDropSettings extends AbstractDropSettings {
-    static get root() {
+    static get root () {
         return './src/nft_drop';
     }
 
-    constructor(flagGenerateCodes, flagSaveQr, flagSaveLink, nftMapping, version, chainId = 1, flagNoVersionUpdate = false) {
+    constructor (flagGenerateCodes, flagSaveQr, flagSaveLink, nftMapping, version, chainId = 1, flagNoVersionUpdate = false) {
         super(flagGenerateCodes, flagSaveQr, flagSaveLink, Object.keys(nftMapping), Object.values(nftMapping), version, chainId, flagNoVersionUpdate);
         this.nftMapping = nftMapping;
         // TODO move to config
@@ -19,21 +17,21 @@ class NFTDropSettings extends AbstractDropSettings {
     }
 }
 
-function createNewNFTDropSettings(flagGenerateCodes, flagSaveQr, flagSaveLink, nftMapping, version, chainId, flagNoDeploy) {
+function createNewNFTDropSettings (flagGenerateCodes, flagSaveQr, flagSaveLink, nftMapping, version, chainId, flagNoDeploy) {
     return new NFTDropSettings(flagGenerateCodes, flagSaveQr, flagSaveLink, nftMapping, version, chainId, flagNoDeploy);
 }
 
 class Recipient {
-    constructor(url, tokenId, account, proof) {
-        this.url = url;           // The drop URL
-        this.tokenId = tokenId;   // The NFT ID
-        this.account = account;   // The associated Ethereum account
-        this.proof = proof;       // The leaf proof from the Merkle tree in hex
+    constructor (url, tokenId, account, proof) {
+        this.url = url; // The drop URL
+        this.tokenId = tokenId; // The NFT ID
+        this.account = account; // The associated Ethereum account
+        this.proof = proof; // The leaf proof from the Merkle tree in hex
     }
 }
 
 class DropResult {
-    constructor(root, version, totalRecipients, recipients) {
+    constructor (root, version, totalRecipients, recipients) {
         this.root = root;
         this.version = version;
         this.totalRecipients = totalRecipients;
@@ -41,17 +39,17 @@ class DropResult {
     }
 }
 
-function formatProof(proof) {
+function formatProof (proof) {
     return proof.map(p => {
         return {
             position: p.position,
-            data: '0x' + p.data.toString('hex')
+            data: '0x' + p.data.toString('hex'),
         };
     });
 }
 
-function makeNFTDrop(nftMapping, settings) {
-    const orderedEntries = Object.entries(nftMapping);  // Store the order explicitly
+function makeNFTDrop (nftMapping, settings) {
+    const orderedEntries = Object.entries(nftMapping); // Store the order explicitly
 
     const leaves = [];
     orderedEntries.forEach(([account, tokenIds]) => {
@@ -60,7 +58,7 @@ function makeNFTDrop(nftMapping, settings) {
         // Concatenate the account and token IDs similarly to abi.encodePacked
         const element = Buffer.concat([
             Buffer.from(account.slice(2), 'hex'),
-            Buffer.from(tokenIds.map(tokenId => BigInt(tokenId).toString(16).padStart(64, '0')).join(''), 'hex')
+            Buffer.from(tokenIds.map(tokenId => BigInt(tokenId).toString(16).padStart(64, '0')).join(''), 'hex'),
         ]);
 
         // Generate the leaf for the Merkle tree using keccak256
@@ -99,15 +97,14 @@ function makeNFTDrop(nftMapping, settings) {
     return { root, recipients };
 }
 
-
 function nftGenUrl (leaf, proof, version, prefix) {
     const vBuf = Buffer.from([version]);
-    let lBuf = Buffer.from(leaf.slice(2), 'hex');
+    const lBuf = Buffer.from(leaf.slice(2), 'hex');
     const pBuf = Buffer.concat(proof.map(p => p.data));
     return prefix + 'd=' + uriEncode(Buffer.concat([vBuf, lBuf, pBuf]));
 }
 
-function nftUriDecode(s, root, prefix, expectedVersion = null, displayResults = false) {
+function nftUriDecode (s, root, prefix, expectedVersion = null, displayResults = false) {
     // Decode the base64-encoded string from the URL
     const b = Buffer.from(s.substring(prefix.length + 2).replace(/-/g, '+').replace(/_/g, '/').replace(/!/g, '='), 'base64');
 
@@ -120,14 +117,14 @@ function nftUriDecode(s, root, prefix, expectedVersion = null, displayResults = 
     }
 
     // Extract the leaf (next 32 bytes if using keccak256)
-    const lBuf = b.subarray(1, 33);  // 32 bytes for keccak256
-    let leaf = lBuf.toString('hex');
+    const lBuf = b.subarray(1, 33); // 32 bytes for keccak256
+    const leaf = lBuf.toString('hex');
 
     // Extract the proof from the remaining bytes (each proof element is 32 bytes)
     let pBuf = b.subarray(33);
     const proof = [];
     while (pBuf.length > 0) {
-        proof.push({ data: pBuf.subarray(0, 32) });  // 32 bytes per proof element
+        proof.push({ data: pBuf.subarray(0, 32) }); // 32 bytes per proof element
         pBuf = pBuf.subarray(32);
     }
 
@@ -146,8 +143,7 @@ function nftUriDecode(s, root, prefix, expectedVersion = null, displayResults = 
     return isValid;
 }
 
-
-async function generateNFTCodes(settings) {
+async function generateNFTCodes (settings) {
     const nftMapping = settings.nftMapping;
 
     /* main */
@@ -168,7 +164,7 @@ async function generateNFTCodes(settings) {
         drop.root,
         settings.version,
         drop.recipients.length,
-        recipients
+        recipients,
     );
 
     // Optionally (but by default): store metadata
@@ -181,7 +177,7 @@ async function generateNFTCodes(settings) {
         saveFile(settings.fileLatest, settings.version.toString());
     }
 
-    return result
+    return result;
 }
 
 // Export the new settings

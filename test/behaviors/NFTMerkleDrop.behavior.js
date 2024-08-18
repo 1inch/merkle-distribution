@@ -1,20 +1,17 @@
-const {loadFixture} = require('@nomicfoundation/hardhat-network-helpers');
-const {expect} = require('chai');
-const {ethers} = require("hardhat");
+const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
+const { expect } = require('chai');
+const { ethers } = require('hardhat');
 
-function shouldBehaveLikeNFTMerkleDrop({
-                                           deployContractsFixture,
-                                       }) {
+function shouldBehaveLikeNFTMerkleDrop ({
+    deployContractsFixture,
+}) {
     describe('NFTMerkleDrop Behavior', function () {
         it('should allow valid claims and reject invalid ones', async function () {
-            const [owner, alice, bob, carol, dan] = await ethers.getSigners();
-
             // Call the fixture function to deploy contracts and get instances
-
-            const {deployer, myNFT, nftDrop, dropResult} = await loadFixture(deployContractsFixture);
+            const { deployer, myNFT, nftDrop, dropResult } = await loadFixture(deployContractsFixture);
             console.log(`Contracts deployed by ${deployer.address}`);
 
-            const {recipients, root} = dropResult;
+            const { recipients, root } = dropResult;
 
             // Check initial ownership
             for (let i = 0; i < recipients.length; i++) {
@@ -59,7 +56,7 @@ function shouldBehaveLikeNFTMerkleDrop({
                     .to.emit(nftDrop, 'Claimed')
                     .withArgs(
                         recipient.account,
-                        tokenIdsArray
+                        tokenIdsArray,
                     );
 
                 const newOwner = await myNFT.ownerOf(tokenIdsArray[0]);

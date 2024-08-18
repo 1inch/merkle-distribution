@@ -1,5 +1,5 @@
 require('hardhat/config');
-const hre = require('hardhat');  // Import Hardhat Runtime Environment
+const hre = require('hardhat'); // Import Hardhat Runtime Environment
 const { ethers } = hre;
 const { Command } = require('commander');
 
@@ -17,7 +17,7 @@ program
 program.parse(process.argv);
 const options = program.opts();
 
-async function main() {
+async function main () {
     const { network, nftContract, nftMerkleDrop, account, tokenIds, merkleRoot, merkleProof } = options;
 
     if (!network || !nftContract || !nftMerkleDrop || !account || !tokenIds || !merkleRoot || !merkleProof) {
@@ -37,25 +37,25 @@ async function main() {
     console.log(`Merkle Proof: ${merkleProof}`);
 
     const nftContractInstance = new ethers.Contract(nftContract, [
-        "function ownerOf(uint256 tokenId) public view returns (address)"
-    ], signer);  // Use signer for both read and write operations
+        'function ownerOf(uint256 tokenId) public view returns (address)',
+    ], signer); // Use signer for both read and write operations
 
-    console.log("\nChecking ownership before the claim:");
+    console.log('\nChecking ownership before the claim:');
     const tokenIdsArray = tokenIds.split(',').map(id => BigInt(id.trim())); // Convert to BigInt
-    for (let tokenId of tokenIdsArray) {
+    for (const tokenId of tokenIdsArray) {
         const ownerBefore = await nftContractInstance.ownerOf(tokenId);
         console.log(`Token ID ${tokenId.toString()}: Owned by ${ownerBefore}`);
     }
 
     const nftMerkleDropInstance = new ethers.Contract(nftMerkleDrop, [
-        "function claim(address account, uint256[] calldata tokenIds, bytes32 expectedMerkleRoot, bytes32[] calldata merkleProof) external"
+        'function claim(address account, uint256[] calldata tokenIds, bytes32 expectedMerkleRoot, bytes32[] calldata merkleProof) external',
     ], signer);
 
     const tx = await nftMerkleDropInstance.claim(
         account,
         tokenIdsArray,
         merkleRoot,
-        merkleProof.split(',')
+        merkleProof.split(','),
     );
 
     console.log('Transaction hash:', tx.hash);
@@ -64,8 +64,8 @@ async function main() {
     console.log('Transaction confirmed in block:', receipt.blockNumber);
     console.log('Claim successful!');
 
-    console.log("\nChecking ownership after the claim:");
-    for (let tokenId of tokenIdsArray) {
+    console.log('\nChecking ownership after the claim:');
+    for (const tokenId of tokenIdsArray) {
         const ownerAfter = await nftContractInstance.ownerOf(tokenId);
         console.log(`Token ID ${tokenId.toString()}: Owned by ${ownerAfter}`);
     }
@@ -76,9 +76,9 @@ async function main() {
     }));
 
     if (ownershipTransferSuccess.every(success => success)) {
-        console.log("\nAll NFTs have been successfully transferred to the recipient.");
+        console.log('\nAll NFTs have been successfully transferred to the recipient.');
     } else {
-        console.log("\nError: Not all NFTs have been transferred to the recipient.");
+        console.log('\nError: Not all NFTs have been transferred to the recipient.');
     }
 }
 

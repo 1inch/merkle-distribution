@@ -32,7 +32,7 @@ function cleanDir (directoryPath) {
     }
 }
 
-function cleanDirs(directoryPaths) {
+function cleanDirs (directoryPaths) {
     for (const directoryPath of directoryPaths) {
         if (fs.existsSync(directoryPath)) {
             const files = fs.readdirSync(directoryPath);

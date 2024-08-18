@@ -37,7 +37,7 @@
  *
  * Command:
  * ```
- * /usr/local/bin/node /Users/Arseniy/PycharmProjects/merkle-distribution/src/nft_drop/nft_drop.js -x -u https://app.lostbodystore.io/#/1/qr?d=AadSkmoSppsdyp5WO54eGESWBMNqxOvkvqPVipyiiwD1 -r 0x877f9206c3851f0b52f6db59bf278d09
+ * /usr/local/bin/node ./src/nft_drop/nft_drop.js -x -u https://app.lostbodystore.io/#/1/qr?d=AadSkmoSppsdyp5WO54eGESWBMNqxOvkvqPVipyiiwD1 -r 0x877f9206c3851f0b52f6db59bf278d09
  * ```
  * Output:
  * ```
@@ -56,10 +56,10 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const archive = require('./../zip_lib.js');
-const { createNewNFTDropSettings, generateNFTCodes, NFTDropSettings, nftUriDecode} = require('./gen_nft_lib');
+const { createNewNFTDropSettings, generateNFTCodes, NFTDropSettings, nftUriDecode } = require('./gen_nft_lib');
 const { ensureDirectoryExistence, getLatestVersion, validateVersion } = require('./../gen_qr_lib');
-const {exit} = require("process");
-const {assert} = require("console");
+const { exit } = require('process');
+const { assert } = require('console');
 
 program
     // generation mode
@@ -81,7 +81,6 @@ program
     // general parameters generation and validation
     .option('-b, --chainid <chainid>', 'chain id', '1');
 
-
 program.parse(process.argv);
 
 const options = program.opts();
@@ -94,7 +93,7 @@ const VERSION = _v;
 const flagGenerateCodes = options.gencodes;
 const flagSaveQr = options.qrs;
 const flagSaveLink = options.links;
-let _mappingSource = options.mapping || (options.file && fs.readFileSync(resolveFilePath(options.file), 'utf-8'));
+const _mappingSource = options.mapping || (options.file && fs.readFileSync(resolveFilePath(options.file), 'utf-8'));
 const nftMapping = parseMapping(_mappingSource);
 const flagNoDeploy = options.nodeploy;
 const flagCleanup = options.cleanup;
@@ -106,8 +105,8 @@ const validateUrl = options.url;
 const validateRoot = options.root;
 const flagWipe = options.wipe;
 
-async function generateNFTDrop(settings) {
-    let outputDirs = [settings.pathTestQr, settings.pathQr, settings.pathZip];
+async function generateNFTDrop (settings) {
+    const outputDirs = [settings.pathTestQr, settings.pathQr, settings.pathZip];
     let dropResult = null;
     if (settings.flagGenerateCodes) {
         if (!flagNoDeploy) {
@@ -144,7 +143,7 @@ async function generateNFTDrop(settings) {
 }
 
 // Resolve the file path, expanding `~` to the user's home directory
-function resolveFilePath(filePath) {
+function resolveFilePath (filePath) {
     if (!filePath) return null;
 
     // Expand `~` to the home directory
@@ -156,7 +155,7 @@ function resolveFilePath(filePath) {
     return path.resolve(filePath);
 }
 
-function parseMapping(mapping) {
+function parseMapping (mapping) {
     /*
     handle formats:
         account -> [tokenIds] (already formatted correctly).
@@ -174,7 +173,7 @@ function parseMapping(mapping) {
 
         // Check if the mapping is in the correct format (account -> [tokenIds])
         if (Object.values(parsed).every(value => Array.isArray(value))) {
-            return parsed;  // Already in the correct format
+            return parsed; // Already in the correct format
         }
 
         // Determine if the format is tokenId -> account
@@ -197,7 +196,6 @@ function parseMapping(mapping) {
         }
 
         return map;
-
     } catch {
         // Handle comma-separated input
         const map = {};
@@ -237,13 +235,11 @@ function parseMapping(mapping) {
     }
 }
 
-
-
-function isValidVersion(version) {
+function isValidVersion (version) {
     return !(isNaN(version) || version <= 0);
 }
 
-function validateArgs() {
+function validateArgs () {
     // Validate input
     if (Number(flagGenerateCodes) + Number(flagValidateOnly) + Number(flagWipe) !== 1) {
         console.error('please specify mode, either "generate codes" or "validate code" or "cleanup": -g or -x or -c, respectively');
@@ -277,7 +273,7 @@ function validateArgs() {
 if (require.main === module) {
     validateArgs();
     const settings = createNewNFTDropSettings(flagGenerateCodes, flagSaveQr, flagSaveLink, nftMapping, VERSION, chainId, flagNoDeploy);
-    return generateNFTDrop(settings);
+    generateNFTDrop(settings);
 }
 
 module.exports = {

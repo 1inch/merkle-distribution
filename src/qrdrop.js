@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 const { ethers } = require('hardhat');
-const fs = require('fs');
 const path = require('path');
 const { assert } = require('console');
 const qrdrop = require('./gen_qr_lib.js');
@@ -61,7 +60,6 @@ execute();
 async function execute () {
     const settings = qrdrop.createNewDropSettings(flagGenerateCodes, flagSaveQr, flagSaveLink, COUNTS, AMOUNTS, VERSION, chainId, flagNoDeploy);
     if (settings.flagGenerateCodes) {
-
         if (!flagNoDeploy) {
             qrdrop.validateVersion(settings.version, settings.fileLatest);
         }

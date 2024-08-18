@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+// Import specific contracts rather than globally importing entire files.
+import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import {ERC721URIStorage} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract MyERC721Token is ERC721, ERC721URIStorage, Ownable {
     constructor(string memory name, string memory symbol, address initialOwner)
@@ -20,7 +21,7 @@ contract MyERC721Token is ERC721, ERC721URIStorage, Ownable {
     }
 
     function tokenURI(uint256 tokenId) public view override(ERC721, ERC721URIStorage) returns (string memory) {
-        require(ownerOf(tokenId) != address(0), "ERC721Metadata: URI query for nonexistent token");
+        require(ownerOf(tokenId) != address(0), "Nonexistent token");
         return super.tokenURI(tokenId);
     }
 

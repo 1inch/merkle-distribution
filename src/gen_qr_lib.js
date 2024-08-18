@@ -8,12 +8,12 @@ const qr = require('qr-image');
 const fs = require('fs');
 const path = require('path');
 const { assert } = require('console');
-const {exit} = require("process");
+const { exit } = require('process');
 
 class AbstractDropSettings {
-    constructor(flagGenerateCodes, flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, chainId = 1, flagNoVersionUpdate = false) {
+    constructor (flagGenerateCodes, flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, chainId = 1, flagNoVersionUpdate = false) {
         if (new.target === AbstractDropSettings) {
-            throw new Error("Cannot instantiate an abstract class.");
+            throw new Error('Cannot instantiate an abstract class.');
         }
 
         this.flagGenerateCodes = flagGenerateCodes;
@@ -43,34 +43,34 @@ class AbstractDropSettings {
     }
 
     // Static getter for the root path (should be overridden by subclasses)
-    static get root() {
-        throw new Error("Subclasses must define a root path.");
+    static get root () {
+        throw new Error('Subclasses must define a root path.');
     }
 
     // Static getter for fileLatest
-    static get fileLatest() {
+    static get fileLatest () {
         return `${this.root}/.latest`;
     }
     // Instance getter for fileLatest
 
     // Static getter for pathQr
-    static get pathQr() {
+    static get pathQr () {
         return `${this.root}/qr`;
     }
 
     // Static getter for pathTestQr
-    static get pathTestQr() {
+    static get pathTestQr () {
         return `${this.root}/test_qr`;
     }
 
     // Static getter for pathZip
-    static get pathZip() {
+    static get pathZip () {
         return `${this.root}/gendata`;
     }
 }
 
 class DropSettings extends AbstractDropSettings {
-    static get root() {
+    static get root () {
         return './src';
     }
 }
@@ -79,20 +79,20 @@ function keccak128 (input) {
     return keccak256(input).slice(0, 16);
 }
 
-function ensureDirectoryExistence(dir) {
+function ensureDirectoryExistence (dir) {
     // Ensure the directory exists, create it recursively if not
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
     }
 }
 
-function saveFile(filePath, fileContent) {
+function saveFile (filePath, fileContent) {
     const dir = path.dirname(filePath);
     ensureDirectoryExistence(dir);
     fs.writeFileSync(filePath, fileContent);
 }
 
-function makeDrop(wallets, amounts) {
+function makeDrop (wallets, amounts) {
     // Create an array of elements by concatenating each wallet address with the corresponding amount
     // in hexadecimal format, padded to 64 characters.
     const elements = wallets.map((w, i) => w + BigInt(amounts[i]).toString(16).padStart(64, '0'));
@@ -259,7 +259,6 @@ function verifyLink (url, root, prefix) {
 function createNewDropSettings (flagGenerateCodes, flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, chainId, flagNoDeploy) {
     return new DropSettings(flagGenerateCodes, flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, chainId, flagNoDeploy);
 }
-
 
 function validateVersion (version, latestFile) {
     const latestVersion = getLatestVersion(latestFile);

@@ -1,13 +1,13 @@
-const hre = require("hardhat");
+const hre = require('hardhat');
 const { ethers, getChainId } = hre;
-const { generateNFTDrop, parseMapping} = require('../src/nft_drop/nft_drop'); // Adjust the path if necessary
+const { generateNFTDrop, parseMapping } = require('../src/nft_drop/nft_drop'); // Adjust the path if necessary
 const fs = require('fs');
 const path = require('path');
 const { shouldBehaveLikeNFTMerkleDrop } = require('./behaviors/NFTMerkleDrop.behavior');
 const { deployContract } = require('@1inch/solidity-utils');
-const {createNewNFTDropSettings, DropResult} = require("../src/nft_drop/gen_nft_lib");
+const { createNewNFTDropSettings } = require('../src/nft_drop/gen_nft_lib');
 
-async function deployContractsFixture() {
+async function deployContractsFixture () {
     const [deployer] = await ethers.getSigners();
 
     // Deploy the ERC721 contract
@@ -16,7 +16,7 @@ async function deployContractsFixture() {
     // Generate Merkle Drop
     const chainId = await getChainId();
     const dropMapping = parseMapping(fs.readFileSync(path.resolve('./input/testMapping.json'), 'utf8'));
-    const settings = createNewNFTDropSettings(true,false, false, dropMapping, null, chainId, true);
+    const settings = createNewNFTDropSettings(true, false, false, dropMapping, null, chainId, true);
     /**
      * @type {DropResult}
      */

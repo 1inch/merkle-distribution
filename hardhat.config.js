@@ -9,40 +9,40 @@ require('dotenv').config();
 const { task } = require('hardhat/config');
 const { Networks, getNetwork } = require('@1inch/solidity-utils/hardhat-setup');
 
-function setUpNetworks() {
+function setUpNetworks () {
     const networksCollector = new Networks();
-    let { etherscan } = networksCollector.registerAll();
+    const { etherscan } = networksCollector.registerAll();
     const customNetworks = {
         polygon: {
-            network: "polygon",
+            network: 'polygon',
             chainId: 137,
             urls: {
                 rpcURL: `https://polygon-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
-                etherscanApiURL: "https://api.polygonscan.com/api",
-                browserURL: "https://polygonscan.com/"
+                etherscanApiURL: 'https://api.polygonscan.com/api',
+                browserURL: 'https://polygonscan.com/',
             },
             hardfork: 'london',
         },
         sepolia: {
-            network: "sepolia",
-            chainId: 11155111,  // Sepolia testnet chainId
+            network: 'sepolia',
+            chainId: 11155111, // Sepolia testnet chainId
             urls: {
                 rpcURL: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
-                etherscanApiURL: "https://api-sepolia.etherscan.io/api",
-                browserURL: "https://sepolia.etherscan.io/"
+                etherscanApiURL: 'https://api-sepolia.etherscan.io/api',
+                browserURL: 'https://sepolia.etherscan.io/',
             },
             hardfork: 'london',
         },
         polygonAmoy: {
-            network: "polygonAmoy",
-            chainId: 80002,  // Assuming PolygonAmoy testnet chainId is 80002
+            network: 'polygonAmoy',
+            chainId: 80002, // Assuming PolygonAmoy testnet chainId is 80002
             urls: {
                 rpcURL: `https://polygon-amoy.infura.io/v3/${process.env.INFURA_API_KEY}`,
-                etherscanApiURL: "https://api-amoy.polygonscan.com/api",
-                browserURL: "https://amoy.polygonscan.com/"
+                etherscanApiURL: 'https://api-amoy.polygonscan.com/api',
+                browserURL: 'https://amoy.polygonscan.com/',
             },
             hardfork: 'london',
-        }
+        },
     };
 
     // Registering custom networks
@@ -64,7 +64,7 @@ function setUpNetworks() {
             urls: {
                 apiURL: data.urls.etherscanApiURL,
                 browserURL: data.urls.browserURL,
-            }
+            },
         });
     });
     // Extend etherscan API keys
@@ -75,10 +75,10 @@ function setUpNetworks() {
         polygon: process.env.POLYGONSCAN_API_KEY,
         polygonAmoy: process.env.POLYGONSCAN_API_KEY,
     };
-    return {networks: networksCollector.networks, etherscan};
+    return { networks: networksCollector.networks, etherscan };
 }
 
-const {networks, etherscan} = setUpNetworks();
+const { networks, etherscan } = setUpNetworks();
 
 // usage   : yarn qr:deploy hardhat --v <version> --r <root> --h <height>
 // example : yarn qr:deploy hardhat --v 35 --r 0xc8f9f70ceaa4d05d893e74c933eed42b --h 9

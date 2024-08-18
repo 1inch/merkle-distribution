@@ -29,7 +29,6 @@
  *  - NFTMerkleDrop deployed to: 0x293c897d9C4c67Ba09cC3f2ad4691D6445809515
  */
 
-
 // Load Hardhat environment
 require('hardhat/config');
 
@@ -37,9 +36,8 @@ const hre = require('hardhat');
 const { deployAndGetContract } = require('@1inch/solidity-utils');
 const { ethers } = hre;
 
-
 // Main function to deploy the NFTMerkleDrop contract
-async function main({ nftContract, merkleRoot, deployments, getNamedAccounts }) {
+async function main ({ nftContract, merkleRoot, deployments, getNamedAccounts }) {
     const chainId = await ethers.provider.getNetwork().then(net => net.chainId);
     const { deployer } = await getNamedAccounts();
 
