@@ -194,6 +194,91 @@ async function generateNFTCodes (settings) {
     return result;
 }
 
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+
+function getDefaultMapping() {
+    const inputDir = path.resolve('./input');
+    const latestInput = fs.readdirSync(inputDir).sort().pop();
+    return parseMapping(fs.readFileSync(path.resolve(inputDir, latestInput), 'utf8'));
+}
+
+function resolveFilePath(filePath) {
+    if (!filePath) return null;
+    if (filePath.startsWith('~')) {
+        filePath = path.join(os.homedir(), filePath.slice(1));
+    }
+    return path.resolve(filePath);
+}
+
+function parseMapping(mapping) {
+    if (!mapping) {
+        return {};
+    }
+
+    try {
+        const parsed = JSON.parse(mapping);
+        const map = {};
+
+        if (Object.values(parsed).every(value => Array.isArray(value))) {
+            return parsed;
+        }
+
+        if (typeof Object.values(parsed)[0] === 'string') {
+            Object.entries(parsed).forEach(([tokenId, account]) => {
+                if (!map[account]) {
+                    map[account] = [];
+                }
+                map[account].push(tokenId);
+            });
+        } else {
+            Object.entries(parsed).forEach(([account, tokenId]) => {
+                if (!map[account]) {
+                    map[account] = [];
+                }
+                map[account].push(tokenId);
+            });
+        }
+
+        return map;
+    } catch {
+        const map = {};
+        mapping.split(',').forEach(pair => {
+            const [key, value] = pair.split('=');
+
+            if (!key || !value) {
+                throw new Error(`Invalid mapping pair: ${pair}`);
+            }
+
+            if (value.startsWith('[') && value.endsWith(']')) {
+                const tokenIds = JSON.parse(value);
+                if (!map[key]) {
+                    map[key] = [];
+                }
+                map[key] = map[key].concat(tokenIds);
+            } else if (isNaN(parseInt(key))) {
+                if (!map[key]) {
+                    map[key] = [];
+                }
+                map[key].push(value);
+            } else {
+                const tokenId = key;
+                const account = value;
+                if (!map[account]) {
+                    map[account] = [];
+                }
+                map[account].push(tokenId);
+            }
+        });
+        return map;
+    }
+}
+
+function isValidVersion (version) {
+    return !(isNaN(version) || version <= 0);
+}
+
 // Export the new settings
 module.exports = {
     generateNFTCodes,
@@ -201,4 +286,8 @@ module.exports = {
     NFTDropSettings,
     nftUriDecode,
     DropResult,
+    getDefaultMapping,
+    resolveFilePath,
+    parseMapping,
+    isValidVersion,
 };
