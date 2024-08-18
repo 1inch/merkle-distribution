@@ -8,13 +8,13 @@ class NFTDropSettings extends AbstractDropSettings {
         return './src/nft_drop';
     }
 
-    constructor(flagGenerateCodes, flagSaveQr, flagSaveLink, nftMapping, version, chainId = 1, flagNoVersionUpdate = false,
-                flagCleanup = false,
-                flagZip = false,
-                flagValidateOnly = false,
-                validateUrl = null,
-                validateRoot = null,
-                flagWipe = false,
+    constructor (flagGenerateCodes, flagSaveQr, flagSaveLink, nftMapping, version, chainId = 1, flagNoVersionUpdate = false,
+        flagCleanup = false,
+        flagZip = false,
+        flagValidateOnly = false,
+        validateUrl = null,
+        validateRoot = null,
+        flagWipe = false,
     ) {
         super(flagGenerateCodes, flagSaveQr, flagSaveLink, Object.keys(nftMapping), Object.values(nftMapping), version, chainId, flagNoVersionUpdate);
         this.nftMapping = nftMapping;
@@ -22,12 +22,12 @@ class NFTDropSettings extends AbstractDropSettings {
         this.fileLinks = `${this.constructor.pathZip}/${version}-ntf-drop.json`;
         this.prefix = `https://app.lostbodystore.io/#/${chainId}/qr?`;
 
-        this.flagCleanup = flagCleanup
-        this.flagZip = flagZip
-        this.flagValidateOnly = flagValidateOnly
-        this.validateUrl = validateUrl
-        this.validateRoot = validateRoot
-        this.flagWipe = flagWipe
+        this.flagCleanup = flagCleanup;
+        this.flagZip = flagZip;
+        this.flagValidateOnly = flagValidateOnly;
+        this.validateUrl = validateUrl;
+        this.validateRoot = validateRoot;
+        this.flagWipe = flagWipe;
     }
 }
 
@@ -198,13 +198,13 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-function getDefaultMapping() {
+function getDefaultMapping () {
     const inputDir = path.resolve('./input');
     const latestInput = fs.readdirSync(inputDir).sort().pop();
     return parseMapping(fs.readFileSync(path.resolve(inputDir, latestInput), 'utf8'));
 }
 
-function resolveFilePath(filePath) {
+function resolveFilePath (filePath) {
     if (!filePath) return null;
     if (filePath.startsWith('~')) {
         filePath = path.join(os.homedir(), filePath.slice(1));
@@ -212,7 +212,7 @@ function resolveFilePath(filePath) {
     return path.resolve(filePath);
 }
 
-function parseMapping(mapping) {
+function parseMapping (mapping) {
     if (!mapping) {
         return null;
     }

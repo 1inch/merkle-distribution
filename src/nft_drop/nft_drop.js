@@ -8,6 +8,7 @@
  * Detailed usage examples are provided within this documentation.
  */
 const fs = require('fs');
+const path = require('path');
 const { program } = require('commander');
 const archive = require('./../zip_lib.js');
 const {
@@ -25,7 +26,7 @@ const { exit } = require('process');
 const { assert } = require('console');
 
 // Parse Command Line Arguments
-function parseCommandLineArgs() {
+function parseCommandLineArgs () {
     program
         .option('-g, --gencodes', 'generate NFT drop codes mode', false)
         .option('-q, --qrs', 'generate QR codes', false)
@@ -46,9 +47,8 @@ function parseCommandLineArgs() {
     return program.opts();
 }
 
-
 // Fill Parameters with Defaults
-function fillParameters({
+function fillParameters ({
     flagGenerateCodes = true,
     flagSaveQr = false,
     flagSaveLink = false,
@@ -100,32 +100,32 @@ function fillParameters({
 }
 
 // Validate Parameters
-function validateParameters(params) {
+function validateParameters (params) {
     if (!isValidVersion(params.version)) {
         console.error(`Invalid version ${params.version}. Must be a positive integer.`);
         process.exit(1);
     }
 
-    if (!params.nftMapping || typeof params.nftMapping !== "object" || Object.keys(params.nftMapping).length === 0) {
-        console.error("Invalid NFT ID to account mapping. Provide in JSON format or as key=value pairs.");
+    if (!params.nftMapping || typeof params.nftMapping !== 'object' || Object.keys(params.nftMapping).length === 0) {
+        console.error('Invalid NFT ID to account mapping. Provide in JSON format or as key=value pairs.');
         process.exit(1);
     }
 
     if (params.flagValidateOnly) {
         if (!params.validateUrl || !params.validateRoot) {
-            console.error("Please specify URL and root for validation: -u and -r, respectively.");
+            console.error('Please specify URL and root for validation: -u and -r, respectively.');
             exit(1);
         }
     }
 
     if (isNaN(params.chainId) || params.chainId <= 0) {
-        console.error("Invalid chain ID. Must be a positive integer.");
+        console.error('Invalid chain ID. Must be a positive integer.');
         process.exit(1);
     }
 }
 
 // Generate NFT Drop
-async function manageNFTDrop({
+async function manageNFTDrop ({
     flagGenerateCodes,
     flagSaveQr,
     flagSaveLink,
@@ -228,7 +228,6 @@ if (require.main === module) {
     // Generate the NFT Drop with the parameters
     manageNFTDrop(params);
 }
-
 
 module.exports = {
     manageNFTDrop,

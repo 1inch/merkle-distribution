@@ -24,7 +24,7 @@ async function deployContractsFixture () {
     const params = {
         nftMapping: dropMapping,
         flagNoDeploy: true,
-        chainId: chainId,
+        chainId,
     };
 
     // Generate the NFT Drop
