@@ -31,6 +31,16 @@ class Recipient {
         this.proof = proof;       // The leaf proof from the Merkle tree in hex
     }
 }
+
+class DropResult {
+    constructor(root, version, totalRecipients, recipients) {
+        this.root = root;
+        this.version = version;
+        this.totalRecipients = totalRecipients;
+        this.recipients = recipients;
+    }
+}
+
 function formatProof(proof) {
     return proof.map(p => {
         return {
@@ -154,16 +164,16 @@ async function generateNFTCodes(settings) {
         });
     }
 
+    const result = new DropResult(
+        drop.root,
+        settings.version,
+        drop.recipients.length,
+        recipients
+    );
+
     // Optionally (but by default): store metadata
     if (settings.flagSaveLink) {
-        const fileContent = {
-            root: drop.root,
-            version: settings.version,
-            totalRecipients: drop.recipients.length,
-            recipients: recipients,
-        };
-
-        saveFile(settings.fileLinks, JSON.stringify(fileContent, null, 1));
+        saveFile(settings.fileLinks, JSON.stringify(result, null, 1));
         console.log(`Output saved to: ${settings.fileLinks}`);
     }
 
@@ -171,7 +181,7 @@ async function generateNFTCodes(settings) {
         saveFile(settings.fileLatest, settings.version.toString());
     }
 
-    return drop.root
+    return result
 }
 
 // Export the new settings
@@ -180,4 +190,5 @@ module.exports = {
     createNewNFTDropSettings,
     NFTDropSettings,
     nftUriDecode,
+    DropResult,
 };
