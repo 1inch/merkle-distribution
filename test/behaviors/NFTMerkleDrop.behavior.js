@@ -1,16 +1,20 @@
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const { expect } = require('chai');
-const { BigNumber } = require('ethers');
+const {loadFixture} = require('@nomicfoundation/hardhat-network-helpers');
+const {expect} = require('chai');
+const {ethers} = require("hardhat");
 
 function shouldBehaveLikeNFTMerkleDrop({
-    deployContractsFixture,
-}) {
+                                           deployContractsFixture,
+                                       }) {
     describe('NFTMerkleDrop Behavior', function () {
         it('should allow valid claims and reject invalid ones', async function () {
-            const { deployer, myNFT, nftDrop, dropResult } = await loadFixture(deployContractsFixture);
+            const [owner, alice, bob, carol, dan] = await ethers.getSigners();
+
+            // Call the fixture function to deploy contracts and get instances
+
+            const {deployer, myNFT, nftDrop, dropResult} = await loadFixture(deployContractsFixture);
             console.log(`Contracts deployed by ${deployer.address}`);
 
-            const { recipients, root } = dropResult;
+            const {recipients, root} = dropResult;
 
             // Check initial ownership
             for (let i = 0; i < recipients.length; i++) {
@@ -30,20 +34,31 @@ function shouldBehaveLikeNFTMerkleDrop({
                 console.log(`Before claim: Token ${recipient.tokenId[0]} owned by ${owner}`);
 
                 const isApproved = await myNFT.isApprovedForAll(deployer.address, nftDrop.target);
-                console.log(`Is NFTMerkleDrop contract approved to transfer recipient's NFTs: ${isApproved}`);
+                console.log(`Is NFTMerkleDrop contract approved to transfer recipient' ${recipient.account} NFTs: ${isApproved}`);
                 expect(isApproved).to.be.true;
             }
 
             // Claim NFTs
             for (let i = 0; i < recipients.length; i++) {
+                /**
+                 * @type {Recipient}
+                 */
                 const recipient = recipients[i];
 
+                // Convert tokenId from string to BigInt
                 const tokenIdsArray = recipient.tokenId.map(id => BigInt(id));
+
+                // Convert proofs to array of bytes32
                 const proofArray = recipient.proof.map(p => p.data);
 
-                await expect(nftDrop.claim(recipient.account, tokenIdsArray, root, proofArray))
+                // Connect the contract to the recipient's signer
+                const recipientSigner = await ethers.getSigner(recipient.account);
+                const nftDropConnected = nftDrop.connect(recipientSigner);
+
+                await expect(nftDropConnected.claim(recipient.account, tokenIdsArray, root, proofArray))
+                    // await expect(nftDropConnected.claim(recipient.account, [recipient.tokenId], root, proofArray))
                     .to.emit(nftDrop, 'Claimed')
-                    .withArgs(recipient.account, tokenIdsArray.length);
+                    .withArgs(recipient.account, [recipient.tokenId]);
 
                 const newOwner = await myNFT.ownerOf(tokenIdsArray[0]);
                 console.log(`After claim: Token ${tokenIdsArray[0]} owned by ${newOwner}`);
@@ -56,7 +71,10 @@ function shouldBehaveLikeNFTMerkleDrop({
                 const tokenIdsArray = recipient.tokenId.map(id => BigInt(id));
                 const proofArray = recipient.proof.map(p => p.data);
 
-                await expect(nftDrop.claim(recipient.account, tokenIdsArray, root, proofArray))
+                const recipientSigner = await ethers.getSigner(recipient.account);
+                const nftDropConnected = nftDrop.connect(recipientSigner);
+
+                await expect(nftDropConnected.claim(recipient.account, tokenIdsArray, root, proofArray))
                     .to.be.revertedWithCustomError(nftDrop, 'NothingToClaim');
             }
         });

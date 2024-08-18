@@ -15,7 +15,7 @@ async function deployContractsFixture() {
 
     // Generate Merkle Drop
     const chainId = await getChainId();
-    const dropMapping = parseMapping(fs.readFileSync(path.resolve('./input/0.json'), 'utf8'));
+    const dropMapping = parseMapping(fs.readFileSync(path.resolve('./input/testMapping.json'), 'utf8'));
     const settings = createNewNFTDropSettings(true,false, false, dropMapping, null, chainId, true);
     /**
      * @type {DropResult}

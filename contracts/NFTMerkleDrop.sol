@@ -53,7 +53,7 @@ contract NFTMerkleDrop is Ownable, INFTMerkleDrop {
 
         // Send the NFTs
         for (uint256 i = 0; i < tokenIds.length; i++) {
-            IERC721(nftContract).safeTransferFrom(address(this), account, tokenIds[i]);
+            IERC721(nftContract).safeTransferFrom(owner(), account, tokenIds[i]);
         }
 
         emit Claimed(account, tokenIds);
