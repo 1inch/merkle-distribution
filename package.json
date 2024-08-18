@@ -47,7 +47,7 @@
     "qr:deploy": "hardhat deploy:qr --network",
     "qr:create": "node ./src/qrdrop.js -gqlczv",
     "qr:check": "node ./src/qrdrop.js -x",
-    "nft_drop": "node ./src/nft_drop/nft_drop.js",
+    "nft:createDrop": "node ./src/nft_drop/nft_drop.js",
     "lint": "yarn run lint:js && yarn run lint:sol",
     "lint:fix": "yarn run lint:js:fix && yarn run lint:sol:fix",
     "lint:js": "eslint .",
@@ -57,8 +57,5 @@
     "test": "hardhat test",
     "testAmoy": "hardhat test --network polygonAmoy",
     "genqr": "node ./src/qrdrop.js"
-  },
-  "bin": {
-    "nft_drop": "./src/nft_drop/nft_drop.js"
   }
 }

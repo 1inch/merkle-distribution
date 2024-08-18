@@ -8,17 +8,31 @@ class NFTDropSettings extends AbstractDropSettings {
         return './src/nft_drop';
     }
 
-    constructor (flagGenerateCodes, flagSaveQr, flagSaveLink, nftMapping, version, chainId = 1, flagNoVersionUpdate = false) {
+    constructor(flagGenerateCodes, flagSaveQr, flagSaveLink, nftMapping, version, chainId = 1, flagNoVersionUpdate = false,
+                flagCleanup = false,
+                flagZip = false,
+                flagValidateOnly = false,
+                validateUrl = null,
+                validateRoot = null,
+                flagWipe = false,
+    ) {
         super(flagGenerateCodes, flagSaveQr, flagSaveLink, Object.keys(nftMapping), Object.values(nftMapping), version, chainId, flagNoVersionUpdate);
         this.nftMapping = nftMapping;
         // TODO move to config
         this.fileLinks = `${this.constructor.pathZip}/${version}-ntf-drop.json`;
         this.prefix = `https://app.lostbodystore.io/#/${chainId}/qr?`;
+
+        this.flagCleanup = flagCleanup
+        this.flagZip = flagZip
+        this.flagValidateOnly = flagValidateOnly
+        this.validateUrl = validateUrl
+        this.validateRoot = validateRoot
+        this.flagWipe = flagWipe
     }
 }
 
-function createNewNFTDropSettings (flagGenerateCodes, flagSaveQr, flagSaveLink, nftMapping, version, chainId, flagNoDeploy) {
-    return new NFTDropSettings(flagGenerateCodes, flagSaveQr, flagSaveLink, nftMapping, version, chainId, flagNoDeploy);
+function createNewNFTDropSettings (...args) {
+    return new NFTDropSettings(...args);
 }
 
 class Recipient {
