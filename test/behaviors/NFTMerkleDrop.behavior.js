@@ -1,5 +1,6 @@
 const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
 const { expect } = require('chai');
+const { BigNumber } = require('ethers');
 
 function shouldBehaveLikeNFTMerkleDrop({
     deployContractsFixture,
@@ -21,16 +22,24 @@ function shouldBehaveLikeNFTMerkleDrop({
                  */
                 const recipient = recipients[i];
 
-                await expect(nftDrop.claim(recipient.account, [recipient.tokenId], root, recipient.proof))
+                // Convert tokenId from string to BigInt
+                const tokenIdsArray = recipient.tokenId.map(id => BigInt(id));
+
+                // Convert proofs to array of bytes32
+                const proofArray = recipient.proof.map(p => p.data);
+
+                await expect(nftDrop.claim(recipient.account, tokenIdsArray, root, proofArray))
                     .to.emit(nftDrop, 'Claimed')
-                    .withArgs(recipient.account, 1);  // Assuming the `Claimed` event emits the account and the number of claimed tokens
+                    .withArgs(recipient.account, tokenIdsArray.length);  // Assuming the `Claimed` event emits the account and the number of claimed tokens
             }
 
             // Attempt to reclaim the same NFTs (should fail)
             for (let i = 0; i < recipients.length; i++) {
                 const recipient = recipients[i];
+                const tokenIdsArray = recipient.tokenId.map(id => BigInt(id));
+                const proofArray = recipient.proof.map(p => p.data);
 
-                await expect(nftDrop.claim(recipient.account, [recipient.tokenId], root, recipient.proof))
+                await expect(nftDrop.claim(recipient.account, tokenIdsArray, root, proofArray))
                     .to.be.revertedWithCustomError(nftDrop, 'NothingToClaim');
             }
         });
