@@ -8,23 +8,70 @@ const qr = require('qr-image');
 const fs = require('fs');
 const path = require('path');
 const { assert } = require('console');
+const { exit } = require('process');
 
-class DropSettings {
-    fileLatest = './src/.latest';
-    pathQr = './src/qr';
-    pathTestQr = './src/test_qr';
-    pathZip = './src/gendata';
+class AbstractDropSettings {
+    constructor (flagGenerateCodes, flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, chainId = 1, flagNoVersionUpdate = false) {
+        if (new.target === AbstractDropSettings) {
+            throw new Error('Cannot instantiate an abstract class.');
+        }
 
-    constructor (flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, chainId, flagNoVersionUpdate = false) {
+        this.flagGenerateCodes = flagGenerateCodes;
         this.flagSaveQr = flagSaveQr;
         this.flagSaveLink = flagSaveLink;
         this.flagNoDeploy = flagNoVersionUpdate;
         this.codeCounts = codeCounts;
         this.codeAmounts = codeAmounts;
-        this.version = version;
         this.chainId = chainId;
-        this.fileLinks = `./src/gendata/${version}-qr-links.json`;
+
+        // Class-specific
+        this.fileLatest = this.constructor.fileLatest;
+        this.root = this.constructor.root;
+        this.pathQr = this.constructor.pathQr;
+        this.pathTestQr = this.constructor.pathTestQr;
+        this.pathZip = this.constructor.pathZip;
+
+        // Instance-specific
+        this.fileLinks = `${this.constructor.pathZip}/${version}-qr-links.json`;
         this.prefix = `https://app.1inch.io/#/${chainId}/qr?`;
+
+        if (version == null) {
+            version = getLatestVersion(this.fileLatest) + 1;
+            console.log(`Auto-incremented version ${version} chosen for the new generation`);
+        }
+        this.version = version;
+    }
+
+    // Static getter for the root path (should be overridden by subclasses)
+    static get root () {
+        throw new Error('Subclasses must define a root path.');
+    }
+
+    // Static getter for fileLatest
+    static get fileLatest () {
+        return `${this.root}/.latest`;
+    }
+    // Instance getter for fileLatest
+
+    // Static getter for pathQr
+    static get pathQr () {
+        return `${this.root}/qr`;
+    }
+
+    // Static getter for pathTestQr
+    static get pathTestQr () {
+        return `${this.root}/test_qr`;
+    }
+
+    // Static getter for pathZip
+    static get pathZip () {
+        return `${this.root}/gendata`;
+    }
+}
+
+class DropSettings extends AbstractDropSettings {
+    static get root () {
+        return './src';
     }
 }
 
@@ -32,12 +79,37 @@ function keccak128 (input) {
     return keccak256(input).slice(0, 16);
 }
 
+function ensureDirectoryExistence (dir) {
+    // Ensure the directory exists, create it recursively if not
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+}
+
+function saveFile (filePath, fileContent) {
+    const dir = path.dirname(filePath);
+    ensureDirectoryExistence(dir);
+    fs.writeFileSync(filePath, fileContent);
+}
+
 function makeDrop (wallets, amounts) {
+    // Create an array of elements by concatenating each wallet address with the corresponding amount
+    // in hexadecimal format, padded to 64 characters.
     const elements = wallets.map((w, i) => w + BigInt(amounts[i]).toString(16).padStart(64, '0'));
+
+    // Generate a Merkle Tree leaf by hashing each element with keccak128 and converting it to a hexadecimal string.
     const leaves = elements.map(keccak128).map(x => MerkleTree.bufferToHex(x));
+
+    // Create a Merkle Tree from the leaves using keccak128 as the hashing function and sort the pairs for consistency.
     const tree = new MerkleTree(leaves, keccak128, { sortPairs: true });
+
+    // Obtain the Merkle root, which is the top node of the tree.
     const root = tree.getHexRoot();
+
+    // Generate a proof for each leaf in the Merkle Tree. A proof is used to verify that a leaf is part of the tree.
     const proofs = leaves.map(tree.getProof, tree);
+
+    // Return an object containing the elements, leaves, Merkle root, and proofs.
     return { elements, leaves, root, proofs };
 }
 
@@ -57,7 +129,7 @@ function saveQr (i, url, dir) {
     // console.log(url);
     const code = qr.imageSync(url, { type: 'png' });
     const qrfile = path.join(dir, `${i}.png`);
-    fs.writeFileSync(qrfile, code);
+    saveFile(qrfile, code);
 }
 
 function verifyProof (wallet, amount, proof, root, displayResults) {
@@ -125,7 +197,8 @@ async function main (settings) {
     const COUNTS = settings.codeCounts;
     const AMOUNTS = settings.codeAmounts;
 
-    const privs = await genPrivs(Number(COUNTS.reduce((s, a) => s + a, 0n)));
+    const totalCodes = Number(COUNTS.reduce((s, a) => s + a, 0n));
+    const privs = await genPrivs(totalCodes);
     const accounts = privs.map(p => Wallet.fromPrivateKey(Buffer.from(p, 'hex')).getAddressString());
     let amounts = [];
     for (let i = 0; i < COUNTS.length; i++) {
@@ -171,11 +244,11 @@ async function main (settings) {
             codes: info,
         };
 
-        fs.writeFileSync(settings.fileLinks, JSON.stringify(fileContent, null, 1));
+        saveFile(settings.fileLinks, JSON.stringify(fileContent, null, 1));
     }
 
     if (!settings.flagNoDeploy) {
-        fs.writeFileSync(settings.fileLatest, settings.version.toString());
+        saveFile(settings.fileLatest, settings.version.toString());
     }
 }
 
@@ -183,13 +256,44 @@ function verifyLink (url, root, prefix) {
     return uriDecode(url, root, prefix, true);
 }
 
-function createNewDropSettings (flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, flagNoDeploy, chainId) {
-    const settings = new DropSettings(flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, flagNoDeploy, chainId);
-    return settings;
+function createNewDropSettings (flagGenerateCodes, flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, chainId, flagNoDeploy) {
+    return new DropSettings(flagGenerateCodes, flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, chainId, flagNoDeploy);
+}
+
+function validateVersion (version, latestFile) {
+    const latestVersion = getLatestVersion(latestFile);
+    if (version <= latestVersion) {
+        console.error('version should be greater than ' + latestVersion.toString());
+        exit(1);
+    }
+}
+
+function getLatestVersion (latestFile) {
+    if (!fs.existsSync(latestFile)) {
+        saveFile(latestFile, '0');
+        return 0;
+    }
+
+    const latestVersion = Number(fs.readFileSync(latestFile));
+    if (isNaN(latestVersion) || latestVersion < 0) {
+        console.log('WARNING! version file is corrupted');
+        exit(1);
+    }
+
+    return latestVersion;
 }
 
 module.exports = {
     generateCodes: main,
     verifyLink,
     createNewDropSettings,
+    AbstractDropSettings,
+    DropSettings,
+    keccak128,
+    uriEncode,
+    saveFile,
+    saveQr,
+    ensureDirectoryExistence,
+    validateVersion,
+    getLatestVersion,
 };

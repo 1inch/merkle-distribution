@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 const { ethers } = require('hardhat');
-const fs = require('fs');
 const path = require('path');
 const { assert } = require('console');
 const qrdrop = require('./gen_qr_lib.js');
@@ -68,11 +67,10 @@ validateArgs();
 execute();
 
 async function execute () {
-    if (flagGenerateCodes) {
-        const settings = qrdrop.createNewDropSettings(flagSaveQr, flagSaveLink, COUNTS, AMOUNTS, VERSION, chainId, flagNoDeploy);
-
+    const settings = qrdrop.createNewDropSettings(flagGenerateCodes, flagSaveQr, flagSaveLink, COUNTS, AMOUNTS, VERSION, chainId, flagNoDeploy);
+    if (settings.flagGenerateCodes) {
         if (!flagNoDeploy) {
-            validateVersion(settings.version, settings.fileLatest);
+            qrdrop.validateVersion(settings.version, settings.fileLatest);
         }
 
         if (flagCleanup) {
@@ -96,12 +94,10 @@ async function execute () {
     }
 
     if (flagValidateOnly) {
-        const settings = qrdrop.createNewDropSettings(false, false, null, null, null, chainId, true);
         assert(qrdrop.verifyLink(validateUrl, validateRoot, settings.prefix));
     }
 
     if (flagWipe || flagZip) {
-        const settings = qrdrop.createNewDropSettings();
         archive.cleanDirs([settings.pathTestQr, settings.pathQr]);
     }
 }
@@ -160,26 +156,4 @@ function validateArgs () {
 
 function isNotIntegerAboveZero (value) {
     return !(value > 0);
-}
-
-function validateVersion (version, latestFile) {
-    const latestVersion = getLatestVersion(latestFile);
-    if (version <= latestVersion) {
-        console.error('version should be greater than ' + latestVersion.toString());
-        exit(1);
-    }
-}
-
-function getLatestVersion (latestFile) {
-    if (!fs.existsSync(latestFile)) {
-        return 0;
-    }
-
-    const latestVersion = Number(fs.readFileSync(latestFile));
-    if (isNaN(latestVersion) || latestVersion < 0) {
-        console.log('WARNING! version file is corrupted');
-        exit(1);
-    }
-
-    return latestVersion;
 }
