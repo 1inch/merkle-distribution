@@ -1,11 +1,11 @@
 const hre = require('hardhat');
 const { ethers, getChainId } = hre;
-const { generateNFTDrop, parseMapping } = require('../src/nft_drop/nft_drop'); // Adjust the path if necessary
+const { manageNFTDrop } = require('../src/nft_drop/nft_drop'); // Adjust the path if necessary
+const { parseMapping } = require('../src/nft_drop/gen_nft_lib'); // Adjust the path if necessary
 const fs = require('fs');
 const path = require('path');
 const { shouldBehaveLikeNFTMerkleDrop } = require('./behaviors/NFTMerkleDrop.behavior');
 const { deployContract } = require('@1inch/solidity-utils');
-const { createNewNFTDropSettings } = require('../src/nft_drop/gen_nft_lib');
 
 async function deployContractsFixture () {
     const [deployer] = await ethers.getSigners();
@@ -24,14 +24,11 @@ async function deployContractsFixture () {
     const params = {
         nftMapping: dropMapping,
         flagNoDeploy: true,
+        chainId: chainId,
     };
 
     // Generate the NFT Drop
-    const dropResult = await generateNFTDrop(params);
-    /**
-     * @type {DropResult}
-     */
-    const dropResult = await generateNFTDrop();
+    const dropResult = await manageNFTDrop(params);
 
     // Deploy NFTMerkleDrop contract
     const nftDrop = await deployContract('NFTMerkleDrop', [myNFT.target, dropResult.root]);

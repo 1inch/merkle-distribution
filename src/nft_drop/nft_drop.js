@@ -7,7 +7,7 @@
  *
  * Detailed usage examples are provided within this documentation.
  */
-
+const fs = require('fs');
 const { program } = require('commander');
 const archive = require('./../zip_lib.js');
 const {
@@ -24,61 +24,78 @@ const { ensureDirectoryExistence, getLatestVersion, validateVersion } = require(
 const { exit } = require('process');
 const { assert } = require('console');
 
+// Parse Command Line Arguments
 function parseCommandLineArgs() {
     program
-        .option('-v, --version', 'deployment instance version', false)
         .option('-g, --gencodes', 'generate NFT drop codes mode', false)
-        .option('-q, --qrs', 'generate qr', false)
+        .option('-q, --qrs', 'generate QR codes', false)
         .option('-l, --links', 'generate links', true)
         .option('-m, --mapping <mapping>', 'NFT ID to account mapping (JSON format or as key=value pairs separated by commas)')
         .option('-f, --file <file>', 'filepath to NFT ID to account mapping (JSON format or as key=value pairs separated by commas)')
+        .option('-v, --version', 'deployment instance version', false)
+        .option('-b, --chainid <chainid>', 'chain ID', '1')
         .option('-s, --nodeploy', 'test run, ignores version', false)
         .option('-c, --cleanup', 'cleanup directories before codes generation', false)
-        .option('-z, --zip', 'zip qr-codes', false)
+        .option('-z, --zip', 'zip QR codes', false)
         .option('-x, --validate', 'validation mode', false)
-        .option('-u, --url <url>', 'qr url')
+        .option('-u, --url <url>', 'QR URL')
         .option('-r, --root <root>', 'merkle root')
-        .option('-w, --wipe', 'clean up qr directories', false)
-        .option('-b, --chainid <chainid>', 'chain id', '1');
+        .option('-w, --wipe', 'clean up QR directories', false);
 
     program.parse(process.argv);
     return program.opts();
 }
 
-// Initialize Arguments and Parameters
-function initializeArguments(options) {
+
+// Fill Parameters with Defaults
+function fillParameters({
+    flagGenerateCodes = true,
+    flagSaveQr = false,
+    flagSaveLink = false,
+    nftMapping = null,
+    version = null,
+    chainId = 1,
+    flagNoDeploy = false,
+    flagCleanup = false,
+    flagZip = false,
+    flagValidateOnly = false,
+    validateUrl = null,
+    validateRoot = null,
+    flagWipe = false,
+} = {}) {
     // Ensure version is valid, or set it to the latest + 1
-    if (!isValidVersion(options.version)) {
-        options.version = getLatestVersion(NFTDropSettings.fileLatest) + 1;
+    if (!isValidVersion(version)) {
+        version = getLatestVersion(NFTDropSettings.fileLatest) + 1;
     }
 
     // Ensure that at least one of the generation modes is active
     if (
-        Number(options.gencodes) +
-        Number(options.validate) +
-        Number(options.wipe) === 0
+        Number(flagGenerateCodes) +
+        Number(flagValidateOnly) +
+        Number(flagWipe) === 0
     ) {
-        options.gencodes = true;
+        flagGenerateCodes = true;
     }
 
     // Handle the mapping logic
-    options.mapping = options.mapping ||
-                      (options.file && parseMapping(fs.readFileSync(resolveFilePath(options.file), 'utf-8'))) ||
-                      getDefaultMapping();
+    if (nftMapping == null) {
+        nftMapping = getDefaultMapping();
+    }
 
     return {
-        flagGenerateCodes: options.gencodes,
-        flagSaveQr: options.qrs,
-        flagSaveLink: options.links,
-        nftMapping: options.mapping,
-        version: options.version,
-        flagNoDeploy: options.nodeploy,
-        flagCleanup: options.cleanup,
-        flagZip: options.zip,
-        flagValidateOnly: options.validate,
-        validateUrl: options.url,
-        validateRoot: options.root,
-        flagWipe: options.wipe,
+        flagGenerateCodes,
+        flagSaveQr,
+        flagSaveLink,
+        nftMapping,
+        version,
+        chainId,
+        flagNoDeploy,
+        flagCleanup,
+        flagZip,
+        flagValidateOnly,
+        validateUrl,
+        validateRoot,
+        flagWipe,
     };
 }
 
@@ -100,46 +117,21 @@ function validateParameters(params) {
             exit(1);
         }
     }
-}
 
-// Set Default Values for Parameters
-function setDefaults({
-    flagGenerateCodes = true,
-    flagSaveQr = false,
-    flagSaveLink = false,
-    nftMapping = getDefaultMapping(),
-    version = null,
-    flagNoDeploy = false,
-    flagCleanup = false,
-    flagZip = false,
-    flagValidateOnly = false,
-    validateUrl = null,
-    validateRoot = null,
-    flagWipe = false,
-}) {
-    return {
-        flagGenerateCodes,
-        flagSaveQr,
-        flagSaveLink,
-        nftMapping,
-        version,
-        flagNoDeploy,
-        flagCleanup,
-        flagZip,
-        flagValidateOnly,
-        validateUrl,
-        validateRoot,
-        flagWipe,
-    };
+    if (isNaN(params.chainId) || params.chainId <= 0) {
+        console.error("Invalid chain ID. Must be a positive integer.");
+        process.exit(1);
+    }
 }
 
 // Generate NFT Drop
-async function generateNFTDrop({
+async function manageNFTDrop({
     flagGenerateCodes,
     flagSaveQr,
     flagSaveLink,
     nftMapping,
     version,
+    chainId,
     flagNoDeploy,
     flagCleanup,
     flagZip,
@@ -148,13 +140,14 @@ async function generateNFTDrop({
     validateRoot,
     flagWipe,
 } = {}) {
-    // Initialize Parameters with Defaults
-    const params = setDefaults({
+    // Initialize and fill Parameters with Defaults
+    const params = fillParameters({
         flagGenerateCodes,
         flagSaveQr,
         flagSaveLink,
         nftMapping,
         version,
+        chainId,
         flagNoDeploy,
         flagCleanup,
         flagZip,
@@ -167,8 +160,8 @@ async function generateNFTDrop({
     // Validate Parameters
     validateParameters(params);
 
-    // Create Settings
-    const settings = createNewNFTDropSettings(...params);
+    // Create Settings by spreading filledParams directly into createNewNFTDropSettings
+    const settings = createNewNFTDropSettings(...Object.values(params));
 
     // Output Directories
     const outputDirs = [settings.pathTestQr, settings.pathQr, settings.pathZip];
@@ -208,13 +201,35 @@ async function generateNFTDrop({
 }
 
 // CLI Entry Point
+// CLI Entry Point
 if (require.main === module) {
     const options = parseCommandLineArgs();
-    const params = initializeArguments(options);
-    generateNFTDrop(params);
+
+    // Cast options to parameters
+    const params = {
+        flagGenerateCodes: options.gencodes,
+        flagSaveQr: options.qrs,
+        flagSaveLink: options.links,
+        nftMapping: (() => {
+            const _mappingSource = options.mapping || (options.file && fs.readFileSync(resolveFilePath(options.file), 'utf-8'));
+            return parseMapping(_mappingSource);
+        })(),
+        version: options.version,
+        chainId: options.chainid,
+        flagNoDeploy: options.nodeploy,
+        flagCleanup: options.cleanup,
+        flagZip: options.zip,
+        flagValidateOnly: options.validate,
+        validateUrl: options.url,
+        validateRoot: options.root,
+        flagWipe: options.wipe,
+    };
+
+    // Generate the NFT Drop with the parameters
+    manageNFTDrop(params);
 }
 
+
 module.exports = {
-    generateNFTDrop,
-    parseMapping,
+    manageNFTDrop,
 };

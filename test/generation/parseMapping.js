@@ -1,5 +1,5 @@
 const { expect } = require('chai');
-const { parseMapping } = require('../../src/nft_drop/nft_drop');
+const { parseMapping } = require('../../src/nft_drop/gen_nft_lib');
 
 describe('parseMapping Function', () => {
     it('should return the mapping directly if already in account -> [tokenIds] format', () => {
@@ -54,7 +54,7 @@ describe('parseMapping Function', () => {
 
     it('should handle empty input', () => {
         const input = '';
-        const expectedOutput = {};
+        const expectedOutput = null;
         const result = parseMapping(input);
         expect(result).to.deep.equal(expectedOutput);
     });

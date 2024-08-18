@@ -214,7 +214,7 @@ function resolveFilePath(filePath) {
 
 function parseMapping(mapping) {
     if (!mapping) {
-        return {};
+        return null;
     }
 
     try {
