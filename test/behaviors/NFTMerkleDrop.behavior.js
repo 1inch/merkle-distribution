@@ -56,9 +56,11 @@ function shouldBehaveLikeNFTMerkleDrop({
                 const nftDropConnected = nftDrop.connect(recipientSigner);
 
                 await expect(nftDropConnected.claim(recipient.account, tokenIdsArray, root, proofArray))
-                    // await expect(nftDropConnected.claim(recipient.account, [recipient.tokenId], root, proofArray))
                     .to.emit(nftDrop, 'Claimed')
-                    .withArgs(recipient.account, [recipient.tokenId]);
+                    .withArgs(
+                        recipient.account,
+                        tokenIdsArray
+                    );
 
                 const newOwner = await myNFT.ownerOf(tokenIdsArray[0]);
                 console.log(`After claim: Token ${tokenIdsArray[0]} owned by ${newOwner}`);
