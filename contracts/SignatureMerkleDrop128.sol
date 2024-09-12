@@ -33,7 +33,7 @@ contract SignatureMerkleDrop128 is ISignatureMerkleDrop128, Ownable {
         depth = depth_;
     }
 
-    function claim(address receiver, uint256 amount, bytes calldata merkleProof, bytes calldata signature) external override {
+    function claim(address receiver, uint256 amount, bytes calldata merkleProof, bytes calldata signature) external payable {
         bytes32 signedHash = ECDSA.toEthSignedMessageHash(keccak256(abi.encodePacked(receiver)));
         address account = ECDSA.recover(signedHash, signature);
         // Verify the merkle proof.
@@ -42,6 +42,7 @@ contract SignatureMerkleDrop128 is ISignatureMerkleDrop128, Ownable {
         if (!valid) revert InvalidProof();
         _invalidate(index);
         IERC20(token).safeTransfer(receiver, amount);
+        payable(receiver).sendValue(msg.value);
         _cashback();
     }
 
@@ -53,7 +54,7 @@ contract SignatureMerkleDrop128 is ISignatureMerkleDrop128, Ownable {
         return _verifyAsm(proof, merkleRoot, leaf);
     }
 
-    function isClaimed(uint256 index) external view override returns (bool) {
+    function isClaimed(uint256 index) external view returns (bool) {
         uint256 claimedWordIndex = index / 256;
         uint256 claimedBitIndex = index % 256;
         uint256 claimedWord = _claimedBitMap[claimedWordIndex];

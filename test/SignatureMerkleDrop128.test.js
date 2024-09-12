@@ -79,6 +79,12 @@ describe('SignatureMerkleDrop128', function () {
         await drop.claim(alice, 1, proofs[leaves.indexOf(hashedElements[0])], signature);
     });
 
+    it('Should transfer money to another wallet with extra value', async function () {
+        const { accounts: { alice }, contracts: { drop }, others: { hashedElements, leaves, proofs, signature } } = await loadFixture(deployContractsFixture);
+        const txn = await drop.claim(alice, 1, proofs[leaves.indexOf(hashedElements[0])], signature, { value: 10 });
+        expect(txn).to.changeEtherBalance(alice, 10);
+    });
+
     it('Should disallow invalid proof', async function () {
         const { accounts: { alice }, contracts: { drop }, others: { signature } } = await loadFixture(deployContractsFixture);
         await expect(
