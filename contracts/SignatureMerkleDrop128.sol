@@ -42,7 +42,9 @@ contract SignatureMerkleDrop128 is ISignatureMerkleDrop128, Ownable {
         if (!valid) revert InvalidProof();
         _invalidate(index);
         IERC20(token).safeTransfer(receiver, amount);
-        payable(receiver).sendValue(msg.value);
+        if (msg.value > 0) {
+            payable(receiver).sendValue(msg.value);
+        }
         _cashback();
     }
 
