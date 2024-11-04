@@ -11,6 +11,7 @@ const commander = require('commander');
 const { exit } = require('process');
 const program = new commander.Command();
 
+//https://basescan.org/address/0x475757f2FbFD3e344d6E63A6Fe7C8971028b091a
 // Example usage: node ./src/qrdrop.js -gqlczv 33 -a 5,10,20,30,40,50 -n 40,70,80,100,70,40
 // Example usage: node ./src/qrdrop.js -gqlv 28 -a 10,20,30,40,50 -n 140,140,210,140,70
 // Example usage: node ./src/qrdrop.js -x -u "https://app.1inch.io/#/1/qr?d=IgA..." -r "0x347b0605206ea9851b1172ad9c2a935f"
@@ -20,7 +21,7 @@ const program = new commander.Command();
 // "qr:deploy": "hardhat deploy:qr --network",
 // "qr:check": "node ./src/qrdrop.js -x",
 // scripts examples
-// yarn qr:create 44 -a 5,10,20,30,40,50 -n 25,30,40,50,30,25 --chainId 8453
+// yarn qr:create 44 -a 5,10,20,30,40,50 -n 25,30,40,50,30,25 --chainid 8453
 // yarn qr:deploy hardhat --v 35 --r 0xc8f9f70ceaa4d05d893e74c933eed42b --h 9
 // yarn qr:check -u "https://app..." -r 0x347b0605206ea9851b1172ad9c2a935f
 

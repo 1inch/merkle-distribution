@@ -8,7 +8,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@1inch/solidity-utils": "4.2.0",
+    "@1inch/solidity-utils": "5.2.3",
     "@openzeppelin/contracts": "5.0.2",
     "adm-zip": "^0.5.12"
   },
@@ -44,9 +44,10 @@
     "coverage": "hardhat coverage",
     "deploy": "hardhat deploy --network",
     "deploy:test": "hardhat deploy",
-    "qr:deploy": "hardhat deploy:qr --network",
+    "lk:deploy": "hardhat deploy:qr --network",
     "qr:create": "node ./src/qrdrop.js -gqlczv",
-    "qr:check": "node ./src/qrdrop.js -x",
+    "lk:create": "node ./src/qrdrop.js -glcv",
+    "lk:check": "node ./src/qrdrop.js -x",
     "lint": "yarn run lint:js && yarn run lint:sol",
     "lint:fix": "yarn run lint:js:fix && yarn run lint:sol:fix",
     "lint:js": "eslint .",
