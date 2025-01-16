@@ -23,8 +23,8 @@ const program = new commander.Command();
 // scripts examples
 // yarn qr:create 44 -a 5,10,20,30,40,50 -n 25,30,40,50,30,25 --chainid 8453
 // yarn lk:create 51 -a 5,10,20,30,40,50 -n 30,30,40,50,30,20 --chainid 8453 -s
-// yarn qr:deploy hardhat --v 35 --r 0xc8f9f70ceaa4d05d893e74c933eed42b --h 9
-// yarn qr:check -u "https://app..." -r 0x347b0605206ea9851b1172ad9c2a935f
+// yarn lk:deploy hardhat --v 35 --r 0xc8f9f70ceaa4d05d893e74c933eed42b --h 9
+// yarn lk:check -u "https://app..." -r 0x347b0605206ea9851b1172ad9c2a935f --chainid 8453
 
 program
     // generation mode
