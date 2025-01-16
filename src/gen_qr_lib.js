@@ -20,6 +20,7 @@ class DropSettings {
         flagSaveLink,    // Saves generated links to json file
         codeCounts,      // Number of codes to generate for each amount 
         codeAmounts,     // Amounts to generate codes
+        testCount,       // Number of test codes to generate
         version,         // Version of the drop (can be included in the link)
         chainId,         // The chain to use the QR code on (can be included in the link)
         flagNoVersionUpdate = false, // If true, the version file will not be updated (used for testing)
@@ -29,9 +30,11 @@ class DropSettings {
         this.flagNoDeploy = flagNoVersionUpdate;
         this.codeCounts = codeCounts;
         this.codeAmounts = codeAmounts;
+        this.testCount = testCount;
         this.version = version;
         this.chainId = chainId;
         this.fileLinks = `./src/gendata/${version}-qr-links.json`;
+        this.testLinks = `./src/gendata/${version}-qr-links-test.json`
         this.prefix = `https://app.1inch.io/#/${chainId}/qr?`;
         this.enc_prefix = "https://wallet.1inch.io/app/w3browser?link=";
     }
@@ -164,24 +167,47 @@ async function main (settings) {
 
     if (settings.flagSaveLink) {
         const info = [];
+        const test = [];
         for (let i = 0; i < amounts.length; i++) {
-            info.push({
-                url: urls[i],
-                encUrl: settings.enc_prefix ? (settings.enc_prefix + encodeURIComponent(urls[i])) : undefined,
-                amount: amounts[i].toString(),
-                index: indices[i],
-            });
+            if (i < settings.testCount) {
+                test.push({
+                    url: urls[i],
+                    encUrl: settings.enc_prefix ? (settings.enc_prefix + encodeURIComponent(urls[i])) : undefined,
+                    amount: amounts[i].toString(),
+                    index: indices[i],
+                });
+            } else {
+                info.push({
+                    url: urls[i],
+                    encUrl: settings.enc_prefix ? (settings.enc_prefix + encodeURIComponent(urls[i])) : undefined,
+                    amount: amounts[i].toString(),
+                    index: indices[i],
+                });
+            }
         }
 
-        const fileContent = {
-            count: amounts.length,
+        const testContent = {
+            count: test.length,
             root: drop.root,
-            amount: totalAmount.toString(),
+            amount: test.reduce((acc, v) => acc + BigInt(v.amount), 0n).toString(),
+            version: settings.version,
+            codes: test,
+        };
+
+        const fileContent = {
+            count: info.length,
+            root: drop.root,
+            amount: info.reduce((acc, v) => acc + BigInt(v.amount), 0n).toString(),
             version: settings.version,
             codes: info,
         };
 
-        fs.writeFileSync(settings.fileLinks, JSON.stringify(fileContent, null, 1));
+        if (test.length > 0) {
+            fs.writeFileSync(settings.testLinks, JSON.stringify(testContent, null, 1));
+        }
+        if (info.length > 0) {
+            fs.writeFileSync(settings.fileLinks, JSON.stringify(fileContent, null, 1));
+        }
     }
 
     if (!settings.flagNoDeploy) {
@@ -193,8 +219,8 @@ function verifyLink (url, root, prefix) {
     return uriDecode(url, root, prefix, true);
 }
 
-function createNewDropSettings (flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, flagNoDeploy, chainId) {
-    const settings = new DropSettings(flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, flagNoDeploy, chainId);
+function createNewDropSettings (flagSaveQr, flagSaveLink, codeCounts, codeAmounts, testCount, version, flagNoDeploy, chainId) {
+    const settings = new DropSettings(flagSaveQr, flagSaveLink, codeCounts, codeAmounts, testCount, version, flagNoDeploy, chainId);
     return settings;
 }
 
