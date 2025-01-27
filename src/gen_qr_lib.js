@@ -16,14 +16,22 @@ class DropSettings {
     pathZip = './src/gendata';
 
     constructor (
-        flagSaveQr,      // Saves QR codes with encoded links to files
-        flagSaveLink,    // Saves generated links to json file
-        codeCounts,      // Number of codes to generate for each amount 
-        codeAmounts,     // Amounts to generate codes
-        testCount,       // Number of test codes to generate
-        version,         // Version of the drop (can be included in the link)
-        chainId,         // The chain to use the QR code on (can be included in the link)
-        flagNoVersionUpdate = false, // If true, the version file will not be updated (used for testing)
+        // Saves QR codes with encoded links to files
+        flagSaveQr,
+        // Saves generated links to json file
+        flagSaveLink,
+        // Number of codes to generate for each amount
+        codeCounts,
+        // Amounts to generate codes
+        codeAmounts,
+        // Number of test codes to generate
+        testCount,
+        // Version of the drop (can be included in the link)
+        version,
+        // The chain to use the QR code on (can be included in the link)
+        chainId,
+        // If true, the version file will not be updated (used for testing)
+        flagNoVersionUpdate = false,
     ) {
         this.flagSaveQr = flagSaveQr;
         this.flagSaveLink = flagSaveLink;
@@ -34,9 +42,9 @@ class DropSettings {
         this.version = version;
         this.chainId = chainId;
         this.fileLinks = `./src/gendata/${version}-qr-links.json`;
-        this.testLinks = `./src/gendata/${version}-qr-links-test.json`
+        this.testLinks = `./src/gendata/${version}-qr-links-test.json`;
         this.prefix = `https://app.1inch.io/#/${chainId}/qr?`;
-        this.enc_prefix = "https://wallet.1inch.io/app/w3browser?link=";
+        this.encPrefix = 'https://wallet.1inch.io/app/w3browser?link=';
     }
 }
 
@@ -172,14 +180,14 @@ async function main (settings) {
             if (i < settings.testCount) {
                 test.push({
                     url: urls[i],
-                    encUrl: settings.enc_prefix ? (settings.enc_prefix + encodeURIComponent(urls[i])) : undefined,
+                    encUrl: settings.encPrefix ? (settings.encPrefix + encodeURIComponent(urls[i])) : undefined,
                     amount: amounts[i].toString(),
                     index: indices[i],
                 });
             } else {
                 info.push({
                     url: urls[i],
-                    encUrl: settings.enc_prefix ? (settings.enc_prefix + encodeURIComponent(urls[i])) : undefined,
+                    encUrl: settings.encPrefix ? (settings.encPrefix + encodeURIComponent(urls[i])) : undefined,
                     amount: amounts[i].toString(),
                     index: indices[i],
                 });
