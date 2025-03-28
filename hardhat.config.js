@@ -41,7 +41,7 @@ task('drop', 'Deploys contracts with custom parameters')
 
         const { merkleRoot, height, urls } = await generateLinks(taskArgs.a, taskArgs.n, taskArgs.v, chainId, taskArgs.debug);
 
-        if (taskArgs.debug) {
+        if (!taskArgs.debug) {
             const deploymentScript = require('./deploy/deploy_qr.js');
             const { deployments, getNamedAccounts } = hre;
             const contract = await deploymentScript({

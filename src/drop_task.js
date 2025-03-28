@@ -1,5 +1,4 @@
-import { ethers } from 'ethers';
-
+// const ethers = require('ethers');
 const qrdrop = require('./gen_qr_lib.js');
 const fs = require('fs');
 const { assert } = require('console');
