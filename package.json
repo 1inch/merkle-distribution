@@ -55,6 +55,7 @@
     "lint:sol": "solhint --max-warnings 0 \"contracts/**/*.sol\"",
     "lint:sol:fix": "solhint --max-warnings 0 \"contracts/**/*.sol\" --fix",
     "test": "hardhat test",
-    "genqr": "node ./src/qrdrop.js"
+    "drop": "hardhat drop --network",
+    "verify": "hardhat verify-deployment --network"
   }
 }

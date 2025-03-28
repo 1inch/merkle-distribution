@@ -73,7 +73,7 @@ execute();
 
 async function execute () {
     if (flagGenerateCodes) {
-        const settings = qrdrop.createNewDropSettings(flagSaveQr, flagSaveLink, COUNTS, AMOUNTS, Number(testCode[0]), VERSION, chainId, flagNoDeploy);
+        const settings = qrdrop.createNewDropSettings(flagSaveQr, flagSaveLink, COUNTS, AMOUNTS, Number(testCode[0]), VERSION, flagNoDeploy, chainId);
 
         if (!flagNoDeploy) {
             validateVersion(settings.version, settings.fileLatest);
@@ -100,7 +100,7 @@ async function execute () {
     }
 
     if (flagValidateOnly) {
-        const settings = qrdrop.createNewDropSettings(false, false, null, null, null, null, chainId, true);
+        const settings = qrdrop.createNewDropSettings(false, false, null, null, null, null, true, chainId);
         assert(qrdrop.verifyLink(validateUrl, validateRoot, settings.prefix));
     }
 

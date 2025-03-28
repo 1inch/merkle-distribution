@@ -28,10 +28,10 @@ class DropSettings {
         testCount,
         // Version of the drop (can be included in the link)
         version,
-        // The chain to use the QR code on (can be included in the link)
-        chainId,
         // If true, the version file will not be updated (used for testing)
         flagNoVersionUpdate = false,
+        // The chain to use the QR code on (can be included in the link)
+        chainId,
     ) {
         this.flagSaveQr = flagSaveQr;
         this.flagSaveLink = flagSaveLink;
@@ -89,10 +89,15 @@ function verifyProof (wallet, amount, proof, root, displayResults) {
         console.log('proof: 0x' + Buffer.concat(proof).toString('hex'));
         console.log('leaf : ' + node);
     }
-    return tree.verify(proof, node, root);
+    return {
+        root,
+        proof: Buffer.concat(proof),
+        leaf: node,
+        isValid: tree.verify(proof, node, root),
+    };
 }
 
-function uriDecode (s, root, PREFIX, displayResults) {
+function uriDecodeWithDetails (s, root, PREFIX, displayResults) {
     const b = Buffer.from(s.substring(PREFIX.length + 2).replace(/-/g, '+').replace(/_/g, '/').replace(/!/g, '='), 'base64');
     // const vBuf = b.slice(0, 1);
     // console.log(vBuf);
@@ -111,6 +116,10 @@ function uriDecode (s, root, PREFIX, displayResults) {
     const amount = BigInt('0x' + aBuf.toString('hex'));
 
     return verifyProof(wallet, amount, proof, root, displayResults);
+}
+
+function uriDecode (s, root, PREFIX, displayResults) {
+    return uriDecodeWithDetails(s, root, PREFIX, displayResults).isValid;
 }
 
 function genUrl (priv, amount, proof, version, prefix) {
@@ -147,6 +156,7 @@ async function main (settings) {
 
     const privs = await genPrivs(Number(COUNTS.reduce((s, a) => s + a, 0n)));
     const accounts = privs.map(p => Wallet.fromPrivateKey(Buffer.from(p, 'hex')).getAddressString());
+
     let amounts = [];
     for (let i = 0; i < COUNTS.length; i++) {
         amounts = amounts.concat(Array(Number(COUNTS[i])).fill(AMOUNTS[i]));
@@ -221,10 +231,16 @@ async function main (settings) {
     if (!settings.flagNoDeploy) {
         fs.writeFileSync(settings.fileLatest, settings.version.toString());
     }
+
+    return { merkleRoot: drop.root, urls };
 }
 
 function verifyLink (url, root, prefix) {
     return uriDecode(url, root, prefix, true);
+}
+
+function parseLink (url, root, prefix) {
+    return uriDecodeWithDetails(url, root, prefix, false);
 }
 
 function createNewDropSettings (flagSaveQr, flagSaveLink, codeCounts, codeAmounts, testCount, version, flagNoDeploy, chainId) {
@@ -235,5 +251,6 @@ function createNewDropSettings (flagSaveQr, flagSaveLink, codeCounts, codeAmount
 module.exports = {
     generateCodes: main,
     verifyLink,
+    parseLink,
     createNewDropSettings,
 };
