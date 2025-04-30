@@ -30,7 +30,7 @@ task('deploy:qr', 'Deploys contracts with custom parameters')
         });
     });
 
-// Example yarn drop base --v 53 --a 5,10,20,30,40,50 --n 10,15,20,25,20,10 --debug
+// Example yarn drop base --v 53 --a 5,10,20,30,40,50 --n 10,15,20,25,20,10
 task('drop', 'Deploys contracts with custom parameters')
     .addParam('v', 'Deployment version')
     .addParam('a', 'Amounts to generate')
