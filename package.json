@@ -57,5 +57,8 @@
     "test": "hardhat test",
     "drop": "hardhat drop --network",
     "verify": "hardhat verify-deployment --network"
+  },
+  "resolutions": {
+    "elliptic": "6.5.7"
   }
 }
