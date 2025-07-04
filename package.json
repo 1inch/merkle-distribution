@@ -8,18 +8,18 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@1inch/solidity-utils": "4.2.0",
+    "@1inch/solidity-utils": "5.2.3",
     "@openzeppelin/contracts": "5.0.2",
     "adm-zip": "^0.5.12"
   },
   "devDependencies": {
     "@metamask/eth-sig-util": "7.0.1",
-    "@nomicfoundation/hardhat-chai-matchers": "2.0.6",
-    "@nomicfoundation/hardhat-ethers": "3.0.5",
-    "@nomicfoundation/hardhat-verify": "2.0.5",
+    "@nomicfoundation/hardhat-chai-matchers": "2.0.9",
+    "@nomicfoundation/hardhat-ethers": "3.0.9",
+    "@nomicfoundation/hardhat-verify": "2.0.14",
     "chai": "4.4.0",
     "commander": "12.0.0",
-    "dotenv": "16.4.5",
+    "dotenv": "16.5.0",
     "eslint": "8.57.0",
     "eslint-config-standard": "17.1.0",
     "eslint-plugin-import": "2.29.1",
@@ -27,26 +27,27 @@
     "eslint-plugin-promise": "6.1.1",
     "eslint-plugin-standard": "5.0.0",
     "ethereumjs-wallet": "^1.0.2",
-    "ethers": "6.11.1",
-    "hardhat": "2.22.2",
-    "hardhat-dependency-compiler": "1.1.4",
-    "hardhat-deploy": "0.12.2",
-    "hardhat-gas-reporter": "2.0.2",
+    "ethers": "6.14.4",
+    "hardhat": "2.24.3",
+    "hardhat-dependency-compiler": "1.2.1",
+    "hardhat-deploy": "1.0.3",
+    "hardhat-gas-reporter": "2.3.0",
     "keccak256": "1.0.6",
     "merkletreejs": "0.3.11",
     "qr-image": "3.2.0",
     "rimraf": "5.0.5",
     "solhint": "4.5.2",
-    "solidity-coverage": "0.8.11"
+    "solidity-coverage": "0.8.16"
   },
   "scripts": {
     "clean": "rimraf artifacts cache coverage coverage.json",
     "coverage": "hardhat coverage",
     "deploy": "hardhat deploy --network",
     "deploy:test": "hardhat deploy",
-    "qr:deploy": "hardhat deploy:qr --network",
+    "lk:deploy": "hardhat deploy:qr --network",
     "qr:create": "node ./src/qrdrop.js -gqlczv",
-    "qr:check": "node ./src/qrdrop.js -x",
+    "lk:create": "node ./src/qrdrop.js -glcv",
+    "lk:check": "node ./src/qrdrop.js -x",
     "lint": "yarn run lint:js && yarn run lint:sol",
     "lint:fix": "yarn run lint:js:fix && yarn run lint:sol:fix",
     "lint:js": "eslint .",
@@ -54,6 +55,10 @@
     "lint:sol": "solhint --max-warnings 0 \"contracts/**/*.sol\"",
     "lint:sol:fix": "solhint --max-warnings 0 \"contracts/**/*.sol\" --fix",
     "test": "hardhat test",
-    "genqr": "node ./src/qrdrop.js"
+    "drop": "hardhat drop --network",
+    "verify": "hardhat verify-deployment --network"
+  },
+  "resolutions": {
+    "elliptic": "6.6.1"
   }
 }

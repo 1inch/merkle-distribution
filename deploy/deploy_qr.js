@@ -39,13 +39,15 @@ module.exports = async ({ deployments, getNamedAccounts, version, merkleRoot, me
 
     const deployScriptName = 'MerkleDrop128-' + version.toString();
 
-    await deployAndGetContract({
+    const contract = await deployAndGetContract({
         contractName: 'SignatureMerkleDrop128',
         constructorArgs: args,
         deployments,
         deployer,
         deploymentName: deployScriptName,
     });
+
+    return contract;
 };
 
 module.exports.skip = async () => false;

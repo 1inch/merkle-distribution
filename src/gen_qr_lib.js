@@ -15,16 +15,36 @@ class DropSettings {
     pathTestQr = './src/test_qr';
     pathZip = './src/gendata';
 
-    constructor (flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, chainId, flagNoVersionUpdate = false) {
+    constructor (
+        // Saves QR codes with encoded links to files
+        flagSaveQr,
+        // Saves generated links to json file
+        flagSaveLink,
+        // Number of codes to generate for each amount
+        codeCounts,
+        // Amounts to generate codes
+        codeAmounts,
+        // Number of test codes to generate
+        testCount,
+        // Version of the drop (can be included in the link)
+        version,
+        // If true, the version file will not be updated (used for testing)
+        flagNoVersionUpdate = false,
+        // The chain to use the QR code on (can be included in the link)
+        chainId,
+    ) {
         this.flagSaveQr = flagSaveQr;
         this.flagSaveLink = flagSaveLink;
         this.flagNoDeploy = flagNoVersionUpdate;
         this.codeCounts = codeCounts;
         this.codeAmounts = codeAmounts;
+        this.testCount = testCount;
         this.version = version;
         this.chainId = chainId;
         this.fileLinks = `./src/gendata/${version}-qr-links.json`;
+        this.testLinks = `./src/gendata/${version}-qr-links-test.json`;
         this.prefix = `https://app.1inch.io/#/${chainId}/qr?`;
+        this.encPrefix = 'https://wallet.1inch.io/app/w3browser?link=';
     }
 }
 
@@ -69,10 +89,15 @@ function verifyProof (wallet, amount, proof, root, displayResults) {
         console.log('proof: 0x' + Buffer.concat(proof).toString('hex'));
         console.log('leaf : ' + node);
     }
-    return tree.verify(proof, node, root);
+    return {
+        root,
+        proof: Buffer.concat(proof),
+        leaf: node,
+        isValid: tree.verify(proof, node, root),
+    };
 }
 
-function uriDecode (s, root, PREFIX, displayResults) {
+function uriDecodeWithDetails (s, root, PREFIX, displayResults) {
     const b = Buffer.from(s.substring(PREFIX.length + 2).replace(/-/g, '+').replace(/_/g, '/').replace(/!/g, '='), 'base64');
     // const vBuf = b.slice(0, 1);
     // console.log(vBuf);
@@ -91,6 +116,10 @@ function uriDecode (s, root, PREFIX, displayResults) {
     const amount = BigInt('0x' + aBuf.toString('hex'));
 
     return verifyProof(wallet, amount, proof, root, displayResults);
+}
+
+function uriDecode (s, root, PREFIX, displayResults) {
+    return uriDecodeWithDetails(s, root, PREFIX, displayResults).isValid;
 }
 
 function genUrl (priv, amount, proof, version, prefix) {
@@ -127,6 +156,7 @@ async function main (settings) {
 
     const privs = await genPrivs(Number(COUNTS.reduce((s, a) => s + a, 0n)));
     const accounts = privs.map(p => Wallet.fromPrivateKey(Buffer.from(p, 'hex')).getAddressString());
+
     let amounts = [];
     for (let i = 0; i < COUNTS.length; i++) {
         amounts = amounts.concat(Array(Number(COUNTS[i])).fill(AMOUNTS[i]));
@@ -155,41 +185,72 @@ async function main (settings) {
 
     if (settings.flagSaveLink) {
         const info = [];
+        const test = [];
         for (let i = 0; i < amounts.length; i++) {
-            info.push({
-                url: urls[i],
-                amount: amounts[i].toString(),
-                index: indices[i],
-            });
+            if (i < settings.testCount) {
+                test.push({
+                    url: urls[i],
+                    encUrl: settings.encPrefix ? (settings.encPrefix + encodeURIComponent(urls[i])) : undefined,
+                    amount: amounts[i].toString(),
+                    index: indices[i],
+                });
+            } else {
+                info.push({
+                    url: urls[i],
+                    encUrl: settings.encPrefix ? (settings.encPrefix + encodeURIComponent(urls[i])) : undefined,
+                    amount: amounts[i].toString(),
+                    index: indices[i],
+                });
+            }
         }
 
-        const fileContent = {
-            count: amounts.length,
+        const testContent = {
+            count: test.length,
             root: drop.root,
-            amount: totalAmount.toString(),
+            amount: test.reduce((acc, v) => acc + BigInt(v.amount), 0n).toString(),
+            version: settings.version,
+            codes: test,
+        };
+
+        const fileContent = {
+            count: info.length,
+            root: drop.root,
+            amount: info.reduce((acc, v) => acc + BigInt(v.amount), 0n).toString(),
             version: settings.version,
             codes: info,
         };
 
-        fs.writeFileSync(settings.fileLinks, JSON.stringify(fileContent, null, 1));
+        if (test.length > 0) {
+            fs.writeFileSync(settings.testLinks, JSON.stringify(testContent, null, 1));
+        }
+        if (info.length > 0) {
+            fs.writeFileSync(settings.fileLinks, JSON.stringify(fileContent, null, 1));
+        }
     }
 
     if (!settings.flagNoDeploy) {
         fs.writeFileSync(settings.fileLatest, settings.version.toString());
     }
+
+    return { merkleRoot: drop.root, urls };
 }
 
 function verifyLink (url, root, prefix) {
     return uriDecode(url, root, prefix, true);
 }
 
-function createNewDropSettings (flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, flagNoDeploy, chainId) {
-    const settings = new DropSettings(flagSaveQr, flagSaveLink, codeCounts, codeAmounts, version, flagNoDeploy, chainId);
+function parseLink (url, root, prefix) {
+    return uriDecodeWithDetails(url, root, prefix, false);
+}
+
+function createNewDropSettings (flagSaveQr, flagSaveLink, codeCounts, codeAmounts, testCount, version, flagNoDeploy, chainId) {
+    const settings = new DropSettings(flagSaveQr, flagSaveLink, codeCounts, codeAmounts, testCount, version, flagNoDeploy, chainId);
     return settings;
 }
 
 module.exports = {
     generateCodes: main,
     verifyLink,
+    parseLink,
     createNewDropSettings,
 };
