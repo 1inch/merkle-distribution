@@ -1,9 +1,9 @@
 import { expect } from 'chai';
-import { describe, it, before, beforeEach } from 'mocha';
+import { describe, it, before, beforeEach, afterEach } from 'mocha';
 import * as fs from 'fs';
 import * as path from 'path';
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
-import { Contract, ethers as ethersLib } from 'ethers';
+import { Contract } from 'ethers';
 import {
   generateLinks,
   verifyLink,
@@ -11,12 +11,10 @@ import {
 } from '../../src/tasks/hardhat-drop-task';
 import { DropService } from '../../src/services/DropService';
 import { VerificationService } from '../../src/services/VerificationService';
+import { config } from '../../src/config';
 
-// Import ethers from global hardhat runtime
-declare const ethers: typeof ethersLib & {
-  getSigners(): Promise<SignerWithAddress[]>;
-  getContractFactory(name: string): Promise<any>;
-};
+// ethers is available as a global in Hardhat tests
+declare const ethers: any;
 
 describe('Hardhat Deployment E2E Tests', function() {
   this.timeout(60000); // Increase timeout for deployment tests
@@ -26,6 +24,23 @@ describe('Hardhat Deployment E2E Tests', function() {
   let mockToken: Contract;
   let tempDir: string;
   let originalCwd: string;
+  
+  // Helper function to get all paths with tempDir
+  const getPaths = (tempDir: string) => {
+    const latestVersionPath = path.join(tempDir, config.paths.latestVersion.replace(/^\.\//, ''));
+    const qrCodesPath = path.join(tempDir, config.paths.qrCodes.replace(/^\.\//, ''));
+    const testQrCodesPath = path.join(tempDir, config.paths.testQrCodes.replace(/^\.\//, ''));
+    const generatedDataPath = path.join(tempDir, config.paths.generatedData.replace(/^\.\//, ''));
+    
+    return {
+      latestVersion: latestVersionPath,
+      qrCodes: qrCodesPath,
+      testQrCodes: testQrCodesPath,
+      generatedData: generatedDataPath,
+      // Also include the directory paths for creating directories
+      latestVersionDir: path.dirname(latestVersionPath),
+    };
+  };
 
   before(async () => {
     // Get signers
@@ -42,16 +57,19 @@ describe('Hardhat Deployment E2E Tests', function() {
     tempDir = path.join(__dirname, '../../temp-test');
     originalCwd = process.cwd();
     
-    // Create required directories
-    fs.mkdirSync(path.join(tempDir, 'src'), { recursive: true });
-    fs.mkdirSync(path.join(tempDir, 'src/gendata'), { recursive: true });
-    fs.mkdirSync(path.join(tempDir, 'src/qr'), { recursive: true });
-    fs.mkdirSync(path.join(tempDir, 'src/test_qr'), { recursive: true });
+    // Get paths with tempDir
+    const paths = getPaths(tempDir);
+    
+    // Create required directories using paths from config
+    fs.mkdirSync(paths.latestVersionDir, { recursive: true });
+    fs.mkdirSync(paths.qrCodes, { recursive: true });
+    fs.mkdirSync(paths.testQrCodes, { recursive: true });
+    fs.mkdirSync(paths.generatedData, { recursive: true });
     
     process.chdir(tempDir);
     
     // Create version file
-    fs.writeFileSync(path.join(tempDir, 'src/.latest'), '999');
+    fs.writeFileSync(paths.latestVersion, '999');
   });
 
   afterEach(() => {
@@ -311,23 +329,4 @@ describe('Hardhat Deployment E2E Tests', function() {
   });
 });
 
-// Mock ERC20 contract for testing
-const MockERC20Source = `
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
-
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-
-contract MockERC20 is ERC20 {
-    constructor(string memory name, string memory symbol, uint256 initialSupply) ERC20(name, symbol) {
-        _mint(msg.sender, initialSupply);
-    }
-}
-`;
-
-// Write mock contract if it doesn't exist
-const contractsDir = path.join(__dirname, '../../contracts/test');
-if (!fs.existsSync(contractsDir)) {
-  fs.mkdirSync(contractsDir, { recursive: true });
-}
-fs.writeFileSync(path.join(contractsDir, 'MockERC20.sol'), MockERC20Source);
+// Note: Mock contract should already exist in contracts/test/MockERC20.sol

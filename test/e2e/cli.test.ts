@@ -5,21 +5,42 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import sinon from 'sinon';
+import { config } from '../../src/config';
 
 describe('CLI E2E Tests', () => {
   let tempDir: string;
   let originalCwd: string;
+  
+  // Helper function to get all paths with tempDir
+  const getPaths = (tempDir: string) => {
+    const latestVersionPath = path.join(tempDir, config.paths.latestVersion.replace(/^\.\//, ''));
+    const qrCodesPath = path.join(tempDir, config.paths.qrCodes.replace(/^\.\//, ''));
+    const testQrCodesPath = path.join(tempDir, config.paths.testQrCodes.replace(/^\.\//, ''));
+    const generatedDataPath = path.join(tempDir, config.paths.generatedData.replace(/^\.\//, ''));
+    
+    return {
+      latestVersion: latestVersionPath,
+      qrCodes: qrCodesPath,
+      testQrCodes: testQrCodesPath,
+      generatedData: generatedDataPath,
+      // Also include the directory paths for creating directories
+      latestVersionDir: path.dirname(latestVersionPath),
+    };
+  };
 
   beforeEach(() => {
     // Create temporary directory for test files
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cli-test-'));
     originalCwd = process.cwd();
     
-    // Create required directories in temp
-    fs.mkdirSync(path.join(tempDir, 'src'), { recursive: true });
-    fs.mkdirSync(path.join(tempDir, 'src/qr'), { recursive: true });
-    fs.mkdirSync(path.join(tempDir, 'src/test_qr'), { recursive: true });
-    fs.mkdirSync(path.join(tempDir, 'src/gendata'), { recursive: true });
+    // Get paths with tempDir
+    const paths = getPaths(tempDir);
+    
+    // Create required directories in temp using paths from config
+    fs.mkdirSync(paths.latestVersionDir, { recursive: true });
+    fs.mkdirSync(paths.qrCodes, { recursive: true });
+    fs.mkdirSync(paths.testQrCodes, { recursive: true });
+    fs.mkdirSync(paths.generatedData, { recursive: true });
     
     // Stub console to prevent output during tests
     sinon.stub(console, 'log');
@@ -70,7 +91,8 @@ describe('CLI E2E Tests', () => {
   describe('Generate Mode (-g)', () => {
     it('should generate merkle drop with QR codes and links', async () => {
       // Create initial version file
-      fs.writeFileSync(path.join(tempDir, 'src/.latest'), '99');
+      const paths = getPaths(tempDir);
+      fs.writeFileSync(paths.latestVersion, '99');
 
       const result = await runCLI([
         '-g',
@@ -89,14 +111,14 @@ describe('CLI E2E Tests', () => {
       expect(result.stdout).to.include('Merkle root: 0x');
       
       // Check QR codes were created
-      const qrFiles = fs.readdirSync(path.join(tempDir, 'src/qr'));
-      const testQrFiles = fs.readdirSync(path.join(tempDir, 'src/test_qr'));
+      const qrFiles = fs.readdirSync(paths.qrCodes);
+      const testQrFiles = fs.readdirSync(paths.testQrCodes);
       
       expect(qrFiles.length).to.be.greaterThan(0);
       expect(testQrFiles.length).to.equal(10); // 10 test codes
       
       // Check links file was created
-      const linksFile = path.join(tempDir, 'src/gendata/100-qr-links.json');
+      const linksFile = path.join(paths.generatedData, '100-qr-links.json');
       expect(fs.existsSync(linksFile)).to.be.true;
       
       const linksData = JSON.parse(fs.readFileSync(linksFile, 'utf8'));
@@ -107,7 +129,8 @@ describe('CLI E2E Tests', () => {
     });
 
     it('should generate and zip QR codes', async () => {
-      fs.writeFileSync(path.join(tempDir, 'src/.latest'), '99');
+      const paths = getPaths(tempDir);
+      fs.writeFileSync(paths.latestVersion, '99');
 
       const result = await runCLI([
         '-g',
@@ -123,14 +146,15 @@ describe('CLI E2E Tests', () => {
       expect(result.stdout).to.include('Created zip archives');
       
       // Check zip files were created
-      const genDataFiles = fs.readdirSync(path.join(tempDir, 'src/gendata'));
+      const genDataFiles = fs.readdirSync(paths.generatedData);
       const zipFiles = genDataFiles.filter(f => f.endsWith('.zip'));
       
       expect(zipFiles.length).to.equal(2); // Regular and test zips
     });
 
     it('should validate version correctly', async () => {
-      fs.writeFileSync(path.join(tempDir, 'src/.latest'), '100');
+      const paths = getPaths(tempDir);
+      fs.writeFileSync(paths.latestVersion, '100');
 
       const result = await runCLI([
         '-g',
@@ -145,9 +169,10 @@ describe('CLI E2E Tests', () => {
 
     it('should clean directories with -c flag', async () => {
       // Create some existing files
-      fs.writeFileSync(path.join(tempDir, 'src/qr/old.png'), 'old');
-      fs.writeFileSync(path.join(tempDir, 'src/test_qr/old.png'), 'old');
-      fs.writeFileSync(path.join(tempDir, 'src/.latest'), '99');
+      const paths = getPaths(tempDir);
+      fs.writeFileSync(path.join(paths.qrCodes, 'old.png'), 'old');
+      fs.writeFileSync(path.join(paths.testQrCodes, 'old.png'), 'old');
+      fs.writeFileSync(paths.latestVersion, '99');
 
       const result = await runCLI([
         '-g',
@@ -161,8 +186,8 @@ describe('CLI E2E Tests', () => {
       expect(result.code).to.equal(0);
       
       // Old files should be gone
-      expect(fs.existsSync(path.join(tempDir, 'src/qr/old.png'))).to.be.false;
-      expect(fs.existsSync(path.join(tempDir, 'src/test_qr/old.png'))).to.be.false;
+      expect(fs.existsSync(path.join(paths.qrCodes, 'old.png'))).to.be.false;
+      expect(fs.existsSync(path.join(paths.testQrCodes, 'old.png'))).to.be.false;
     });
 
     it('should handle invalid arguments', async () => {
@@ -241,12 +266,13 @@ describe('CLI E2E Tests', () => {
   describe('Wipe Mode (-w)', () => {
     it('should clean QR directories', async () => {
       // Create some files
-      fs.writeFileSync(path.join(tempDir, 'src/qr/file1.png'), 'content');
-      fs.writeFileSync(path.join(tempDir, 'src/qr/file2.png'), 'content');
-      fs.writeFileSync(path.join(tempDir, 'src/test_qr/file3.png'), 'content');
+      const paths = getPaths(tempDir);
+      fs.writeFileSync(path.join(paths.qrCodes, 'file1.png'), 'content');
+      fs.writeFileSync(path.join(paths.qrCodes, 'file2.png'), 'content');
+      fs.writeFileSync(path.join(paths.testQrCodes, 'file3.png'), 'content');
       
       // Create subdirectory (should not be deleted)
-      fs.mkdirSync(path.join(tempDir, 'src/qr/subdir'));
+      fs.mkdirSync(path.join(paths.qrCodes, 'subdir'));
 
       const result = await runCLI(['-w']);
 
@@ -255,13 +281,13 @@ describe('CLI E2E Tests', () => {
       expect(result.stdout).to.include('Directories cleaned');
       
       // Files should be deleted
-      expect(fs.existsSync(path.join(tempDir, 'src/qr/file1.png'))).to.be.false;
-      expect(fs.existsSync(path.join(tempDir, 'src/qr/file2.png'))).to.be.false;
-      expect(fs.existsSync(path.join(tempDir, 'src/test_qr/file3.png'))).to.be.false;
+      expect(fs.existsSync(path.join(paths.qrCodes, 'file1.png'))).to.be.false;
+      expect(fs.existsSync(path.join(paths.qrCodes, 'file2.png'))).to.be.false;
+      expect(fs.existsSync(path.join(paths.testQrCodes, 'file3.png'))).to.be.false;
       
       // Directories should still exist
-      expect(fs.existsSync(path.join(tempDir, 'src/qr'))).to.be.true;
-      expect(fs.existsSync(path.join(tempDir, 'src/qr/subdir'))).to.be.true;
+      expect(fs.existsSync(paths.qrCodes)).to.be.true;
+      expect(fs.existsSync(path.join(paths.qrCodes, 'subdir'))).to.be.true;
     });
   });
 
@@ -291,7 +317,8 @@ describe('CLI E2E Tests', () => {
 
   describe('Test Codes', () => {
     it('should handle custom test code configuration', async () => {
-      fs.writeFileSync(path.join(tempDir, 'src/.latest'), '99');
+      const paths = getPaths(tempDir);
+      fs.writeFileSync(paths.latestVersion, '99');
 
       const result = await runCLI([
         '-g',
@@ -305,7 +332,7 @@ describe('CLI E2E Tests', () => {
 
       expect(result.code).to.equal(0);
       
-      const linksFile = path.join(tempDir, 'src/gendata/100-qr-links.json');
+      const linksFile = path.join(paths.generatedData, '100-qr-links.json');
       const linksData = JSON.parse(fs.readFileSync(linksFile, 'utf8'));
       
       expect(linksData).to.have.property('codes');

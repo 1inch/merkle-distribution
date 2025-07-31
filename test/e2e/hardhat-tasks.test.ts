@@ -10,12 +10,30 @@ import {
   dropTask,
   verifyDeploymentTask
 } from '../../src/tasks/hardhat-drop-task';
+import { config } from '../../src/config';
 
 describe('Hardhat Tasks E2E Tests', () => {
   let tempDir: string;
   let originalCwd: string;
   let consoleStubs: any;
   let mockHRE: any;
+  
+  // Helper function to get all paths with tempDir
+  const getPaths = (tempDir: string) => {
+    const latestVersionPath = path.join(tempDir, config.paths.latestVersion.replace(/^\.\//, ''));
+    const qrCodesPath = path.join(tempDir, config.paths.qrCodes.replace(/^\.\//, ''));
+    const testQrCodesPath = path.join(tempDir, config.paths.testQrCodes.replace(/^\.\//, ''));
+    const generatedDataPath = path.join(tempDir, config.paths.generatedData.replace(/^\.\//, ''));
+    
+    return {
+      latestVersion: latestVersionPath,
+      qrCodes: qrCodesPath,
+      testQrCodes: testQrCodesPath,
+      generatedData: generatedDataPath,
+      // Also include the directory paths for creating directories
+      latestVersionDir: path.dirname(latestVersionPath),
+    };
+  };
 
   beforeEach(() => {
     // Create temporary directory
@@ -23,11 +41,14 @@ describe('Hardhat Tasks E2E Tests', () => {
     originalCwd = process.cwd();
     process.chdir(tempDir);
     
-    // Create required directories
-    fs.mkdirSync(path.join(tempDir, 'src'), { recursive: true });
-    fs.mkdirSync(path.join(tempDir, 'src/qr'), { recursive: true });
-    fs.mkdirSync(path.join(tempDir, 'src/test_qr'), { recursive: true });
-    fs.mkdirSync(path.join(tempDir, 'src/gendata'), { recursive: true });
+    // Get paths with tempDir
+    const paths = getPaths(tempDir);
+    
+    // Create required directories using paths from config
+    fs.mkdirSync(paths.latestVersionDir, { recursive: true });
+    fs.mkdirSync(paths.qrCodes, { recursive: true });
+    fs.mkdirSync(paths.testQrCodes, { recursive: true });
+    fs.mkdirSync(paths.generatedData, { recursive: true });
     
     // Stub console
     consoleStubs = {
@@ -60,7 +81,8 @@ describe('Hardhat Tasks E2E Tests', () => {
   describe('generateLinks', () => {
     it('should generate merkle drop links with real file operations', async () => {
       // Create version file
-      fs.writeFileSync(path.join(tempDir, 'src/.latest'), '99');
+      const paths = getPaths(tempDir);
+      fs.writeFileSync(paths.latestVersion, '99');
 
       const result = await generateLinks(
         '1,2,5',      // amounts in ether
@@ -76,7 +98,7 @@ describe('Hardhat Tasks E2E Tests', () => {
       expect(result.urls.length).to.equal(45); // 10 test + 35 production
       
       // Check links file was created
-      const linksFile = path.join(tempDir, 'src/gendata/100-qr-links.json');
+      const linksFile = path.join(paths.generatedData, '100-qr-links.json');
       expect(fs.existsSync(linksFile)).to.be.true;
       
       const savedLinksData = JSON.parse(fs.readFileSync(linksFile, 'utf8'));
@@ -94,7 +116,8 @@ describe('Hardhat Tasks E2E Tests', () => {
     });
 
     it('should validate version before generating', async () => {
-      fs.writeFileSync(path.join(tempDir, 'src/.latest'), '100');
+      const paths = getPaths(tempDir);
+      fs.writeFileSync(paths.latestVersion, '100');
 
       try {
         await generateLinks('1', '10', '100', 1, false);
@@ -105,7 +128,8 @@ describe('Hardhat Tasks E2E Tests', () => {
     });
 
     it('should handle different chain IDs', async () => {
-      fs.writeFileSync(path.join(tempDir, 'src/.latest'), '99');
+      const paths = getPaths(tempDir);
+      fs.writeFileSync(paths.latestVersion, '99');
 
       const result = await generateLinks('1', '5', '100', 56, true); // BSC
 
@@ -113,7 +137,8 @@ describe('Hardhat Tasks E2E Tests', () => {
     });
 
     it('should create test and production links separately', async () => {
-      fs.writeFileSync(path.join(tempDir, 'src/.latest'), '99');
+      const paths = getPaths(tempDir);
+      fs.writeFileSync(paths.latestVersion, '99');
 
       const result = await generateLinks(
         '1,2',    // Two different amounts
@@ -127,7 +152,7 @@ describe('Hardhat Tasks E2E Tests', () => {
       expect(result.urls.length).to.equal(25);
       
       // Check test links file
-      const testLinksFile = path.join(tempDir, 'src/gendata/100-qr-links-test.json');
+      const testLinksFile = path.join(paths.generatedData, '100-qr-links-test.json');
       expect(fs.existsSync(testLinksFile)).to.be.true;
       
       const testLinksData = JSON.parse(fs.readFileSync(testLinksFile, 'utf8'));
@@ -140,7 +165,8 @@ describe('Hardhat Tasks E2E Tests', () => {
   describe('verifyLink', () => {
     it('should parse and verify a valid link', async () => {
       // Generate a valid link first
-      fs.writeFileSync(path.join(tempDir, 'src/.latest'), '99');
+      const paths = getPaths(tempDir);
+      fs.writeFileSync(paths.latestVersion, '99');
       
       const { merkleRoot, urls } = await generateLinks('1', '1', '100', 1, true);
       const testUrl = urls[0];
@@ -159,7 +185,8 @@ describe('Hardhat Tasks E2E Tests', () => {
     });
 
     it('should handle different chain IDs in verification', async () => {
-      fs.writeFileSync(path.join(tempDir, 'src/.latest'), '99');
+      const paths = getPaths(tempDir);
+      fs.writeFileSync(paths.latestVersion, '99');
       
       const { merkleRoot, urls } = await generateLinks('1', '1', '100', 56, true); // BSC
       const testUrl = urls[0];
@@ -178,7 +205,8 @@ describe('Hardhat Tasks E2E Tests', () => {
 
   describe('dropTask', () => {
     it('should execute full drop flow in debug mode', async () => {
-      fs.writeFileSync(path.join(tempDir, 'src/.latest'), '99');
+      const paths = getPaths(tempDir);
+      fs.writeFileSync(paths.latestVersion, '99');
 
       await dropTask(mockHRE, {
         a: '1,2',     // amounts
@@ -245,7 +273,8 @@ describe('Hardhat Tasks E2E Tests', () => {
 
   describe('Integration Scenarios', () => {
     it('should handle complete workflow from generation to verification', async () => {
-      fs.writeFileSync(path.join(tempDir, 'src/.latest'), '99');
+      const paths = getPaths(tempDir);
+      fs.writeFileSync(paths.latestVersion, '99');
       
       // Step 1: Generate links
       const { merkleRoot, urls } = await generateLinks('1', '5', '100', 1, true);
@@ -261,18 +290,19 @@ describe('Hardhat Tasks E2E Tests', () => {
       });
       
       // Step 3: Check files were created
-      expect(fs.existsSync(path.join(tempDir, 'src/gendata/100-qr-links.json'))).to.be.true;
-      expect(fs.existsSync(path.join(tempDir, 'src/gendata/100-qr-links-test.json'))).to.be.true;
+      expect(fs.existsSync(path.join(paths.generatedData, '100-qr-links.json'))).to.be.true;
+      expect(fs.existsSync(path.join(paths.generatedData, '100-qr-links-test.json'))).to.be.true;
     });
 
     it('should maintain consistency across multiple generations', async () => {
-      fs.writeFileSync(path.join(tempDir, 'src/.latest'), '99');
+      const paths = getPaths(tempDir);
+      fs.writeFileSync(paths.latestVersion, '99');
       
       // Generate same drop twice
       const result1 = await generateLinks('1,2', '5,10', '100', 1, true);
       
       // Reset for second generation
-      fs.writeFileSync(path.join(tempDir, 'src/.latest'), '99');
+      fs.writeFileSync(paths.latestVersion, '99');
       const result2 = await generateLinks('1,2', '5,10', '100', 1, true);
       
       // Results should be different (random wallets)

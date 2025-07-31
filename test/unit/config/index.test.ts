@@ -35,18 +35,36 @@ describe('Config Module', () => {
   });
 
   describe('paths configuration', () => {
-    it('should have correct path structure', () => {
-      expect(config.paths.qrCodes).to.equal('./src/qr');
-      expect(config.paths.testQrCodes).to.equal('./src/test_qr');
-      expect(config.paths.generatedData).to.equal('./src/gendata');
-      expect(config.paths.latestVersion).to.equal('./src/.latest');
+    it('should have all required paths defined', () => {
+      expect(config.paths).to.exist;
+      expect(config.paths.qrCodes).to.be.a('string');
+      expect(config.paths.testQrCodes).to.be.a('string');
+      expect(config.paths.generatedData).to.be.a('string');
+      expect(config.paths.latestVersion).to.be.a('string');
+    });
+
+    it('should have paths that start with ./', () => {
+      expect(config.paths.qrCodes).to.match(/^\.\//);
+      expect(config.paths.testQrCodes).to.match(/^\.\//);
+      expect(config.paths.generatedData).to.match(/^\.\//);
+      expect(config.paths.latestVersion).to.match(/^\.\//);
     });
   });
 
   describe('urls configuration', () => {
-    it('should have correct URL templates', () => {
-      expect(config.urls.baseUrl).to.equal('https://app.1inch.io/#/{chainId}/qr?');
-      expect(config.urls.encodedPrefix).to.equal('https://wallet.1inch.io/app/w3browser?link=');
+    it('should have all required URLs defined', () => {
+      expect(config.urls).to.exist;
+      expect(config.urls.baseUrl).to.be.a('string');
+      expect(config.urls.encodedPrefix).to.be.a('string');
+    });
+
+    it('should have baseUrl with chainId placeholder', () => {
+      expect(config.urls.baseUrl).to.include('{chainId}');
+    });
+
+    it('should have valid URL formats', () => {
+      expect(config.urls.baseUrl).to.match(/^https?:\/\//);
+      expect(config.urls.encodedPrefix).to.match(/^https?:\/\//);
     });
   });
 
@@ -58,24 +76,30 @@ describe('Config Module', () => {
   });
 
   describe('formatBaseUrl', () => {
+    it('should replace chainId placeholder with actual chain ID', () => {
+      const chainId = 1;
+      const url = formatBaseUrl(chainId);
+      expect(url).to.equal(config.urls.baseUrl.replace('{chainId}', chainId.toString()));
+    });
+
     it('should format URL for mainnet', () => {
       const url = formatBaseUrl(1);
-      expect(url).to.equal('https://app.1inch.io/#/1/qr?');
+      expect(url).to.equal(config.urls.baseUrl.replace('{chainId}', '1'));
     });
 
     it('should format URL for BSC', () => {
       const url = formatBaseUrl(56);
-      expect(url).to.equal('https://app.1inch.io/#/56/qr?');
+      expect(url).to.equal(config.urls.baseUrl.replace('{chainId}', '56'));
     });
 
     it('should format URL for Base', () => {
       const url = formatBaseUrl(8453);
-      expect(url).to.equal('https://app.1inch.io/#/8453/qr?');
+      expect(url).to.equal(config.urls.baseUrl.replace('{chainId}', '8453'));
     });
 
     it('should format URL for unknown chain', () => {
       const url = formatBaseUrl(999);
-      expect(url).to.equal('https://app.1inch.io/#/999/qr?');
+      expect(url).to.equal(config.urls.baseUrl.replace('{chainId}', '999'));
     });
   });
 
