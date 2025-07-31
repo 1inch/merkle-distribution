@@ -10,7 +10,7 @@ const { task } = require('hardhat/config');
 const { Networks, getNetwork } = require('@1inch/solidity-utils/hardhat-setup');
 
 const { networks, etherscan } = (new Networks()).registerAll();
-const { generateLinks, verifyLink } = require('./src/drop_task.js');
+const { generateLinks, verifyLink } = require('./dist/tasks/hardhat-drop-task.js');
 
 // usage   : yarn qr:deploy hardhat --v <version> --r <root> --h <height>
 // example : yarn qr:deploy hardhat --v 35 --r 0xc8f9f70ceaa4d05d893e74c933eed42b --h 9
