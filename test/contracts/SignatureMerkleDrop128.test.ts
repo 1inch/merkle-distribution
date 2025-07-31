@@ -1,23 +1,31 @@
-const { ethers } = require('hardhat');
-const { loadFixture } = require('@nomicfoundation/hardhat-network-helpers');
-const { deployContract, expect } = require('@1inch/solidity-utils');
-const { MerkleTree } = require('merkletreejs');
-const keccak256 = require('keccak256');
-const { personalSign } = require('@metamask/eth-sig-util');
-const Wallet = require('ethereumjs-wallet').default;
+import '@nomicfoundation/hardhat-chai-matchers';
+const hre = require('hardhat');
+const { ethers } = hre;
+import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
+import { deployContract, expect } from '@1inch/solidity-utils';
+import { MerkleTree } from 'merkletreejs';
+import keccak256 from 'keccak256';
+import { personalSign } from '@metamask/eth-sig-util';
+import Wallet from 'ethereumjs-wallet';
+import { Contract, Signer } from 'ethers';
 
-function keccak128 (input) {
+function keccak128(input: Buffer | string): Buffer {
     return keccak256(input).slice(0, 16);
 }
 
+interface AccountWithDropValue {
+    account: Signer;
+    amount: number;
+}
+
 describe('SignatureMerkleDrop128', function () {
-    async function deployContractsFixture () {
+    async function deployContractsFixture() {
         const [owner, alice, bob, carol, dan] = await ethers.getSigners();
-        const token = await deployContract('TokenMock', ['1INCH Token', '1INCH']);
+        const token = await deployContract('TokenMock', ['1INCH Token', '1INCH']) as unknown as Contract;
 
         await Promise.all([alice, bob, carol, dan].map(w => token.mint(w, 1n)));
 
-        const accountWithDropValues = [
+        const accountWithDropValues: AccountWithDropValue[] = [
             {
                 account: owner,
                 amount: 1,
@@ -40,8 +48,11 @@ describe('SignatureMerkleDrop128', function () {
             },
         ];
 
-        const elements = accountWithDropValues.map((w) => '0x' + w.account.address.slice(2) + BigInt(w.amount).toString(16).padStart(64, '0'));
-        const hashedElements = elements.map(keccak128).map(x => MerkleTree.bufferToHex(x));
+        const elements = await Promise.all(accountWithDropValues.map(async (w) => {
+            const address = await w.account.getAddress();
+            return '0x' + address.slice(2) + BigInt(w.amount).toString(16).padStart(64, '0');
+        }));
+        const hashedElements = elements.map((elem) => MerkleTree.bufferToHex(keccak128(elem)));
         const tree = new MerkleTree(elements, keccak128, { hashLeaves: true, sort: true });
         const root = tree.getHexRoot();
         const leaves = tree.getHexLeaves();
@@ -54,7 +65,7 @@ describe('SignatureMerkleDrop128', function () {
         await token.mint(await drop.getAddress(), accountWithDropValues.map(w => w.amount).reduce((a, b) => a + b, 0));
 
         const account = Wallet.fromPrivateKey(Buffer.from('ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', 'hex'));
-        const data = MerkleTree.bufferToHex(keccak256(alice.address));
+        const data = MerkleTree.bufferToHex(keccak256(await alice.getAddress()));
         const signature = personalSign({ privateKey: account.getPrivateKey(), data });
 
         return {

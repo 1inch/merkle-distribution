@@ -3,10 +3,11 @@
   "compilerOptions": {
     "rootDir": "../",
     "outDir": "../dist-test",
-    "types": ["node", "chai", "sinon", "hardhat"]
+    "types": ["node", "chai", "sinon", "hardhat", "ethers"]
   },
   "include": [
     "../src/**/*",
-    "./**/*"
+    "./**/*",
+    "../hardhat.config.ts"
   ]
 }

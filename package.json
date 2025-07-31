@@ -73,7 +73,7 @@
     "test:unit": "hardhat test test/unit/**/*.test.ts",
     "test:integration": "hardhat test test/integration/**/*.test.ts",
     "test:e2e": "hardhat test test/e2e/cli.test.ts test/e2e/hardhat-deployment.test.ts test/e2e/hardhat-tasks.test.ts",
-    "test:contracts": "hardhat test test/contracts/*.test.js",
+    "test:contracts": "hardhat test test/contracts/*.test.ts",
     "test:all": "hardhat test",
     "test:coverage": "hardhat coverage",
     "drop": "hardhat drop --network",
