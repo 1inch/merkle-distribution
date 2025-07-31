@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+const { expect } = require('@1inch/solidity-utils');
 import sinon from 'sinon';
 import * as fs from 'fs';
 import * as path from 'path';
