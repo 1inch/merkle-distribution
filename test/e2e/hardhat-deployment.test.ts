@@ -45,10 +45,13 @@ describe('Hardhat Deployment E2E Tests', function() {
     // Get signers
     [owner, receiver] = await ethers.getSigners();
     
-    // Deploy mock ERC20 token
-    const MockToken = await ethers.getContractFactory('MockERC20');
-    mockToken = await MockToken.deploy('Test Token', 'TEST', ethers.parseEther('1000000'));
+    // Deploy mock ERC20 token using TokenMock from solidity-utils
+    const TokenMock = await ethers.getContractFactory('TokenMock');
+    mockToken = await TokenMock.deploy('Test Token', 'TEST');
     await mockToken.waitForDeployment();
+    
+    // Mint initial supply to owner
+    await mockToken.mint(owner.address, ethers.parseEther('1000000'));
   });
 
   beforeEach(() => {
@@ -327,5 +330,3 @@ describe('Hardhat Deployment E2E Tests', function() {
     });
   });
 });
-
-// Note: Mock contract should already exist in contracts/test/MockERC20.sol
