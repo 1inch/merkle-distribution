@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+const { expect } = require('@1inch/solidity-utils');
 import * as fs from 'fs';
 import * as path from 'path';
 import { zipFolder, zipFolders, cleanDir, cleanDirs } from '../../../src/lib/zip';

@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+const { expect } = require('@1inch/solidity-utils');
 import {
   generatePrivateKey,
   generatePrivateKeys,

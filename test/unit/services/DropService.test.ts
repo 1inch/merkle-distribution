@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+const { expect } = require('@1inch/solidity-utils');
 import sinon from 'sinon';
 import mockFs from 'mock-fs';
 import { ethers } from 'ethers';

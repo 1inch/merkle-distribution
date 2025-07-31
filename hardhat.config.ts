@@ -8,7 +8,7 @@ import 'solidity-coverage';
 import 'dotenv/config';
 import { task } from 'hardhat/config';
 import { Networks, getNetwork } from '@1inch/solidity-utils/hardhat-setup';
-import { generateLinks, verifyLink, dropTask, verifyDeploymentTask, deployQRDrop } from './src/tasks/hardhat-drop-task';
+import { dropTask, verifyDeploymentTask, deployQRDrop } from './src/tasks/hardhat-drop-task';
 
 const { networks, etherscan } = new Networks().registerAll();
 

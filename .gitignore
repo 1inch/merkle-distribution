@@ -9,4 +9,4 @@ dist
 .coverage_artifacts
 .idea
 .env
-.nyc_output
+drops

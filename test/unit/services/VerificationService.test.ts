@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+const { expect } = require('@1inch/solidity-utils');
 import sinon from 'sinon';
 import { VerificationService } from '../../../src/services/VerificationService';
 import * as encoding from '../../../src/lib/encoding';
