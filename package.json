@@ -9,46 +9,52 @@
   "license": "MIT",
   "dependencies": {
     "@1inch/solidity-utils": "5.2.3",
-    "@openzeppelin/contracts": "5.0.2",
-    "adm-zip": "^0.5.12"
+
+    "@openzeppelin/contracts": "5.4.0",
+    "adm-zip": "^0.5.16",
+    "commander": "14.0.0",
+    "dotenv": "17.2.1",
+    "ethereumjs-wallet": "^1.0.2",
+    "keccak256": "1.0.6",
+    "merkletreejs": "0.5.2",
+    "qr-image": "3.2.0"
   },
   "devDependencies": {
-    "@metamask/eth-sig-util": "7.0.1",
-    "@nomicfoundation/hardhat-chai-matchers": "2.0.9",
-    "@nomicfoundation/hardhat-ethers": "3.0.9",
-    "@nomicfoundation/hardhat-verify": "2.0.14",
-    "@types/adm-zip": "^0.5.7",
+    "@nomicfoundation/hardhat-chai-matchers": "2.1.0",
+    "@nomicfoundation/hardhat-ethers": "3.1.0",
+    "@nomicfoundation/hardhat-verify": "2.1.0",
+    "@types/adm-zip": "0.5.7",
     "@types/chai": "^5.2.2",
     "@types/mock-fs": "^4.13.4",
     "@types/node": "^24.1.0",
     "@types/qr-image": "^3.2.9",
     "@types/sinon": "^17.0.4",
-    "@types/mocha": "^10.0.1",
+    "@types/mocha": "^10.0.10",
+
     "chai": "4.4.0",
-    "commander": "12.0.0",
-    "dotenv": "16.5.0",
+
     "eslint": "8.57.0",
+
     "eslint-config-standard": "17.1.0",
-    "eslint-plugin-import": "2.29.1",
-    "eslint-plugin-n": "16.6.2",
-    "eslint-plugin-promise": "6.1.1",
+    "eslint-plugin-import": "2.32.0",
+    "eslint-plugin-n": "17.21.3",
+    "eslint-plugin-promise": "7.2.1",
     "eslint-plugin-standard": "5.0.0",
-    "ethereumjs-wallet": "^1.0.2",
-    "ethers": "6.14.4",
-    "hardhat": "2.24.3",
+
+    "ethers": "^6.15.0",
+    "hardhat": "2.26.1",
     "hardhat-dependency-compiler": "1.2.1",
-    "hardhat-deploy": "1.0.3",
+    "hardhat-deploy": "1.0.4",
     "hardhat-gas-reporter": "2.3.0",
-    "keccak256": "1.0.6",
-    "merkletreejs": "0.3.11",
     "mock-fs": "^5.5.0",
-    "qr-image": "3.2.0",
-    "rimraf": "5.0.5",
+    "rimraf": "^6.0.1",
     "sinon": "^21.0.0",
+
     "solhint": "4.5.2",
+
     "solidity-coverage": "0.8.16",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.2"
   },
   "scripts": {
     "build": "tsc",
@@ -72,7 +78,7 @@
     "test": "hardhat test",
     "test:unit": "hardhat test test/unit/**/*.test.ts",
     "test:integration": "hardhat test test/integration/**/*.test.ts",
-    "test:e2e": "hardhat test test/e2e/cli.test.ts test/e2e/hardhat-deployment.test.ts test/e2e/hardhat-tasks.test.ts",
+    "test:e2e": "hardhat test test/e2e/*.test.ts",
     "test:contracts": "hardhat test test/contracts/*.test.ts",
     "test:all": "hardhat test",
     "test:coverage": "hardhat coverage",
