@@ -1,5 +1,4 @@
 import { expect } from 'chai';
-import { describe, it, beforeEach } from 'mocha';
 import sinon from 'sinon';
 import { VerificationService } from '../../../src/services/VerificationService';
 import * as encoding from '../../../src/lib/encoding';

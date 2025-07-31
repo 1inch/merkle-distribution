@@ -1,5 +1,4 @@
 import { expect } from 'chai';
-import { describe, it, beforeEach, afterEach } from 'mocha';
 import * as fs from 'fs';
 import * as path from 'path';
 import { generateQrCodes, saveQrCode, ensureDirectoryExists } from '../../../src/lib/qr';

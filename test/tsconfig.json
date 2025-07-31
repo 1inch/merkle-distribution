@@ -3,7 +3,7 @@
   "compilerOptions": {
     "rootDir": "../",
     "outDir": "../dist-test",
-    "types": ["node", "mocha", "chai", "sinon"]
+    "types": ["node", "chai", "sinon"]
   },
   "include": [
     "../src/**/*",

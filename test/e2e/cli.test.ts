@@ -1,5 +1,4 @@
 import { expect } from 'chai';
-import { describe, it, beforeEach, afterEach } from 'mocha';
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';

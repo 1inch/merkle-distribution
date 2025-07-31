@@ -1,5 +1,4 @@
 import { expect } from 'chai';
-import { describe, it, beforeEach, afterEach } from 'mocha';
 import sinon from 'sinon';
 import * as fs from 'fs';
 import * as path from 'path';
