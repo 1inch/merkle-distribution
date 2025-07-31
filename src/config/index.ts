@@ -21,9 +21,9 @@ export const config: Config = {
   },
   paths: {
     latestVersion: './src/.latest',
-    qrCodes: './src/qr',
-    testQrCodes: './src/test_qr',
-    generatedData: './src/gendata'
+    qrCodes: './drops/qr',
+    testQrCodes: './drops/test_qr',
+    generatedData: './drops/gendata'
   },
   urls: {
     baseUrl: 'https://app.1inch.io/#/{chainId}/qr?',
