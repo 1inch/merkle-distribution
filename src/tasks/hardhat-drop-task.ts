@@ -91,7 +91,7 @@ export async function dropTask(
       h: height.toString()
     });
     
-    console.log(`✅ Contract deployed at: ${contract.address}\n`);
+    console.log(`✅ Contract deployed at: ${contract.target}\n`);
     
     // Verify all links
     console.log('🔍 Verifying all links...');
