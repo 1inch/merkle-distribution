@@ -44,7 +44,7 @@ export async function deployQRDrop(
   hre: any,
   args: HardhatQRDeployTaskArgs
 ): Promise<any> {
-  const deploymentScript = require('../../deploy/deploy_signature.js');
+  const deploymentScript = require('../../deploy/deploy_signature');
   const { deployments, getNamedAccounts } = hre;
   
   return deploymentScript({
@@ -91,7 +91,7 @@ export async function dropTask(
       h: height.toString()
     });
     
-    console.log(`✅ Contract deployed at: ${contract.target}\n`);
+    console.log(`✅ Contract deployed at: ${await contract.getAddress()}\n`);
     
     // Verify all links
     console.log('🔍 Verifying all links...');

@@ -1,9 +1,11 @@
-// const { assert } = require('chai');
-const { deployAndGetContract } = require('@1inch/solidity-utils');
-const hre = require('hardhat');
-const { getChainId } = hre;
+import { deployAndGetContract } from '@1inch/solidity-utils';
 
-const oneInchAddresses = [
+interface OneInchAddress {
+    networkId: number;
+    addr: string;
+}
+
+const oneInchAddresses: OneInchAddress[] = [
     {
         networkId: 1, // mainnet
         addr: '0x111111111117dC0aa78b770fA6A738034120C302',
@@ -18,7 +20,17 @@ const oneInchAddresses = [
     },
 ];
 
-module.exports = async ({ deployments, getNamedAccounts, version, merkleRoot, merkleHeight }) => {
+interface DeploymentParams {
+    deployments: any;
+    getNamedAccounts: any;
+    version: string;
+    merkleRoot: string;
+    merkleHeight: string;
+}
+
+module.exports = async ({ deployments, getNamedAccounts, version, merkleRoot, merkleHeight }: DeploymentParams) => {
+    const hre = require('hardhat');
+    const { getChainId } = hre;
     const chainId = await getChainId();
 
     console.log(`running deploy script: deploy script ${version} with parameters: ${merkleRoot} ${merkleHeight}`);
@@ -35,7 +47,7 @@ module.exports = async ({ deployments, getNamedAccounts, version, merkleRoot, me
     const { deployer } = await getNamedAccounts();
 
     // 1inch address, merkle root, tree height
-    const args = [rewardToken.addr, merkleRoot, merkleHeight];
+    const args: [string, string, string] = [rewardToken.addr, merkleRoot, merkleHeight];
 
     const deployScriptName = 'MerkleDrop128-' + version.toString();
 
@@ -51,3 +63,4 @@ module.exports = async ({ deployments, getNamedAccounts, version, merkleRoot, me
 };
 
 module.exports.skip = async () => false;
+module.exports.tags = ['SignatureMerkleDrop128'];
