@@ -1,7 +1,10 @@
+import '@nomicfoundation/hardhat-chai-matchers';
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
-import { ethers } from 'hardhat';
 import { expect } from '@1inch/solidity-utils';
 import { Contract, Signer } from 'ethers';
+const hre = require('hardhat');
+const { ethers } = hre;
+
 
 interface MerkleDropData {
     hashedElements: string[];
@@ -31,7 +34,7 @@ interface MerkleDropBehaviorConfig {
     };
 }
 
-export function shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234({
+export function shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234 ({
     walletsCount,
     initContracts,
     functions: { makeDrop, findSortedIndex },
@@ -39,7 +42,7 @@ export function shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234({
     makeDropParams,
 }: MerkleDropBehaviorConfig) {
     describe('Single drop for wallets', async function () {
-        async function deployContractsFixture() {
+        async function deployContractsFixture () {
             const wallets = await ethers.getSigners();
 
             const { token, drop } = await initContracts();

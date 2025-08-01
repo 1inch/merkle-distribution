@@ -1,7 +1,9 @@
+import '@nomicfoundation/hardhat-chai-matchers';
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
-import { ethers } from 'hardhat';
 import { expect } from '@1inch/solidity-utils';
 import { Contract, Signer } from 'ethers';
+const hre = require('hardhat');
+const { ethers } = hre;
 
 interface MerkleDropData {
     hashedElements: string[];
@@ -39,14 +41,14 @@ interface CumulativeMerkleDropBehaviorConfig {
     };
 }
 
-export function shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234({
+export function shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234 ({
     initContracts,
     functions: { makeFirstDrop, makeSecondDrop, findSortedIndex },
     makeFirstDropParams,
     makeSecondDropParams,
 }: CumulativeMerkleDropBehaviorConfig) {
     describe('Double drop for wallets', async function () {
-        async function deployContractsFixture() {
+        async function deployContractsFixture () {
             const wallets = await ethers.getSigners();
 
             const { token, drop } = await initContracts();
@@ -64,7 +66,7 @@ export function shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234(
                 it('should succeed to claim', async function () {
                     const {
                         contracts: { drop },
-                        other: { firstDropData, secondDropData },
+                        other: { secondDropData },
                     } = await loadFixture(deployContractsFixture);
 
                     const walletAddress = await secondDropData.wallets[i].getAddress();
@@ -75,13 +77,13 @@ export function shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234(
                             await secondDropData.wallets[i].getAddress(),
                             makeSecondDropParams.amounts[i],
                             secondDropData.root,
-                            secondDropData.proofs[findSortedIndex(secondDropData, i)]
+                            secondDropData.proofs[findSortedIndex(secondDropData, i)],
                         )
                         : drop.claim(
                             await secondDropData.wallets[i].getAddress(),
                             makeSecondDropParams.amounts[i],
                             secondDropData.root,
-                            secondDropData.proofs[findSortedIndex(secondDropData, i)]
+                            secondDropData.proofs[findSortedIndex(secondDropData, i)],
                         );
 
                     await expect(claimTx).to.emit(drop, 'Claimed').withArgs(walletAddress, makeSecondDropParams.amounts[i].toString());
@@ -99,14 +101,14 @@ export function shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234(
                             await secondDropData.wallets[i].getAddress(),
                             makeSecondDropParams.amounts[i],
                             secondDropData.root,
-                            secondDropData.proofs[findSortedIndex(secondDropData, i)]
+                            secondDropData.proofs[findSortedIndex(secondDropData, i)],
                         );
                     } else {
                         await drop.claim(
                             await secondDropData.wallets[i].getAddress(),
                             makeSecondDropParams.amounts[i],
                             secondDropData.root,
-                            secondDropData.proofs[findSortedIndex(secondDropData, i)]
+                            secondDropData.proofs[findSortedIndex(secondDropData, i)],
                         );
                     }
 
@@ -116,13 +118,13 @@ export function shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234(
                             await firstDropData.wallets[i].getAddress(),
                             makeFirstDropParams.amounts[i],
                             firstDropData.root,
-                            firstDropData.proofs[findSortedIndex(firstDropData, i)]
+                            firstDropData.proofs[findSortedIndex(firstDropData, i)],
                         )
                         : drop.claim(
                             await firstDropData.wallets[i].getAddress(),
                             makeFirstDropParams.amounts[i],
                             firstDropData.root,
-                            firstDropData.proofs[findSortedIndex(firstDropData, i)]
+                            firstDropData.proofs[findSortedIndex(firstDropData, i)],
                         );
 
                     await expect(claimTx).to.be.revertedWithCustomError(drop, 'MerkleRootWasUpdated');
@@ -140,14 +142,14 @@ export function shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234(
                             await secondDropData.wallets[i].getAddress(),
                             makeSecondDropParams.amounts[i],
                             secondDropData.root,
-                            secondDropData.proofs[findSortedIndex(secondDropData, i)]
+                            secondDropData.proofs[findSortedIndex(secondDropData, i)],
                         );
                     } else {
                         await drop.claim(
                             await secondDropData.wallets[i].getAddress(),
                             makeSecondDropParams.amounts[i],
                             secondDropData.root,
-                            secondDropData.proofs[findSortedIndex(secondDropData, i)]
+                            secondDropData.proofs[findSortedIndex(secondDropData, i)],
                         );
                     }
 
@@ -157,13 +159,13 @@ export function shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234(
                             await secondDropData.wallets[i].getAddress(),
                             makeSecondDropParams.amounts[i],
                             secondDropData.root,
-                            secondDropData.proofs[findSortedIndex(secondDropData, i)]
+                            secondDropData.proofs[findSortedIndex(secondDropData, i)],
                         )
                         : drop.claim(
                             await secondDropData.wallets[i].getAddress(),
                             makeSecondDropParams.amounts[i],
                             secondDropData.root,
-                            secondDropData.proofs[findSortedIndex(secondDropData, i)]
+                            secondDropData.proofs[findSortedIndex(secondDropData, i)],
                         );
 
                     await expect(claimTx2).to.be.revertedWithCustomError(drop, 'NothingToClaim');

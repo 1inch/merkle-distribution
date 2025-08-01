@@ -1,28 +1,24 @@
-import '@nomicfoundation/hardhat-chai-matchers';
-const hre = require('hardhat');
-const { ethers } = hre;
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
 import { deployContract, expect } from '@1inch/solidity-utils';
 import { MerkleTree } from 'merkletreejs';
 import keccak256 from 'keccak256';
 import { Contract, Signer } from 'ethers';
 import Wallet from 'ethereumjs-wallet';
-
 // import { gasspectEVM } from '@1inch/solidity-utils';
-
 import {
     shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234,
 } from './behaviors/MerkleDrop.behavior';
-
 import {
     shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234,
 } from './behaviors/CumulativeMerkleDrop.behavior';
+const hre = require('hardhat');
+const { ethers } = hre;
 
-function keccak128(input: Buffer | string): Buffer {
+function keccak128 (input: Buffer | string): Buffer {
     return keccak256(input).slice(0, 16);
 }
 
-function generateSalt(): string {
+function generateSalt (): string {
     return Wallet.generate().getPrivateKeyString().slice(0, 34);
 }
 
@@ -40,16 +36,16 @@ interface Contracts {
     drop: Contract;
 }
 
-async function makeDrop(
+async function makeDrop (
     token: Contract,
     drop: Contract,
     walletsAddressesSalts: string[],
     amounts: bigint[],
-    deposit: bigint
+    deposit: bigint,
 ): Promise<Omit<MerkleDropData, 'salts' | 'wallets'>> {
     // For 128-bit version, the leaf is keccak128(salt + address + amount)
     const elements = walletsAddressesSalts.map((w, i) => {
-        // w already contains salt + address (salt is first 32 chars after 0x, address is the rest)
+    // w already contains salt + address (salt is first 32 chars after 0x, address is the rest)
         return w + amounts[i].toString(16).padStart(64, '0');
     });
     const hashedElements = elements.map((elem) => MerkleTree.bufferToHex(keccak128(elem)));
@@ -67,17 +63,17 @@ async function makeDrop(
 }
 
 describe('CumulativeMerkleDrop128', function () {
-    function findSortedIndex(self: Omit<MerkleDropData, 'salts' | 'wallets'>, i: number): number {
+    function findSortedIndex (self: Omit<MerkleDropData, 'salts' | 'wallets'>, i: number): number {
         return self.leaves.indexOf(self.hashedElements[i]);
     }
 
-    async function initContracts(): Promise<Contracts> {
+    async function initContracts (): Promise<Contracts> {
         const token = await deployContract('TokenMock', ['1INCH Token', '1INCH']) as unknown as Contract;
         const drop = await deployContract('CumulativeMerkleDrop128', [await token.getAddress()]) as unknown as Contract;
         return { token, drop };
     }
 
-    async function deployContractsFixture() {
+    async function deployContractsFixture () {
         const [owner, alice, bob, carol, dan] = await ethers.getSigners();
 
         const { token, drop } = await initContracts();
@@ -97,21 +93,21 @@ describe('CumulativeMerkleDrop128', function () {
         const params = await makeDrop(token, drop, accounts, amounts, 1000000n);
 
         if (drop.interface.getFunction('verify')) {
-            await drop['verify'](params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[0]);
-            expect(await drop['verify'](params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[0])).to.be.true;
+            await drop.verify(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[0]);
+            expect(await drop.verify(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[0])).to.be.true;
         }
-        await drop['verifyAsm'](params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[0]);
-        expect(await drop['verifyAsm'](params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[0])).to.be.true;
+        await drop.verifyAsm(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[0]);
+        expect(await drop.verifyAsm(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[0])).to.be.true;
         const tx = await drop.claim(accounts[0], 1, params.root, params.proofs[findSortedIndex(params, 0)]);
         await expect(tx).to.changeTokenBalances(token, [accounts[0], drop], [1, -1]);
     });
 
     describe('behave like merkle drop', function () {
-        async function makeDropForSomeAccounts(
+        async function makeDropForSomeAccounts (
             token: Contract,
             drop: Contract,
             allWallets: Signer[],
-            params: { amounts: bigint[]; deposit: bigint }
+            params: { amounts: bigint[]; deposit: bigint },
         ): Promise<MerkleDropData> {
             const wallets = allWallets.slice(1, params.amounts.length + 1); // drop first wallet
             const salts = wallets.map(() => generateSalt());

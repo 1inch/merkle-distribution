@@ -1,6 +1,4 @@
 import '@nomicfoundation/hardhat-chai-matchers';
-const hre = require('hardhat');
-const { ethers } = hre;
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
 import { deployContract, expect } from '@1inch/solidity-utils';
 import { MerkleTree } from 'merkletreejs';
@@ -8,8 +6,10 @@ import keccak256 from 'keccak256';
 import { personalSign } from '@metamask/eth-sig-util';
 import Wallet from 'ethereumjs-wallet';
 import { Contract, Signer } from 'ethers';
+const hre = require('hardhat');
+const { ethers } = hre;
 
-function keccak128(input: Buffer | string): Buffer {
+function keccak128 (input: Buffer | string): Buffer {
     return keccak256(input).slice(0, 16);
 }
 
@@ -19,7 +19,7 @@ interface AccountWithDropValue {
 }
 
 describe('SignatureMerkleDrop128', function () {
-    async function deployContractsFixture() {
+    async function deployContractsFixture () {
         const [owner, alice, bob, carol, dan] = await ethers.getSigners();
         const token = await deployContract('TokenMock', ['1INCH Token', '1INCH']) as unknown as Contract;
 

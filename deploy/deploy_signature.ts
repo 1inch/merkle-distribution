@@ -21,8 +21,9 @@ const oneInchAddresses: OneInchAddress[] = [
 ];
 
 interface DeploymentParams {
-    deployments: any;
-    getNamedAccounts: any;
+    // Using any here due to complex type compatibility issues between different versions of hardhat-deploy
+    deployments: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    getNamedAccounts: () => Promise<{ [name: string]: string }>;
     version: string;
     merkleRoot: string;
     merkleHeight: string;

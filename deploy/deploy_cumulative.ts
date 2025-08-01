@@ -1,6 +1,6 @@
 import { deployAndGetContract } from '@1inch/solidity-utils';
 
-module.exports = async ({ deployments, getNamedAccounts }: any) => {
+module.exports = async ({ deployments, getNamedAccounts }) => {
     const hre = require('hardhat');
     const { getChainId } = hre;
     
