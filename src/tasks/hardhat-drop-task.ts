@@ -44,7 +44,7 @@ export async function deployQRDrop(
   hre: any,
   args: HardhatQRDeployTaskArgs
 ): Promise<any> {
-  const deploymentScript = require('../../deploy/deploy_qr.js');
+  const deploymentScript = require('../../deploy/deploy_signature.js');
   const { deployments, getNamedAccounts } = hre;
   
   return deploymentScript({
