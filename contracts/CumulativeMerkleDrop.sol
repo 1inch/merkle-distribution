@@ -8,25 +8,54 @@ import { SafeERC20, IERC20 } from "@1inch/solidity-utils/contracts/libraries/Saf
 
 import { ICumulativeMerkleDrop } from "./interfaces/ICumulativeMerkleDrop.sol";
 
+/**
+ * @title CumulativeMerkleDrop
+ * @author 1inch Network
+ * @notice A contract for distributing tokens via Merkle tree proofs with cumulative claim amounts
+ * @dev This contract allows users to claim tokens based on a Merkle tree where each leaf contains
+ * the cumulative amount a user can claim. This design allows for multiple distributions without
+ * requiring users to claim from each one separately.
+ */
 contract CumulativeMerkleDrop is Ownable, ICumulativeMerkleDrop {
     using SafeERC20 for IERC20;
     // using MerkleProof for bytes32[];
 
-    // solhint-disable-next-line immutable-vars-naming
-    address public immutable override token;
+    /// @notice The ERC20 token being distributed
+    address public immutable override token; // solhint-disable-line immutable-vars-naming
 
+
+    /// @notice The current Merkle root for the distribution
     bytes32 public override merkleRoot;
+    
+    /// @notice Mapping of addresses to their cumulative claimed amounts
     mapping(address => uint256) public cumulativeClaimed;
 
+    /**
+     * @notice Constructs the CumulativeMerkleDrop contract
+     * @param token_ The address of the ERC20 token to be distributed
+     */
     constructor(address token_) Ownable(msg.sender) {
         token = token_;
     }
 
+    /**
+     * @notice Updates the Merkle root for the distribution
+     * @dev Only callable by the contract owner
+     * @param merkleRoot_ The new Merkle root to set
+     */
     function setMerkleRoot(bytes32 merkleRoot_) external override onlyOwner {
         emit MerkelRootUpdated(merkleRoot, merkleRoot_);
         merkleRoot = merkleRoot_;
     }
 
+    /**
+     * @notice Claims tokens for a given account using a Merkle proof
+     * @dev The cumulative amount represents the total tokens the account can claim across all distributions
+     * @param account The address of the account to claim for
+     * @param cumulativeAmount The total cumulative amount the account is entitled to
+     * @param expectedMerkleRoot The Merkle root the proof was generated for
+     * @param merkleProof The Merkle proof verifying the claim
+     */
     function claim(
         address account,
         uint256 cumulativeAmount,
@@ -41,6 +70,7 @@ contract CumulativeMerkleDrop is Ownable, ICumulativeMerkleDrop {
 
         // Mark it claimed
         uint256 preclaimed = cumulativeClaimed[account];
+        // solhint-disable-next-line gas-strict-inequalities
         if (preclaimed >= cumulativeAmount) revert NothingToClaim();
         cumulativeClaimed[account] = cumulativeAmount;
 
@@ -56,6 +86,14 @@ contract CumulativeMerkleDrop is Ownable, ICumulativeMerkleDrop {
     //     return merkleProof.verify(root, leaf);
     // }
 
+    /**
+     * @notice Verifies a Merkle proof using assembly for gas optimization
+     * @dev Uses sorted pairs when hashing to match the proof generation
+     * @param proof The Merkle proof to verify
+     * @param root The Merkle root to verify against
+     * @param leaf The leaf node to verify
+     * @return valid True if the proof is valid, false otherwise
+     */
     function _verifyAsm(bytes32[] calldata proof, bytes32 root, bytes32 leaf) private pure returns (bool valid) {
         /// @solidity memory-safe-assembly
         assembly {  // solhint-disable-line no-inline-assembly
