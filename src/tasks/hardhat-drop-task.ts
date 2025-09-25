@@ -3,12 +3,19 @@ import * as path from 'path';
 import { HardhatDropTaskArgs, HardhatQRDeployTaskArgs } from '../types';
 import { DropService } from '../services/DropService';
 import { VerificationService } from '../services/VerificationService';
+import { StatisticsService } from '../services/StatisticsService';
 
 // Extended HRE type that includes hardhat-deploy properties
 interface ExtendedHRE {
   getChainId: () => Promise<string>;
   deployments: {
-    getOrNull: (name: string) => Promise<{ address: string; args?: unknown[] } | null>;
+    getOrNull: (name: string) => Promise<{
+      address: string;
+      args?: unknown[];
+      receipt?: {
+        blockNumber?: number;
+      };
+    } | null>;
   };
   getNamedAccounts: () => Promise<{ [name: string]: string }>;
   run: (taskName: string, taskArguments?: unknown) => Promise<unknown>;
@@ -261,4 +268,86 @@ export async function verifyLinksTask (
     // Verify all links using the helper function
     await verifyLinksWithProgress(contract, allUrls, merkleRoot, chainId);
     console.log('');
+}
+
+/**
+ * Collect on-chain statistics for deployed drops
+ */
+export async function collectStatsTask (
+    hre: ExtendedHRE,
+    version: string,
+): Promise<void> {
+    const { deployments, ethers } = hre;
+    const networkName = hre.network.name;
+  
+    // Get deployment
+    const deployed = await deployments.getOrNull(`MerkleDrop128-${version}`);
+  
+    if (!deployed) {
+        console.error(`❌ Deployment file not found for version: ${version}`);
+        return;
+    }
+  
+    console.log(`\n📊 On-Chain Statistics for Drop Version ${version}`);
+    console.log(`${'━'.repeat(50)}`);
+    console.log(`📍 Network: ${networkName}`);
+    console.log(`📍 Contract: ${deployed.address}`);
+  
+    // Connect to the drop contract to get token address
+    const dropContractABI = [
+        'function token() external view returns (address)',
+    ];
+    const dropContract = new ethers.Contract(deployed.address, dropContractABI, ethers.provider);
+  
+    let tokenAddress: string;
+    try {
+        tokenAddress = await dropContract.token();
+        console.log(`📍 Token: ${tokenAddress}\n`);
+    } catch (error) {
+        console.error(`❌ Failed to get token address from drop contract: ${error}`);
+        return;
+    }
+  
+    console.log('📈 Collecting claim statistics...');
+  
+    try {
+        // Get current block number
+        const currentBlock = await ethers.provider.getBlockNumber();
+        
+        // Find deployment block from transaction hash if available
+        let startBlock = 0;
+        if (deployed.receipt && deployed.receipt.blockNumber) {
+            startBlock = deployed.receipt.blockNumber;
+            console.log(`   - Scanning from deployment block ${startBlock} to ${currentBlock}`);
+        } else {
+            console.log(`   - Scanning from block 0 to ${currentBlock}`);
+        }
+        
+        // Use StatisticsService to collect statistics
+        const stats = await StatisticsService.collectStatistics(
+            deployed.address,
+            tokenAddress,
+            ethers.provider,
+            startBlock,
+        );
+        
+        // Check if there's any activity
+        if (stats.totalClaims === 0 && Number(stats.totalFunded) === 0) {
+            console.log('\n📊 Claims Statistics:');
+            console.log('   - Total Claims: 0');
+            console.log(`   - Total Amount Claimed: 0 ${stats.symbol}`);
+            console.log('\n✅ No activity has been recorded yet.');
+            return;
+        }
+        
+        // Format and display statistics
+        const output = StatisticsService.formatStatisticsOutput(stats);
+        output.forEach(line => console.log(line));
+        
+        console.log('\n✅ Statistics collection complete!');
+  
+    } catch (error) {
+        console.error(`\n❌ Failed to collect statistics: ${error}`);
+        return;
+    }
 }

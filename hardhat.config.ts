@@ -8,7 +8,7 @@ import 'solidity-coverage';
 import 'dotenv/config';
 import { task, HardhatUserConfig } from 'hardhat/config';
 import { Networks, getNetwork } from '@1inch/solidity-utils/hardhat-setup';
-import { dropTask, verifyDeploymentTask, deployQRDrop, verifyLinksTask } from './src/tasks/hardhat-drop-task';
+import { dropTask, verifyDeploymentTask, deployQRDrop, verifyLinksTask, collectStatsTask } from './src/tasks/hardhat-drop-task';
 
 const { networks, etherscan } = new Networks().registerAll();
 
@@ -141,6 +141,45 @@ task('verify-links', 'Verify all generated links against a deployed merkle drop 
     .addParam('v', 'Deployment version')
     .setAction(async (taskArgs, hre) => {
         await verifyLinksTask(hre, taskArgs.v);
+    });
+
+/**
+ * Collect On-Chain Statistics for Deployed Drops
+ *
+ * Description:
+ *   Collects and displays on-chain statistics for a deployed merkle drop contract.
+ *   Queries Transfer events from the token contract to track all claims made
+ *   through the drop contract.
+ *
+ * Parameters:
+ *   --v : Deployment version number (must match the deployed contract)
+ *
+ * Usage:
+ *   yarn stat <network> --v <version>
+ *
+ * Examples:
+ *   # Get statistics for version 61 on base network
+ *   yarn stat base --v 61
+ *
+ *   # Get statistics for version 41 on mainnet
+ *   yarn stat mainnet --v 41
+ *
+ *   # Get statistics for version 3 on BSC
+ *   yarn stat bsc --v 3
+ *
+ * Statistics Displayed:
+ *   - Total number of claims
+ *   - Total amount claimed
+ *   - Average claim amount
+ *   - First and last claim timestamps
+ *
+ * Note:
+ *   Requires deployment artifacts to exist in deployments/<network>/MerkleDrop128-<version>.json
+ */
+task('stats', 'Collect on-chain statistics for deployed drops')
+    .addParam('v', 'Deployment version')
+    .setAction(async (taskArgs, hre) => {
+        await collectStatsTask(hre, taskArgs.v);
     });
 
 const config: HardhatUserConfig = {
