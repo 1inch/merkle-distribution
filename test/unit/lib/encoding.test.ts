@@ -63,7 +63,8 @@ describe('Encoding Library', () => {
                 { position: 'right' as const, data: Buffer.from('fedcba0987654321', 'hex') },
             ];
             const version = 1;
-            const prefix = 'https://app.1inch.io/#/1/qr?';
+            // lgtm [js/incomplete-hostname-regexp]
+            const prefix = 'https://app\\.1inch\\.io/#/1/qr?';
       
             const url = generateClaimUrl(privateKey, amount, proof, version, prefix);
       
