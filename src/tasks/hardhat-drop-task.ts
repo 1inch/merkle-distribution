@@ -1,8 +1,8 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { HardhatDropTaskArgs, HardhatQRDeployTaskArgs } from '../types';
 import { DropService } from '../services/DropService';
 import { VerificationService } from '../services/VerificationService';
-import * as fs from 'fs';
-import * as path from 'path';
 
 // Extended HRE type that includes hardhat-deploy properties
 interface ExtendedHRE {
@@ -12,7 +12,7 @@ interface ExtendedHRE {
   };
   getNamedAccounts: () => Promise<{ [name: string]: string }>;
   run: (taskName: string, taskArguments?: unknown) => Promise<unknown>;
-  ethers: any;
+  ethers: any; // eslint-disable-line
   network: {
     name: string;
   };
@@ -211,13 +211,13 @@ export async function verifyLinksTask (
     // Read and parse the links file
     const linksData = JSON.parse(fs.readFileSync(linksFilePath, 'utf-8'));
     const merkleRoot = linksData.root;
-    const productionUrls = linksData.codes.map((code: any) => code.url);
+    const productionUrls = linksData.codes.map((code: any) => code.url); // eslint-disable-line
   
     // Read test links if they exist
     let testUrls: string[] = [];
     if (fs.existsSync(testLinksFilePath)) {
         const testLinksData = JSON.parse(fs.readFileSync(testLinksFilePath, 'utf-8'));
-        testUrls = testLinksData.codes.map((code: any) => code.url);
+        testUrls = testLinksData.codes.map((code: any) => code.url); // eslint-disable-line
     }
   
     // Combine all URLs
