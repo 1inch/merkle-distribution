@@ -9,8 +9,8 @@ import { StatisticsService } from '../services/StatisticsService';
 interface ExtendedHRE {
   getChainId: () => Promise<string>;
   deployments: {
-    getOrNull: (name: string) => Promise<{ 
-      address: string; 
+    getOrNull: (name: string) => Promise<{
+      address: string;
       args?: unknown[];
       receipt?: {
         blockNumber?: number;
@@ -308,7 +308,7 @@ export async function collectStatsTask (
         return;
     }
   
-    console.log(`📈 Collecting claim statistics...`);
+    console.log('📈 Collecting claim statistics...');
   
     try {
         // Get current block number
@@ -333,10 +333,10 @@ export async function collectStatsTask (
         
         // Check if there's any activity
         if (stats.totalClaims === 0 && Number(stats.totalFunded) === 0) {
-            console.log(`\n📊 Claims Statistics:`);
-            console.log(`   - Total Claims: 0`);
+            console.log('\n📊 Claims Statistics:');
+            console.log('   - Total Claims: 0');
             console.log(`   - Total Amount Claimed: 0 ${stats.symbol}`);
-            console.log(`\n✅ No activity has been recorded yet.`);
+            console.log('\n✅ No activity has been recorded yet.');
             return;
         }
         
@@ -344,7 +344,7 @@ export async function collectStatsTask (
         const output = StatisticsService.formatStatisticsOutput(stats);
         output.forEach(line => console.log(line));
         
-        console.log(`\n✅ Statistics collection complete!`);
+        console.log('\n✅ Statistics collection complete!');
   
     } catch (error) {
         console.error(`\n❌ Failed to collect statistics: ${error}`);

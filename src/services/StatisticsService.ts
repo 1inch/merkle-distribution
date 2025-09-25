@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 // Configurable chunk size fallback sequence (in blocks)
 // Starts with largest size and falls back to smaller sizes on failure
 // For Base network, smaller chunks work better due to high transaction volume
-const CHUNK_SIZE_FALLBACK_SEQUENCE = [9000, 5000, 2000, 1000, 500];
+const CHUNK_SIZE_FALLBACK_SEQUENCE = [10000, 5000, 2500, 500, 100];
 
 // Interfaces for statistics data
 export interface FundingTransaction {
@@ -44,9 +44,9 @@ export interface StatisticsData {
 }
 
 interface EventQueryResult {
-    events: any[];
+    events: (ethers.EventLog | ethers.Log)[];
     failed: boolean;
-    chunk?: any;
+    chunk?: { from: number; to: number };
     failedRanges?: string[];
 }
 
@@ -54,7 +54,7 @@ export class StatisticsService {
     /**
      * Collect on-chain statistics for a deployed drop contract
      */
-    static async collectStatistics(
+    static async collectStatistics (
         dropContractAddress: string,
         tokenAddress: string,
         provider: ethers.Provider,
@@ -86,24 +86,24 @@ export class StatisticsService {
         const outgoingFilter = tokenContract.filters.Transfer(dropContractAddress, null, null); // Claims (FROM drop)
         const incomingFilter = tokenContract.filters.Transfer(null, dropContractAddress, null); // Funding (TO drop)
         
-        let outgoingEvents: any[] = [];
-        let incomingEvents: any[] = [];
+        let outgoingEvents: (ethers.EventLog | ethers.Log)[] = [];
+        let incomingEvents: (ethers.EventLog | ethers.Log)[] = [];
         let chunkStatistics: ChunkStatistics[] | undefined;
 
-        console.log(`   - Querying Transfer events for drop contract...`);
+        console.log('   - Querying Transfer events for drop contract...');
         
         try {
             // Try to query both filters in parallel
-            console.log(`   - Attempting direct queries...`);
+            console.log('   - Attempting direct queries...');
             const [outgoing, incoming] = await Promise.all([
                 tokenContract.queryFilter(outgoingFilter, startBlock, 'latest'),
-                tokenContract.queryFilter(incomingFilter, startBlock, 'latest')
+                tokenContract.queryFilter(incomingFilter, startBlock, 'latest'),
             ]);
             outgoingEvents = outgoing;
             incomingEvents = incoming;
         } catch {
             // If direct queries fail, use batched queries with chunking
-            console.log(`   - Using chunked parallel queries...`);
+            console.log('   - Using chunked parallel queries...');
             const chunks = this.createChunks(startBlock, currentBlock, CHUNK_SIZE_FALLBACK_SEQUENCE[0]);
             const totalChunks = chunks.length * 2; // Two filters, so double the chunks
             console.log(`   - Processing ${totalChunks} chunks total (${chunks.length} per filter)...`);
@@ -113,15 +113,15 @@ export class StatisticsService {
             
             // Query both filters in parallel with chunking
             const [outgoingResult, incomingResult] = await Promise.all([
-                this.queryEventsWithRetry(tokenContract, outgoingFilter, chunks, provider, progressTracker),
-                this.queryEventsWithRetry(tokenContract, incomingFilter, chunks, provider, progressTracker)
+                this.queryEventsWithRetry(tokenContract, outgoingFilter, chunks, progressTracker),
+                this.queryEventsWithRetry(tokenContract, incomingFilter, chunks, progressTracker),
             ]);
             
             outgoingEvents = outgoingResult.events;
             incomingEvents = incomingResult.events;
             
             // Combine chunk statistics from both queries
-            const combinedStats = new Map<number, { 
+            const combinedStats = new Map<number, {
                 chunks: number;
                 firstTrySuccesses: number;
                 attempts: number;
@@ -152,7 +152,7 @@ export class StatisticsService {
                 firstTrySuccesses: stats.firstTrySuccesses,
                 totalSuccesses: stats.successes, // Actual successes at this chunk size
                 firstTryRate: stats.chunks > 0 ? (stats.firstTrySuccesses / stats.chunks) * 100 : 0,
-                totalRate: stats.chunks > 0 ? (stats.successes / stats.chunks) * 100 : 0
+                totalRate: stats.chunks > 0 ? (stats.successes / stats.chunks) * 100 : 0,
             })).filter(stat => stat.chunks > 0);
         }
 
@@ -198,7 +198,7 @@ export class StatisticsService {
     /**
      * Create chunks for block range queries
      */
-    private static createChunks(
+    private static createChunks (
         startBlock: number,
         endBlock: number,
         chunkSize: number,
@@ -214,7 +214,7 @@ export class StatisticsService {
     /**
      * Create a visual progress bar
      */
-    private static createProgressBar(current: number, total: number, width: number = 20): string {
+    private static createProgressBar (current: number, total: number, width: number = 20): string {
         const percentage = Math.min(100, Math.floor((current / total) * 100));
         const filled = Math.floor((percentage / 100) * width);
         const empty = width - filled;
@@ -225,37 +225,36 @@ export class StatisticsService {
     /**
      * Query events with retry logic and parallel processing
      */
-    private static async queryEventsWithRetry(
+    private static async queryEventsWithRetry (
         tokenContract: ethers.Contract,
-        filter: any,
+        filter: ethers.ContractEventName,
         chunks: Array<{ from: number; to: number }>,
-        provider: ethers.Provider,
         progressTracker?: { completed: number; total: number },
-    ): Promise<{ events: any[]; chunkStats: Map<number, { 
+    ): Promise<{ events: (ethers.EventLog | ethers.Log)[]; chunkStats: Map<number, {
         chunks: number;
         firstTrySuccesses: number;
         attempts: number;
         successes: number;
     }> }> {
         const maxConcurrent = 5; // Reduced to avoid overwhelming the RPC
-        const events: any[] = [];
-        const failedChunks: { chunk: any; failedRanges: string[] }[] = [];
+        const events: (ethers.EventLog | ethers.Log)[] = [];
+        const failedChunks: { chunk: { from: number; to: number }; failedRanges: string[] }[] = [];
         let completedChunks = 0;
         const totalChunks = chunks.length;
         
         // Track statistics for each chunk size
-        const chunkStats = new Map<number, { 
-            chunks: number; 
-            firstTrySuccesses: number; 
-            attempts: number; 
-            successes: number 
+        const chunkStats = new Map<number, {
+            chunks: number;
+            firstTrySuccesses: number;
+            attempts: number;
+            successes: number
         }>();
         CHUNK_SIZE_FALLBACK_SEQUENCE.forEach(size => {
-            chunkStats.set(size, { 
-                chunks: 0, 
-                firstTrySuccesses: 0, 
-                attempts: 0, 
-                successes: 0 
+            chunkStats.set(size, {
+                chunks: 0,
+                firstTrySuccesses: 0,
+                attempts: 0,
+                successes: 0,
             });
         });
 
@@ -274,7 +273,7 @@ export class StatisticsService {
                         
                         // Track this as a new chunk attempt
                         stats.chunks++;
-                        let succeeded = false;
+                        // let succeeded = false;
                         
                         for (let attempt = 0; attempt < retries; attempt++) {
                             stats.attempts++;
@@ -287,7 +286,7 @@ export class StatisticsService {
                                 if (attempt === 0) {
                                     stats.firstTrySuccesses++;
                                 }
-                                succeeded = true;
+                                // succeeded = true;
                                 completedChunks++;
                                 
                                 // Update shared progress if available
@@ -300,15 +299,15 @@ export class StatisticsService {
                                 }
                                 
                                 return { events, failed: false, successfulChunkSize: targetSize };
-                            } catch (error: any) {
+                            } catch {
                                 if (attempt < retries - 1) {
-                                    await new Promise(resolve => setTimeout(resolve, 200 * (attempt + 1)));
+                                    await new Promise(resolve => global.setTimeout(resolve, 200 * (attempt + 1)));
                                 }
                             }
                         }
                     } else {
                         // For smaller sizes, split the chunk
-                        const subChunkEvents: any[] = [];
+                        const subChunkEvents: (ethers.EventLog | ethers.Log)[] = [];
                         let allSucceeded = true;
                         
                         for (let from = chunk.from; from <= chunk.to; from += targetSize) {
@@ -333,9 +332,9 @@ export class StatisticsService {
                                     }
                                     succeeded = true;
                                     break;
-                                } catch (error: any) {
+                                } catch {
                                     if (attempt < retries - 1) {
-                                        await new Promise(resolve => setTimeout(resolve, 200 * (attempt + 1)));
+                                        await new Promise(resolve => global.setTimeout(resolve, 200 * (attempt + 1)));
                                     }
                                 }
                             }
@@ -422,14 +421,14 @@ export class StatisticsService {
     /**
      * Query with small chunks as fallback
      */
-    private static async queryWithSmallChunks(
+    private static async queryWithSmallChunks (
         tokenContract: ethers.Contract,
-        filter: any,
+        filter: ethers.ContractEventName,
         fromBlock: number,
         toBlock: number,
         chunkStats: Map<number, { attempts: number; successes: number }>,
-    ): Promise<{ events: any[]; failedRanges: string[] }> {
-        const smallerEvents: any[] = [];
+    ): Promise<{ events: (ethers.EventLog | ethers.Log)[]; failedRanges: string[] }> {
+        const smallerEvents: (ethers.EventLog | ethers.Log)[] = [];
         const failedRanges: string[] = [];
         
         // Use the smallest chunk size from the fallback sequence for final attempts
@@ -445,7 +444,7 @@ export class StatisticsService {
             const to = Math.min(from + smallestChunkSize - 1, toBlock);
             stats.attempts++;
             try {
-                await new Promise(resolve => setTimeout(resolve, 100));
+                await new Promise(resolve => global.setTimeout(resolve, 100));
                 const small = await tokenContract.queryFilter(filter, from, to);
                 smallerEvents.push(...small);
                 stats.successes++;
@@ -460,14 +459,14 @@ export class StatisticsService {
     /**
      * Retry failed chunks with even smaller ranges
      */
-    private static async retryFailedChunks(
+    private static async retryFailedChunks (
         tokenContract: ethers.Contract,
-        filter: any,
-        failedChunks: Array<{ chunk: any; failedRanges: string[] }>,
+        filter: ethers.ContractEventName,
+        failedChunks: Array<{ chunk: { from: number; to: number }; failedRanges: string[] }>,
         chunkStats: Map<number, { attempts: number; successes: number }>,
-    ): Promise<any[]> {
+    ): Promise<(ethers.EventLog | ethers.Log)[]> {
         console.log(`\n   - Retrying ${failedChunks.length} failed chunks with smaller ranges...`);
-        const events: any[] = [];
+        const events: (ethers.EventLog | ethers.Log)[] = [];
         let recoveredCount = 0;
         
         // Use the smallest chunk size from the fallback sequence
@@ -490,7 +489,7 @@ export class StatisticsService {
                     const retryTo = Math.min(retryFrom + smallestChunkSize - 1, to);
                     stats.attempts++;
                     try {
-                        await new Promise(resolve => setTimeout(resolve, 500));
+                        await new Promise(resolve => global.setTimeout(resolve, 500));
                         const retryEvents = await tokenContract.queryFilter(filter, retryFrom, retryTo);
                         events.push(...retryEvents);
                         recoveredCount += retryEvents.length;
@@ -512,14 +511,14 @@ export class StatisticsService {
     /**
      * Aggregate claim data from outgoing transfer events
      */
-    private static aggregateClaimData(
-        events: any[],
+    private static aggregateClaimData (
+        events: (ethers.EventLog | ethers.Log)[],
         decimals: number,
     ): { count: number; totalAmount: string } {
         let totalAmount = BigInt(0);
 
         for (const event of events) {
-            if (event.args && event.args.value) {
+            if ('args' in event && event.args && event.args.value) {
                 totalAmount += BigInt(event.args.value.toString());
             }
         }
@@ -533,8 +532,8 @@ export class StatisticsService {
     /**
      * Aggregate funding data from incoming transfer events
      */
-    private static aggregateFundingData(
-        events: any[],
+    private static aggregateFundingData (
+        events: (ethers.EventLog | ethers.Log)[],
         decimals: number,
     ): { totalAmount: string; topFunders: FundingTransaction[] } {
         let totalAmount = BigInt(0);
@@ -545,7 +544,7 @@ export class StatisticsService {
         }> = [];
 
         for (const event of events) {
-            if (event.args && event.args.value) {
+            if ('args' in event && event.args && event.args.value) {
                 const amount = BigInt(event.args.value.toString());
                 totalAmount += amount;
 
@@ -580,7 +579,7 @@ export class StatisticsService {
     /**
      * Get remaining balance on the contract
      */
-    private static async getRemainingBalance(
+    private static async getRemainingBalance (
         tokenContract: ethers.Contract,
         contractAddress: string,
         decimals: number,
@@ -596,8 +595,8 @@ export class StatisticsService {
     /**
      * Get timeline information from claim events
      */
-    private static async getTimeline(
-        events: any[],
+    private static async getTimeline (
+        events: (ethers.EventLog | ethers.Log)[],
         provider: ethers.Provider,
     ): Promise<{ firstClaim?: ClaimInfo; lastClaim?: ClaimInfo }> {
         const timeline: { firstClaim?: ClaimInfo; lastClaim?: ClaimInfo } = {};
@@ -641,10 +640,10 @@ export class StatisticsService {
     /**
      * Format statistics for display
      */
-    static formatStatisticsOutput(stats: StatisticsData): string[] {
+    static formatStatisticsOutput (stats: StatisticsData): string[] {
         const output: string[] = [];
 
-        output.push(`\n📊 Claims Statistics:`);
+        output.push('\n📊 Claims Statistics:');
         output.push(`   - Total Funded: ${Number(stats.totalFunded).toLocaleString()} ${stats.symbol}`);
         output.push(`   - Total Claims: ${stats.totalClaims.toLocaleString()}`);
         output.push(`   - Total Amount Claimed: ${Number(stats.totalClaimed).toLocaleString()} ${stats.symbol} (${stats.claimedPercentage}%)`);
@@ -652,7 +651,7 @@ export class StatisticsService {
 
         // Display top funders if any
         if (stats.topFunders.length > 0) {
-            output.push(`\n💰 Top Funding Transactions:`);
+            output.push('\n💰 Top Funding Transactions:');
             stats.topFunders.forEach((funder, i) => {
                 const shortAddress = `${funder.from.slice(0, 6)}...${funder.from.slice(-4)}`;
                 output.push(`   ${i + 1}. ${Number(funder.amount).toLocaleString()} ${stats.symbol} from ${shortAddress} (Block ${funder.blockNumber})`);
@@ -661,7 +660,7 @@ export class StatisticsService {
 
         // Show timeline
         if (stats.timeline.firstClaim || stats.timeline.lastClaim) {
-            output.push(`\n📅 Timeline:`);
+            output.push('\n📅 Timeline:');
             if (stats.timeline.firstClaim) {
                 output.push(`   - First Claim: Block ${stats.timeline.firstClaim.blockNumber} (${stats.timeline.firstClaim.timestamp.toISOString()})`);
             }
@@ -672,9 +671,9 @@ export class StatisticsService {
 
         // Display chunk statistics if available with enhanced rates
         if (stats.chunkStatistics && stats.chunkStatistics.length > 0) {
-            output.push(`\n📈 Query Performance Statistics:`);
-            output.push(`   Chunk Size | Chunks | First Try | Total | First Rate | Total Rate`);
-            output.push(`   -----------|--------|-----------|-------|------------|------------`);
+            output.push('\n📈 Query Performance Statistics:');
+            output.push('   Chunk Size | Chunks | 1st Try | Total | 1st Rate | Total Rate');
+            output.push('   -----------|--------|---------|-------|----------|------------');
             
             // Sort by chunk size descending
             const sortedStats = [...stats.chunkStatistics].sort((a, b) => b.chunkSize - a.chunkSize);
@@ -682,9 +681,9 @@ export class StatisticsService {
             sortedStats.forEach(stat => {
                 const chunkSizeStr = stat.chunkSize.toLocaleString().padEnd(10);
                 const chunksStr = stat.chunks.toString().padEnd(6);
-                const firstTryStr = stat.firstTrySuccesses.toString().padEnd(9);
+                const firstTryStr = stat.firstTrySuccesses.toString().padEnd(7);
                 const totalStr = stat.totalSuccesses.toString().padEnd(5);
-                const firstRateStr = `${stat.firstTryRate.toFixed(1)}%`.padEnd(10);
+                const firstRateStr = `${stat.firstTryRate.toFixed(1)}%`.padEnd(8);
                 const totalRateStr = `${stat.totalRate.toFixed(1)}%`;
                 output.push(`   ${chunkSizeStr} | ${chunksStr} | ${firstTryStr} | ${totalStr} | ${firstRateStr} | ${totalRateStr}`);
             });
