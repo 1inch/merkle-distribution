@@ -8,7 +8,7 @@ import 'solidity-coverage';
 import 'dotenv/config';
 import { task, HardhatUserConfig } from 'hardhat/config';
 import { Networks, getNetwork } from '@1inch/solidity-utils/hardhat-setup';
-import { dropTask, verifyDeploymentTask, deployQRDrop } from './src/tasks/hardhat-drop-task';
+import { dropTask, verifyDeploymentTask, deployQRDrop, verifyLinksTask } from './src/tasks/hardhat-drop-task';
 
 const { networks, etherscan } = new Networks().registerAll();
 
@@ -109,6 +109,38 @@ task('verify-deployment', 'Verify a deployed merkle drop contract on Etherscan u
     .addParam('v', 'Deployment version')
     .setAction(async (taskArgs, hre) => {
         await verifyDeploymentTask(hre, taskArgs.v);
+    });
+
+/**
+ * Verify Links for Deployed Contract
+ *
+ * Description:
+ *   Verifies all generated links against a previously deployed merkle drop contract.
+ *   Reads the links from the generated JSON files and verifies each one against
+ *   the deployed contract to ensure they are valid.
+ *
+ * Parameters:
+ *   --v : Deployment version number (must match the deployed contract)
+ *
+ * Usage:
+ *   yarn hardhat verify-links --network <network> --v <version>
+ *
+ * Examples:
+ *   # Verify links for version 61 on base network
+ *   yarn hardhat verify-links --network base --v 61
+ *
+ *   # Verify links for version 42 on mainnet
+ *   yarn hardhat verify-links --network mainnet --v 42
+ *
+ * Note:
+ *   - Requires deployment artifacts to exist in deployments/<network>/MerkleDrop128-<version>.json
+ *   - Requires link files to exist in generated-data/<version>-qr-links.json
+ *   - Will also check generated-data/<version>-qr-links-test.json if it exists
+ */
+task('verify-links', 'Verify all generated links against a deployed merkle drop contract')
+    .addParam('v', 'Deployment version')
+    .setAction(async (taskArgs, hre) => {
+        await verifyLinksTask(hre, taskArgs.v);
     });
 
 const config: HardhatUserConfig = {

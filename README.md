@@ -114,7 +114,7 @@ yarn qr:create 1 -a 5,10,20 -n 100,50,20
 Deploy a merkle drop contract with a pre-computed merkle root:
 
 ```bash
-yarn hardhat deploy:qr --network <network> --v <version> --r <root> --h <height>
+yarn deploy:qr <network> --v <version> --r <root> --h <height>
 ```
 
 **Parameters:**
@@ -125,15 +125,17 @@ yarn hardhat deploy:qr --network <network> --v <version> --r <root> --h <height>
 **Example:**
 ```bash
 # Deploy on mainnet
-yarn hardhat deploy:qr --network mainnet --v 35 --r 0xc8f9f70ceaa4d05d893e74c933eed42b --h 9
+yarn deploy:qr --v 35 --r 0xc8f9f70ceaa4d05d893e74c933eed42b --h 9
 
 # Deploy on Base network
-yarn hardhat deploy:qr --network base --v 42 --r 0xabcdef1234567890 --h 10
+yarn deploy:qr --v 42 --r 0xabcdef1234567890 --h 10
 ```
 
 ### Link Verification
 
-Verify a claim link against a merkle root:
+#### Verify Individual Link
+
+Verify a single claim link against a merkle root:
 
 ```bash
 yarn lk:check -x -u <url> -r <root> [-b <chainid>]
@@ -144,12 +146,45 @@ yarn lk:check -x -u <url> -r <root> [-b <chainid>]
 yarn lk:check -x -u "https://drop.1inch.io/#/r1/..." -r 0xabcdef... -b 1
 ```
 
+#### Verify All Links for Deployed Contract
+
+Verify all generated links against a deployed merkle drop contract:
+
+```bash
+yarn verify:links <network> --v <version>
+```
+
+**Parameters:**
+- `network`: Target network (mainnet, base, bsc, etc.)
+- `--v`: Deployment version number
+
+This command will:
+1. Read the deployment file for the specified version
+2. Load all links from `generated-data/{version}-qr-links.json`
+3. Verify each link against the deployed contract
+4. Display progress with colored indicators (green ■ for valid, red ■ for invalid)
+5. Report verification statistics
+
+**Example:**
+```bash
+# Verify links for version 61 on Base network
+yarn verify:links base --v 61
+
+# Verify links for version 42 on mainnet
+yarn verify:links mainnet --v 42
+```
+
+**Requirements:**
+- Deployment file must exist: `deployments/{network}/MerkleDrop128-{version}.json`
+- Link files must exist: `generated-data/{version}-qr-links.json`
+- Network must have RPC access configured
+
 ### Complete Drop Workflow
 
 Execute a complete merkle drop deployment (generation + deployment + verification):
 
 ```bash
-yarn hardhat drop --network <network> --v <version> --a <amounts> --n <counts> [--debug]
+yarn drop <network> --v <version> --a <amounts> --n <counts> [--debug]
 ```
 
 This command will:
@@ -161,10 +196,10 @@ This command will:
 **Example:**
 ```bash
 # Deploy on Base with 3 tiers
-yarn hardhat drop --network base --v 53 --a 100,250,500 --n 50,30,20
+yarn drop base --v 53 --a 100,250,500 --n 50,30,20
 
 # Test without deployment
-yarn hardhat drop --network hardhat --v 54 --a 10,20 --n 5,5 --debug
+yarn drop hardhat --v 54 --a 10,20 --n 5,5 --debug
 ```
 
 ## Development
