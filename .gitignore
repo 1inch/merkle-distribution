@@ -8,3 +8,4 @@ build
 .coverage_artifacts
 .idea
 .env
+dist
