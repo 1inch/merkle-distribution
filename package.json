@@ -75,7 +75,8 @@
     "test:coverage": "hardhat coverage",
     "drop": "hardhat drop --network",
     "verify:contract": "hardhat verify-deployment --network",
-    "verify:links": "hardhat verify-links --network"
+    "verify:links": "hardhat verify-links --network",
+    "stat": "hardhat stats --network"
   },
   "resolutions": {
     "elliptic": "6.6.1"
