@@ -1,5 +1,10 @@
 import { ethers } from 'ethers';
 
+// Configurable chunk size fallback sequence (in blocks)
+// Starts with largest size and falls back to smaller sizes on failure
+// For Base network, smaller chunks work better due to high transaction volume
+const CHUNK_SIZE_FALLBACK_SEQUENCE = [9000, 5000, 2000, 1000, 500];
+
 // Interfaces for statistics data
 export interface FundingTransaction {
     from: string;
@@ -14,9 +19,11 @@ export interface ClaimInfo {
 
 export interface ChunkStatistics {
     chunkSize: number;
-    attempts: number;
-    successes: number;
-    successRate: number;
+    chunks: number;           // Total unique chunks attempted
+    firstTrySuccesses: number; // Chunks that succeeded on first attempt
+    totalSuccesses: number;    // Chunks that eventually succeeded
+    firstTryRate: number;      // Success rate on first attempt
+    totalRate: number;         // Success rate after all retries
 }
 
 export interface StatisticsData {
@@ -75,43 +82,79 @@ export class StatisticsService {
         // Get current block
         const currentBlock = await provider.getBlockNumber();
 
-        // Query ALL Transfer events for the token (more efficient than two separate queries)
-        const allTransferFilter = tokenContract.filters.Transfer(null, null, null);
+        // Create filtered queries for transfers TO and FROM the drop contract
+        const outgoingFilter = tokenContract.filters.Transfer(dropContractAddress, null, null); // Claims (FROM drop)
+        const incomingFilter = tokenContract.filters.Transfer(null, dropContractAddress, null); // Funding (TO drop)
         
-        let allEvents;
+        let outgoingEvents: any[] = [];
+        let incomingEvents: any[] = [];
         let chunkStatistics: ChunkStatistics[] | undefined;
 
-        try {
-            // Try to query all at once first
-            console.log(`   - Querying all Transfer events...`);
-            allEvents = await tokenContract.queryFilter(allTransferFilter, startBlock, 'latest');
-        } catch {
-            // If full range fails, use batched queries
-            console.log(`   - Using optimized parallel queries...`);
-            const chunks = this.createChunks(startBlock, currentBlock, 50000);
-            console.log(`   - Processing ${chunks.length} chunks (max 10 concurrent)...`);
-            const result = await this.queryEventsWithRetry(tokenContract, allTransferFilter, chunks, provider);
-            allEvents = result.events;
-            
-            // Convert Map to array of ChunkStatistics
-            chunkStatistics = Array.from(result.chunkStats.entries()).map(([chunkSize, stats]) => ({
-                chunkSize,
-                attempts: stats.attempts,
-                successes: stats.successes,
-                successRate: stats.attempts > 0 ? (stats.successes / stats.attempts) * 100 : 0
-            })).filter(stat => stat.attempts > 0); // Only include chunk sizes that were actually tried
-        }
-
-        // Filter events locally (much faster than making two separate RPC queries)
-        const outgoingEvents = allEvents.filter(
-            (event: any) => event.args && event.args.from && 
-            event.args.from.toLowerCase() === dropContractAddress.toLowerCase()
-        );
+        console.log(`   - Querying Transfer events for drop contract...`);
         
-        const incomingEvents = allEvents.filter(
-            (event: any) => event.args && event.args.to && 
-            event.args.to.toLowerCase() === dropContractAddress.toLowerCase()
-        );
+        try {
+            // Try to query both filters in parallel
+            console.log(`   - Attempting direct queries...`);
+            const [outgoing, incoming] = await Promise.all([
+                tokenContract.queryFilter(outgoingFilter, startBlock, 'latest'),
+                tokenContract.queryFilter(incomingFilter, startBlock, 'latest')
+            ]);
+            outgoingEvents = outgoing;
+            incomingEvents = incoming;
+        } catch {
+            // If direct queries fail, use batched queries with chunking
+            console.log(`   - Using chunked parallel queries...`);
+            const chunks = this.createChunks(startBlock, currentBlock, CHUNK_SIZE_FALLBACK_SEQUENCE[0]);
+            const totalChunks = chunks.length * 2; // Two filters, so double the chunks
+            console.log(`   - Processing ${totalChunks} chunks total (${chunks.length} per filter)...`);
+            
+            // Shared progress tracker for both queries
+            const progressTracker = { completed: 0, total: totalChunks };
+            
+            // Query both filters in parallel with chunking
+            const [outgoingResult, incomingResult] = await Promise.all([
+                this.queryEventsWithRetry(tokenContract, outgoingFilter, chunks, provider, progressTracker),
+                this.queryEventsWithRetry(tokenContract, incomingFilter, chunks, provider, progressTracker)
+            ]);
+            
+            outgoingEvents = outgoingResult.events;
+            incomingEvents = incomingResult.events;
+            
+            // Combine chunk statistics from both queries
+            const combinedStats = new Map<number, { 
+                chunks: number;
+                firstTrySuccesses: number;
+                attempts: number;
+                successes: number;
+            }>();
+            
+            // Merge statistics from both queries
+            for (const [size, stats] of outgoingResult.chunkStats.entries()) {
+                combinedStats.set(size, { ...stats });
+            }
+            
+            for (const [size, stats] of incomingResult.chunkStats.entries()) {
+                const existing = combinedStats.get(size);
+                if (existing) {
+                    existing.chunks += stats.chunks;
+                    existing.firstTrySuccesses += stats.firstTrySuccesses;
+                    existing.attempts += stats.attempts;
+                    existing.successes += stats.successes;
+                } else {
+                    combinedStats.set(size, { ...stats });
+                }
+            }
+            
+            // Convert Map to array of ChunkStatistics with calculated rates
+            chunkStatistics = Array.from(combinedStats.entries()).map(([chunkSize, stats]) => ({
+                chunkSize,
+                chunks: stats.chunks,
+                firstTrySuccesses: stats.firstTrySuccesses,
+                totalSuccesses: stats.successes, // Actual successes at this chunk size
+                firstTryRate: stats.chunks > 0 ? (stats.firstTrySuccesses / stats.chunks) * 100 : 0,
+                totalRate: stats.chunks > 0 ? (stats.successes / stats.chunks) * 100 : 0
+            })).filter(stat => stat.chunks > 0);
+        }
 
         console.log(`   - Found ${outgoingEvents.length} claim events and ${incomingEvents.length} funding events`);
 
@@ -169,6 +212,17 @@ export class StatisticsService {
     }
 
     /**
+     * Create a visual progress bar
+     */
+    private static createProgressBar(current: number, total: number, width: number = 20): string {
+        const percentage = Math.min(100, Math.floor((current / total) * 100));
+        const filled = Math.floor((percentage / 100) * width);
+        const empty = width - filled;
+        const bar = '█'.repeat(filled) + '░'.repeat(empty);
+        return `[${bar}] ${current}/${total} chunks (${percentage}%)`;
+    }
+
+    /**
      * Query events with retry logic and parallel processing
      */
     private static async queryEventsWithRetry(
@@ -176,17 +230,33 @@ export class StatisticsService {
         filter: any,
         chunks: Array<{ from: number; to: number }>,
         provider: ethers.Provider,
-    ): Promise<{ events: any[]; chunkStats: Map<number, { attempts: number; successes: number }> }> {
-        const maxConcurrent = 10;
+        progressTracker?: { completed: number; total: number },
+    ): Promise<{ events: any[]; chunkStats: Map<number, { 
+        chunks: number;
+        firstTrySuccesses: number;
+        attempts: number;
+        successes: number;
+    }> }> {
+        const maxConcurrent = 5; // Reduced to avoid overwhelming the RPC
         const events: any[] = [];
         const failedChunks: { chunk: any; failedRanges: string[] }[] = [];
         let completedChunks = 0;
         const totalChunks = chunks.length;
         
         // Track statistics for each chunk size
-        const chunkStats = new Map<number, { attempts: number; successes: number }>();
-        [50000, 10000, 5000, 1000, 100].forEach(size => {
-            chunkStats.set(size, { attempts: 0, successes: 0 });
+        const chunkStats = new Map<number, { 
+            chunks: number; 
+            firstTrySuccesses: number; 
+            attempts: number; 
+            successes: number 
+        }>();
+        CHUNK_SIZE_FALLBACK_SEQUENCE.forEach(size => {
+            chunkStats.set(size, { 
+                chunks: 0, 
+                firstTrySuccesses: 0, 
+                attempts: 0, 
+                successes: 0 
+            });
         });
 
         for (let i = 0; i < chunks.length; i += maxConcurrent) {
@@ -194,37 +264,108 @@ export class StatisticsService {
 
             const batchPromises = batch.map(async (chunk): Promise<EventQueryResult & { successfulChunkSize?: number }> => {
                 const retries = 3;
-                const ranges = [50000, 10000, 5000, 1000];
-                let successfulChunkSize: number | undefined;
+                const originalChunkSize = chunk.to - chunk.from + 1;
 
-                // Try with progressively smaller ranges
-                for (const range of ranges) {
-                    if (chunk.to - chunk.from + 1 <= range) {
+                // First, try with the original chunk size
+                for (const targetSize of CHUNK_SIZE_FALLBACK_SEQUENCE) {
+                    // For the first size that's >= original chunk size, try the whole chunk
+                    if (targetSize >= originalChunkSize) {
+                        const stats = chunkStats.get(targetSize)!;
+                        
+                        // Track this as a new chunk attempt
+                        stats.chunks++;
+                        let succeeded = false;
+                        
                         for (let attempt = 0; attempt < retries; attempt++) {
-                            const stats = chunkStats.get(range)!;
                             stats.attempts++;
                             
                             try {
-                                const chunkEvents = await tokenContract.queryFilter(
-                                    filter,
-                                    chunk.from,
-                                    chunk.to,
-                                );
+                                const events = await tokenContract.queryFilter(filter, chunk.from, chunk.to);
                                 stats.successes++;
-                                successfulChunkSize = range;
+                                
+                                // Track first-try success only once per chunk
+                                if (attempt === 0) {
+                                    stats.firstTrySuccesses++;
+                                }
+                                succeeded = true;
                                 completedChunks++;
-                                process.stdout.write(`\r   - Progress: ${completedChunks}/${totalChunks} chunks completed`);
-                                return { events: chunkEvents, failed: false, successfulChunkSize };
-                            } catch {
+                                
+                                // Update shared progress if available
+                                if (progressTracker) {
+                                    progressTracker.completed++;
+                                    const progressBar = this.createProgressBar(progressTracker.completed, progressTracker.total);
+                                    process.stdout.write(`\r   - ${progressBar}`);
+                                } else {
+                                    process.stdout.write(`\r   - Progress: ${completedChunks}/${totalChunks} chunks completed (size: ${originalChunkSize})`);
+                                }
+                                
+                                return { events, failed: false, successfulChunkSize: targetSize };
+                            } catch (error: any) {
                                 if (attempt < retries - 1) {
                                     await new Promise(resolve => setTimeout(resolve, 200 * (attempt + 1)));
                                 }
                             }
                         }
+                    } else {
+                        // For smaller sizes, split the chunk
+                        const subChunkEvents: any[] = [];
+                        let allSucceeded = true;
+                        
+                        for (let from = chunk.from; from <= chunk.to; from += targetSize) {
+                            const to = Math.min(from + targetSize - 1, chunk.to);
+                            const stats = chunkStats.get(targetSize)!;
+                            
+                            // Track this as a new sub-chunk
+                            stats.chunks++;
+                            let succeeded = false;
+                            
+                            for (let attempt = 0; attempt < retries; attempt++) {
+                                stats.attempts++;
+                                
+                                try {
+                                    const events = await tokenContract.queryFilter(filter, from, to);
+                                    subChunkEvents.push(...events);
+                                    stats.successes++;
+                                    
+                                    // Track first-try success
+                                    if (attempt === 0) {
+                                        stats.firstTrySuccesses++;
+                                    }
+                                    succeeded = true;
+                                    break;
+                                } catch (error: any) {
+                                    if (attempt < retries - 1) {
+                                        await new Promise(resolve => setTimeout(resolve, 200 * (attempt + 1)));
+                                    }
+                                }
+                            }
+                            
+                            if (!succeeded) {
+                                allSucceeded = false;
+                                break; // Move to next smaller size
+                            }
+                        }
+                        
+                        if (allSucceeded) {
+                            // Successfully queried all sub-chunks with this size
+                            completedChunks++;
+                            
+                            // Update shared progress if available
+                            if (progressTracker) {
+                                progressTracker.completed++;
+                                const progressBar = this.createProgressBar(progressTracker.completed, progressTracker.total);
+                                process.stdout.write(`\r   - ${progressBar}`);
+                            } else {
+                                process.stdout.write(`\r   - Progress: ${completedChunks}/${totalChunks} chunks completed (size: ${targetSize})`);
+                            }
+                            
+                            return { events: subChunkEvents, failed: false, successfulChunkSize: targetSize };
+                        }
                     }
                 }
 
                 // Fallback to smaller chunks
+                console.log(`\n   - Chunk ${chunk.from}-${chunk.to} falling back to smallest size (${CHUNK_SIZE_FALLBACK_SEQUENCE[CHUNK_SIZE_FALLBACK_SEQUENCE.length - 1]} blocks)...`);
                 const smallerEvents = await this.queryWithSmallChunks(
                     tokenContract,
                     filter,
@@ -234,7 +375,15 @@ export class StatisticsService {
                 );
 
                 completedChunks++;
-                process.stdout.write(`\r   - Progress: ${completedChunks}/${totalChunks} chunks completed`);
+                
+                // Update shared progress if available
+                if (progressTracker) {
+                    progressTracker.completed++;
+                    const progressBar = this.createProgressBar(progressTracker.completed, progressTracker.total);
+                    process.stdout.write(`\r   - ${progressBar}`);
+                } else {
+                    process.stdout.write(`\r   - Progress: ${completedChunks}/${totalChunks} chunks completed`);
+                }
 
                 return {
                     events: smallerEvents.events,
@@ -280,13 +429,20 @@ export class StatisticsService {
         toBlock: number,
         chunkStats: Map<number, { attempts: number; successes: number }>,
     ): Promise<{ events: any[]; failedRanges: string[] }> {
-        const smallerEvents = [];
-        const failedRanges = [];
-        const smallRange = 1000;
-        const stats = chunkStats.get(1000)!;
+        const smallerEvents: any[] = [];
+        const failedRanges: string[] = [];
+        
+        // Use the smallest chunk size from the fallback sequence for final attempts
+        const smallestChunkSize = CHUNK_SIZE_FALLBACK_SEQUENCE[CHUNK_SIZE_FALLBACK_SEQUENCE.length - 1];
+        const stats = chunkStats.get(smallestChunkSize);
+        
+        if (!stats) {
+            // If the smallest size isn't in stats, just return empty
+            return { events: smallerEvents, failedRanges: [`${fromBlock}-${toBlock}`] };
+        }
 
-        for (let from = fromBlock; from <= toBlock; from += smallRange) {
-            const to = Math.min(from + smallRange - 1, toBlock);
+        for (let from = fromBlock; from <= toBlock; from += smallestChunkSize) {
+            const to = Math.min(from + smallestChunkSize - 1, toBlock);
             stats.attempts++;
             try {
                 await new Promise(resolve => setTimeout(resolve, 100));
@@ -311,9 +467,17 @@ export class StatisticsService {
         chunkStats: Map<number, { attempts: number; successes: number }>,
     ): Promise<any[]> {
         console.log(`\n   - Retrying ${failedChunks.length} failed chunks with smaller ranges...`);
-        const events = [];
+        const events: any[] = [];
         let recoveredCount = 0;
-        const stats = chunkStats.get(100)!;
+        
+        // Use the smallest chunk size from the fallback sequence
+        const smallestChunkSize = CHUNK_SIZE_FALLBACK_SEQUENCE[CHUNK_SIZE_FALLBACK_SEQUENCE.length - 1];
+        const stats = chunkStats.get(smallestChunkSize);
+        
+        if (!stats) {
+            console.log(`   - Warning: No statistics tracking for chunk size ${smallestChunkSize}`);
+            return events;
+        }
 
         for (const failed of failedChunks) {
             for (const rangeStr of failed.failedRanges) {
@@ -321,9 +485,9 @@ export class StatisticsService {
                 const from = parseInt(fromStr);
                 const to = parseInt(toStr);
 
-                // Try with 100 block chunks
-                for (let retryFrom = from; retryFrom <= to; retryFrom += 100) {
-                    const retryTo = Math.min(retryFrom + 99, to);
+                // Try with the smallest chunk size
+                for (let retryFrom = from; retryFrom <= to; retryFrom += smallestChunkSize) {
+                    const retryTo = Math.min(retryFrom + smallestChunkSize - 1, to);
                     stats.attempts++;
                     try {
                         await new Promise(resolve => setTimeout(resolve, 500));
@@ -506,38 +670,40 @@ export class StatisticsService {
             }
         }
 
-        // Display chunk statistics if available
+        // Display chunk statistics if available with enhanced rates
         if (stats.chunkStatistics && stats.chunkStatistics.length > 0) {
             output.push(`\n📈 Query Performance Statistics:`);
-            output.push(`   Chunk Size | Attempts | Success | Rate`);
-            output.push(`   -----------|----------|---------|-------`);
+            output.push(`   Chunk Size | Chunks | First Try | Total | First Rate | Total Rate`);
+            output.push(`   -----------|--------|-----------|-------|------------|------------`);
             
             // Sort by chunk size descending
             const sortedStats = [...stats.chunkStatistics].sort((a, b) => b.chunkSize - a.chunkSize);
             
             sortedStats.forEach(stat => {
                 const chunkSizeStr = stat.chunkSize.toLocaleString().padEnd(10);
-                const attemptsStr = stat.attempts.toString().padEnd(8);
-                const successStr = stat.successes.toString().padEnd(7);
-                const rateStr = `${stat.successRate.toFixed(1)}%`;
-                output.push(`   ${chunkSizeStr} | ${attemptsStr} | ${successStr} | ${rateStr}`);
+                const chunksStr = stat.chunks.toString().padEnd(6);
+                const firstTryStr = stat.firstTrySuccesses.toString().padEnd(9);
+                const totalStr = stat.totalSuccesses.toString().padEnd(5);
+                const firstRateStr = `${stat.firstTryRate.toFixed(1)}%`.padEnd(10);
+                const totalRateStr = `${stat.totalRate.toFixed(1)}%`;
+                output.push(`   ${chunkSizeStr} | ${chunksStr} | ${firstTryStr} | ${totalStr} | ${firstRateStr} | ${totalRateStr}`);
             });
             
-            // Find optimal chunk size (highest success rate with reasonable attempts)
+            // Find optimal chunk size (highest first-try rate with reasonable chunks)
             const optimalChunk = sortedStats.reduce((best, current) => {
-                // Prefer larger chunks with high success rates
-                if (current.successRate >= 90 && current.chunkSize > best.chunkSize) {
+                // Prefer larger chunks with high first-try rates
+                if (current.firstTryRate >= 90 && current.chunkSize > best.chunkSize) {
                     return current;
                 }
-                // If no high success rate chunks, pick the one with best rate
-                if (current.successRate > best.successRate) {
+                // If no high first-try rate chunks, pick the one with best rate
+                if (current.firstTryRate > best.firstTryRate) {
                     return current;
                 }
                 return best;
             }, sortedStats[0]);
             
             if (optimalChunk) {
-                output.push(`   \n   Optimal chunk size: ${optimalChunk.chunkSize.toLocaleString()} blocks (${optimalChunk.successRate.toFixed(1)}% success rate)`);
+                output.push(`   \n   Optimal chunk size: ${optimalChunk.chunkSize.toLocaleString()} blocks (${optimalChunk.firstTryRate.toFixed(1)}% first-try success rate)`);
             }
         }
 
