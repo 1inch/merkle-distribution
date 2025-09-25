@@ -18,6 +18,63 @@ interface ExtendedHRE {
   };
 }
 
+// Map network names to chain IDs
+const CHAIN_ID_MAP: { [key: string]: number } = {
+    'mainnet': 1,
+    'base': 8453,
+    'bsc': 56,
+    'polygon': 137,
+    'arbitrum': 42161,
+    'optimism': 10,
+    'avalanche': 43114,
+    // Add more networks as needed
+};
+
+/**
+ * Verify multiple links with progress visualization
+ * @param contract - The contract instance with verify method
+ * @param urls - Array of URLs to verify
+ * @param merkleRoot - The merkle root for verification
+ * @param chainId - The chain ID
+ * @returns The count of valid links
+ */
+async function verifyLinksWithProgress (
+    contract: { verify: (proof: unknown, leaf: unknown) => Promise<[boolean]> },
+    urls: string[],
+    merkleRoot: string,
+    chainId: number,
+): Promise<number> {
+    console.log('🔍 Verifying all links...');
+    process.stdout.write('[');
+    
+    let validCount = 0;
+    for (const url of urls) {
+        try {
+            const merkleNode = verifyLink(url, merkleRoot, chainId);
+            const response = await contract.verify(merkleNode.proof, merkleNode.leaf);
+            const isValid = response[0];
+            
+            if (isValid) {
+                process.stdout.write('\x1b[32m■\x1b[0m');
+                validCount++;
+            } else {
+                process.stdout.write('\x1b[31m■\x1b[0m');
+            }
+        } catch {
+            process.stdout.write('\x1b[31m■\x1b[0m');
+        }
+    }
+    
+    process.stdout.write(']\n\n');
+    console.log(`✅ Verification complete: ${validCount}/${urls.length} links valid`);
+    
+    if (validCount < urls.length) {
+        console.log(`⚠️  Warning: ${urls.length - validCount} links failed verification`);
+    }
+    
+    return validCount;
+}
+
 /**
  * Generate links for merkle drop
  */
@@ -109,30 +166,9 @@ export async function dropTask (
     
         console.log(`✅ Contract deployed at: ${await contract.getAddress()}\n`);
     
-        // Verify all links
-        console.log('🔍 Verifying all links...');
-        process.stdout.write('[');
-    
-        let validCount = 0;
-        for (const url of urls) {
-            try {
-                const merkleNode = verifyLink(url, merkleRoot, Number(chainId));
-                const response = await contract.verify(merkleNode.proof, merkleNode.leaf);
-                const isValid = response[0];
-        
-                if (isValid) {
-                    process.stdout.write('\x1b[32m■\x1b[0m');
-                    validCount++;
-                } else {
-                    process.stdout.write('\x1b[31m■\x1b[0m');
-                }
-            } catch {
-                process.stdout.write('\x1b[31m■\x1b[0m');
-            }
-        }
-    
-        process.stdout.write(']\n\n');
-        console.log(`✅ Verification complete: ${validCount}/${urls.length} links valid\n`);
+        // Verify all links using the helper function
+        await verifyLinksWithProgress(contract, urls, merkleRoot, Number(chainId));
+        console.log('');
     }
 }
 
@@ -173,19 +209,7 @@ export async function verifyLinksTask (
     const { deployments, ethers } = hre;
     const networkName = hre.network.name;
   
-    // Map network names to chain IDs
-    const chainIdMap: { [key: string]: number } = {
-        'mainnet': 1,
-        'base': 8453,
-        'bsc': 56,
-        'polygon': 137,
-        'arbitrum': 42161,
-        'optimism': 10,
-        'avalanche': 43114,
-        // Add more networks as needed
-    };
-  
-    const chainId = chainIdMap[networkName] || Number(await hre.getChainId());
+    const chainId = CHAIN_ID_MAP[networkName] || Number(await hre.getChainId());
   
     // Get deployment
     const deployed = await deployments.getOrNull(`MerkleDrop128-${version}`);
@@ -234,33 +258,7 @@ export async function verifyLinksTask (
     ];
     const contract = new ethers.Contract(deployed.address, contractABI, ethers.provider);
   
-    // Verify all links
-    console.log('🔍 Verifying all links...');
-    process.stdout.write('[');
-  
-    let validCount = 0;
-    for (const url of allUrls) {
-        try {
-            const merkleNode = verifyLink(url, merkleRoot, chainId);
-            const response = await contract.verify(merkleNode.proof, merkleNode.leaf);
-            const isValid = response[0];
-      
-            if (isValid) {
-                process.stdout.write('\x1b[32m■\x1b[0m');
-                validCount++;
-            } else {
-                process.stdout.write('\x1b[31m■\x1b[0m');
-            }
-        } catch {
-            process.stdout.write('\x1b[31m■\x1b[0m');
-        }
-    }
-  
-    process.stdout.write(']\n\n');
-    console.log(`✅ Verification complete: ${validCount}/${allUrls.length} links valid`);
-  
-    if (validCount < allUrls.length) {
-        console.log(`⚠️  Warning: ${allUrls.length - validCount} links failed verification`);
-    }
+    // Verify all links using the helper function
+    await verifyLinksWithProgress(contract, allUrls, merkleRoot, chainId);
     console.log('');
 }
