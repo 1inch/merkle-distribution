@@ -76,7 +76,8 @@
     "drop": "hardhat drop --network",
     "verify:contract": "hardhat verify-deployment --network",
     "verify:links": "hardhat verify-links --network",
-    "stat": "hardhat stats --network"
+    "stat": "hardhat stats --network",
+    "rescue": "hardhat rescue --network"
   },
   "resolutions": {
     "elliptic": "6.6.1"

@@ -8,7 +8,7 @@ import 'solidity-coverage';
 import 'dotenv/config';
 import { task, HardhatUserConfig } from 'hardhat/config';
 import { Networks, getNetwork } from '@1inch/solidity-utils/hardhat-setup';
-import { dropTask, verifyDeploymentTask, deployQRDrop, verifyLinksTask, collectStatsTask } from './src/tasks/hardhat-drop-task';
+import { dropTask, verifyDeploymentTask, deployQRDrop, verifyLinksTask, collectStatsTask, rescueTask } from './src/tasks/hardhat-drop-task';
 
 const { networks, etherscan } = new Networks().registerAll();
 
@@ -180,6 +180,48 @@ task('stats', 'Collect on-chain statistics for deployed drops')
     .addParam('v', 'Deployment version')
     .setAction(async (taskArgs, hre) => {
         await collectStatsTask(hre, taskArgs.v);
+    });
+
+/**
+ * Rescue Tokens from Drop Contract
+ *
+ * Description:
+ *   Rescues any remaining reward tokens from a deployed merkle drop contract.
+ *   Only the contract owner can execute this function. The rescued tokens
+ *   will be transferred to the owner's address.
+ *
+ * Parameters:
+ *   --v : Deployment version number (must match the deployed contract)
+ *
+ * Usage:
+ *   yarn rescue <network> --v <version>
+ *
+ * Examples:
+ *   # Rescue tokens from version 61 on base network
+ *   yarn rescue base --v 61
+ *
+ *   # Rescue tokens from version 41 on mainnet
+ *   yarn rescue mainnet --v 41
+ *
+ *   # Rescue tokens from version 3 on BSC
+ *   yarn rescue bsc --v 3
+ *
+ * Information Displayed:
+ *   - Current token balance on the contract
+ *   - Success or failure status
+ *   - Amount of tokens retrieved
+ *   - Recipient address (owner)
+ *   - Transaction details
+ *
+ * Note:
+ *   - Requires deployment artifacts to exist in deployments/<network>/MerkleDrop128-<version>.json
+ *   - Only the contract owner can execute this function
+ *   - Will check the balance before attempting rescue
+ */
+task('rescue', 'Rescue remaining tokens from a deployed merkle drop contract')
+    .addParam('v', 'Deployment version')
+    .setAction(async (taskArgs, hre) => {
+        await rescueTask(hre, taskArgs.v);
     });
 
 const config: HardhatUserConfig = {
