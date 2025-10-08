@@ -54,26 +54,29 @@ task('deploy:qr', 'Deploy a QR-based merkle drop contract with pre-computed merk
  *   4. Verifies all generated links against the deployed contract
  *
  * Parameters:
- *   --v     : Deployment version number
+ *   --v     : (Optional) Deployment version number (defaults to .latest + 1)
  *   --a     : Comma-separated list of token amounts for each tier
  *   --n     : Comma-separated list of how many codes to generate per tier
  *   --debug : (Optional) Debug mode - generates links without deploying
  *
  * Usage:
- *   yarn hardhat drop --network <network> --v <version> --a <amounts> --n <counts> [--debug]
+ *   yarn hardhat drop --network <network> [--v <version>] --a <amounts> --n <counts> [--debug]
  *
  * Examples:
- *   # Deploy on base with 6 tiers of different amounts
+ *   # Deploy on base with auto-incremented version (reads from .latest file)
+ *   yarn hardhat drop --network base --a 5,10,20,30,40,50 --n 10,15,20,25,20,10
+ *
+ *   # Deploy on base with specific version
  *   yarn hardhat drop --network base --v 53 --a 5,10,20,30,40,50 --n 10,15,20,25,20,10
  *
- *   # Deploy on mainnet with 3 tiers
- *   yarn hardhat drop --network mainnet --v 54 --a 100,250,500 --n 50,30,20
+ *   # Deploy on mainnet with 3 tiers (auto-increment version)
+ *   yarn hardhat drop --network mainnet --a 100,250,500 --n 50,30,20
  *
  *   # Test generation without deployment
  *   yarn hardhat drop --network hardhat --v 55 --a 10,20 --n 5,5 --debug
  */
 task('drop', 'Generate merkle drop links, deploy contract, and verify all generated claim links')
-    .addParam('v', 'Deployment version')
+    .addOptionalParam('v', 'Deployment version (defaults to .latest + 1)')
     .addParam('a', 'Amounts to generate')
     .addParam('n', 'Codes to generate')
     .addFlag('debug', 'Debug mode')

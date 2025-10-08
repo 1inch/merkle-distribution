@@ -147,11 +147,29 @@ export async function dropTask (
   
     console.log('\n🚀 Starting merkle drop deployment...\n');
   
+    // Determine version: use provided version or read from .latest and increment
+    let version = args.v;
+    if (!version) {
+        const latestFilePath = path.join(__dirname, '..', '.latest');
+        try {
+            const latestVersion = fs.readFileSync(latestFilePath, 'utf-8').trim();
+            const latestVersionNum = parseInt(latestVersion, 10);
+            if (isNaN(latestVersionNum)) {
+                throw new Error(`Invalid version number in .latest file: ${latestVersion}`);
+            }
+            version = (latestVersionNum + 1).toString();
+            console.log(`📌 No version specified, using auto-incremented version: ${version} (previous: ${latestVersion})\n`);
+        } catch (error) {
+            console.error('❌ Failed to read .latest file. Please specify version with --v parameter');
+            throw error;
+        }
+    }
+  
     // Generate links
     const { merkleRoot, height, urls } = await generateLinks(
         args.a,
         args.n,
-        args.v,
+        version,
         Number(chainId),
         args.debug || false,
     );
@@ -166,7 +184,7 @@ export async function dropTask (
         console.log('📝 Deploying contract...\n');
     
         const contract = await deployQRDrop(hre, {
-            v: args.v,
+            v: version,
             r: merkleRoot,
             h: height.toString(),
         });
@@ -176,6 +194,17 @@ export async function dropTask (
         // Verify all links using the helper function
         await verifyLinksWithProgress(contract, urls, merkleRoot, Number(chainId));
         console.log('');
+        
+        // Update .latest file with the new version after successful deployment
+        if (!args.v) {
+            const latestFilePath = path.join(__dirname, '..', '.latest');
+            try {
+                fs.writeFileSync(latestFilePath, version);
+                console.log(`📝 Updated .latest file with version: ${version}\n`);
+            } catch (error) {
+                console.warn(`⚠️  Warning: Failed to update .latest file: ${error}`);
+            }
+        }
     }
 }
 
