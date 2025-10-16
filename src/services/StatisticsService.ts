@@ -104,7 +104,7 @@ export class StatisticsService {
     /**
      * Determine if a CLAIM transaction is a test based on amount
      */
-    private static isTestClaim(
+    private static isTestClaim (
         amountInTokens: number,
         config: TestDetectionConfig = this.DEFAULT_TEST_CONFIG,
     ): boolean {
@@ -123,7 +123,7 @@ export class StatisticsService {
     /**
      * Determine if a FUNDING transaction is a test based on amount
      */
-    private static isTestFunding(
+    private static isTestFunding (
         amountInTokens: number,
         config: TestDetectionConfig = this.DEFAULT_TEST_CONFIG,
     ): boolean {
@@ -674,8 +674,8 @@ export class StatisticsService {
         events: (ethers.EventLog | ethers.Log)[],
         decimals: number,
         config: TestDetectionConfig,
-    ): { 
-        count: number; 
+    ): {
+        count: number;
         totalAmount: string;
         testCount: number;
         testAmount: string;
@@ -716,35 +716,14 @@ export class StatisticsService {
     }
 
     /**
-     * Aggregate claim data from outgoing transfer events (legacy method for compatibility)
-     */
-    private static aggregateClaimData (
-        events: (ethers.EventLog | ethers.Log)[],
-        decimals: number,
-    ): { count: number; totalAmount: string } {
-        let totalAmount = BigInt(0);
-
-        for (const event of events) {
-            if ('args' in event && event.args && event.args.value) {
-                totalAmount += BigInt(event.args.value.toString());
-            }
-        }
-
-        return {
-            count: events.length,
-            totalAmount: ethers.formatUnits(totalAmount.toString(), decimals),
-        };
-    }
-
-    /**
      * Aggregate funding data from incoming transfer events with test/production classification
      */
     private static aggregateFundingDataWithClassification (
         events: (ethers.EventLog | ethers.Log)[],
         decimals: number,
         config: TestDetectionConfig,
-    ): { 
-        totalAmount: string; 
+    ): {
+        totalAmount: string;
         topFunders: FundingTransaction[];
         testCount: number;
         testAmount: string;
@@ -840,53 +819,6 @@ export class StatisticsService {
             productionCount,
             productionAmount: ethers.formatUnits(productionAmount.toString(), decimals),
             productionTopFunders,
-        };
-    }
-
-    /**
-     * Aggregate funding data from incoming transfer events (legacy method for compatibility)
-     */
-    private static aggregateFundingData (
-        events: (ethers.EventLog | ethers.Log)[],
-        decimals: number,
-    ): { totalAmount: string; topFunders: FundingTransaction[] } {
-        let totalAmount = BigInt(0);
-        const fundingTransfers: Array<{
-            from: string;
-            amount: bigint;
-            blockNumber: number;
-        }> = [];
-
-        for (const event of events) {
-            if ('args' in event && event.args && event.args.value) {
-                const amount = BigInt(event.args.value.toString());
-                totalAmount += amount;
-
-                fundingTransfers.push({
-                    from: event.args.from,
-                    amount,
-                    blockNumber: event.blockNumber || 0,
-                });
-            }
-        }
-
-        // Sort and get top 5 funders
-        const topFunders = fundingTransfers
-            .sort((a, b) => {
-                if (a.amount > b.amount) return -1;
-                if (a.amount < b.amount) return 1;
-                return 0;
-            })
-            .slice(0, 5)
-            .map(f => ({
-                from: f.from,
-                amount: ethers.formatUnits(f.amount.toString(), decimals),
-                blockNumber: f.blockNumber,
-            }));
-
-        return {
-            totalAmount: ethers.formatUnits(totalAmount.toString(), decimals),
-            topFunders,
         };
     }
 
@@ -1022,13 +954,13 @@ export class StatisticsService {
             const totalClaimed = `${fmt(stats.totalClaimed)} (${stats.claimedPercentage}%)`;
             
             // Create the table
-            output.push(`   ┌────────────────┬─────────────────┬─────────────────┬─────────────────┐`);
-            output.push(`   │ Parameter      │ Test 🧪         │ Production 🚀   │ Total           │`);
-            output.push(`   ├────────────────┼─────────────────┼─────────────────┼─────────────────┤`);
+            output.push('   ┌────────────────┬─────────────────┬─────────────────┬─────────────────┐');
+            output.push('   │ Parameter      │ Test 🧪         │ Production 🚀   │ Total           │');
+            output.push('   ├────────────────┼─────────────────┼─────────────────┼─────────────────┤');
             output.push(`   │ Funded         │ ${testFunded.padEnd(15)} │ ${prodFunded.padEnd(15)} │ ${totalFunded.padEnd(15)} │`);
             output.push(`   │ Claims         │ ${testClaims.padEnd(15)} │ ${prodClaims.padEnd(15)} │ ${totalClaims.padEnd(15)} │`);
             output.push(`   │ Amount Claimed │ ${testClaimed.padEnd(15)} │ ${prodClaimed.padEnd(15)} │ ${totalClaimed.padEnd(15)} │`);
-            output.push(`   └────────────────┴─────────────────┴─────────────────┴─────────────────┘`);
+            output.push('   └────────────────┴─────────────────┴─────────────────┴─────────────────┘');
 
             // Add remaining balance info
             output.push('');

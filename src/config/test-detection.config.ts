@@ -2,7 +2,7 @@ import { TestDetectionConfig } from '../services/StatisticsService';
 
 /**
  * Configuration for detecting test vs production transactions
- * 
+ *
  * Separate thresholds for claims and funding:
  * - Claims: Individual token amounts claimed by users
  * - Funding: Total amounts funded to the contract for distribution
@@ -47,7 +47,7 @@ export const networkSpecificConfigs: Record<string, TestDetectionConfig> = {
 /**
  * Get the appropriate test detection config for a network
  */
-export function getTestDetectionConfig(networkName?: string): TestDetectionConfig {
+export function getTestDetectionConfig (networkName?: string): TestDetectionConfig {
     if (networkName && networkSpecificConfigs[networkName]) {
         return networkSpecificConfigs[networkName];
     }
