@@ -4,6 +4,7 @@ import { HardhatDropTaskArgs, HardhatQRDeployTaskArgs } from '../types';
 import { DropService } from '../services/DropService';
 import { VerificationService } from '../services/VerificationService';
 import { StatisticsService } from '../services/StatisticsService';
+import { getTestDetectionConfig } from '../config/test-detection.config';
 
 // Extended HRE type that includes hardhat-deploy properties
 interface ExtendedHRE {
@@ -352,12 +353,16 @@ export async function collectStatsTask (
             console.log(`   - Scanning from block 0 to ${currentBlock}`);
         }
         
-        // Use StatisticsService to collect statistics
+        // Get test detection config for the current network
+        const testConfig = getTestDetectionConfig(networkName);
+        
+        // Use StatisticsService to collect statistics with test detection
         const stats = await StatisticsService.collectStatistics(
             deployed.address,
             tokenAddress,
             ethers.provider,
             startBlock,
+            testConfig,
         );
         
         // Check if there's any activity

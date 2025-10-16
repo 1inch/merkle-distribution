@@ -10,11 +10,19 @@ export interface FundingTransaction {
     from: string;
     amount: string;
     blockNumber: number;
+    isTest?: boolean;
 }
 
 export interface ClaimInfo {
     blockNumber: number;
     timestamp: Date;
+}
+
+export interface ClaimTransaction {
+    to: string;
+    amount: string;
+    blockNumber: number;
+    isTest?: boolean;
 }
 
 export interface ChunkStatistics {
@@ -49,6 +57,32 @@ export interface StatisticsData {
     chunkStatistics?: ChunkStatistics[];
     rescuedAmount: string;
     rescueTransactions: RescueTransaction[];
+    // Test vs Production breakdown
+    testStatistics?: {
+        totalFunded: string;
+        totalClaims: number;
+        totalClaimed: string;
+        claimedPercentage: string;
+        topFunders: FundingTransaction[];
+    };
+    productionStatistics?: {
+        totalFunded: string;
+        totalClaims: number;
+        totalClaimed: string;
+        claimedPercentage: string;
+        topFunders: FundingTransaction[];
+    };
+}
+
+// Configuration for test detection
+export interface TestDetectionConfig {
+    // For CLAIMS (outgoing from contract)
+    maxTestClaimAmountInTokens: number; // Maximum claim amount to be considered test
+    minProductionClaimAmountInTokens: number; // Minimum claim amount for production
+    
+    // For FUNDING (incoming to contract)
+    maxTestFundingAmountInTokens: number; // Maximum funding amount to be considered test
+    minProductionFundingAmountInTokens: number; // Minimum funding amount for production
 }
 
 interface EventQueryResult {
@@ -59,6 +93,52 @@ interface EventQueryResult {
 }
 
 export class StatisticsService {
+    // Default configuration for test detection
+    private static readonly DEFAULT_TEST_CONFIG: TestDetectionConfig = {
+        maxTestClaimAmountInTokens: 10,
+        minProductionClaimAmountInTokens: 50,
+        maxTestFundingAmountInTokens: 100,
+        minProductionFundingAmountInTokens: 500,
+    };
+
+    /**
+     * Determine if a CLAIM transaction is a test based on amount
+     */
+    private static isTestClaim(
+        amountInTokens: number,
+        config: TestDetectionConfig = this.DEFAULT_TEST_CONFIG,
+    ): boolean {
+        // Claims with small amounts are likely test
+        if (amountInTokens <= config.maxTestClaimAmountInTokens) {
+            return true;
+        }
+        // Claims with larger amounts are likely production
+        if (amountInTokens >= config.minProductionClaimAmountInTokens) {
+            return false;
+        }
+        // In-between amounts: default to production
+        return false;
+    }
+
+    /**
+     * Determine if a FUNDING transaction is a test based on amount
+     */
+    private static isTestFunding(
+        amountInTokens: number,
+        config: TestDetectionConfig = this.DEFAULT_TEST_CONFIG,
+    ): boolean {
+        // Funding with smaller amounts are likely test
+        if (amountInTokens <= config.maxTestFundingAmountInTokens) {
+            return true;
+        }
+        // Funding with larger amounts are likely production
+        if (amountInTokens >= config.minProductionFundingAmountInTokens) {
+            return false;
+        }
+        // In-between amounts: default to production
+        return false;
+    }
+
     /**
      * Collect on-chain statistics for a deployed drop contract
      */
@@ -67,6 +147,7 @@ export class StatisticsService {
         tokenAddress: string,
         provider: ethers.Provider,
         startBlock: number = 0,
+        testConfig?: TestDetectionConfig,
     ): Promise<StatisticsData> {
         // Connect to drop contract to get owner
         const dropContractABI = [
@@ -198,9 +279,10 @@ export class StatisticsService {
 
         console.log(`   - Found ${claimEvents.length} claim events, ${rescueEvents.length} rescue events, and ${incomingEvents.length} funding events`);
 
-        // Aggregate data
-        const claimData = this.aggregateClaimData(claimEvents, decimals);
-        const fundingData = this.aggregateFundingData(incomingEvents, decimals);
+        // Aggregate data with test/production classification
+        const config = testConfig || this.DEFAULT_TEST_CONFIG;
+        const claimData = this.aggregateClaimDataWithClassification(claimEvents, decimals, config);
+        const fundingData = this.aggregateFundingDataWithClassification(incomingEvents, decimals, config);
         const rescueData = await this.aggregateRescueData(rescueEvents, decimals, provider);
 
         // Get remaining balance
@@ -221,6 +303,38 @@ export class StatisticsService {
         // Get timeline (only from actual claim events, not rescues)
         const timeline = await this.getTimeline(claimEvents, provider);
 
+        // Prepare test and production statistics if there's a mix
+        let testStatistics;
+        let productionStatistics;
+
+        if (claimData.testCount > 0 || fundingData.testCount > 0) {
+            // Calculate test statistics
+            const testClaimedPercentage = Number(fundingData.testAmount) > 0
+                ? ((Number(claimData.testAmount) / Number(fundingData.testAmount)) * 100).toFixed(1)
+                : '0.0';
+
+            testStatistics = {
+                totalFunded: fundingData.testAmount,
+                totalClaims: claimData.testCount,
+                totalClaimed: claimData.testAmount,
+                claimedPercentage: testClaimedPercentage,
+                topFunders: fundingData.testTopFunders,
+            };
+
+            // Calculate production statistics
+            const prodClaimedPercentage = Number(fundingData.productionAmount) > 0
+                ? ((Number(claimData.productionAmount) / Number(fundingData.productionAmount)) * 100).toFixed(1)
+                : '0.0';
+
+            productionStatistics = {
+                totalFunded: fundingData.productionAmount,
+                totalClaims: claimData.productionCount,
+                totalClaimed: claimData.productionAmount,
+                claimedPercentage: prodClaimedPercentage,
+                topFunders: fundingData.productionTopFunders,
+            };
+        }
+
         return {
             totalFunded: fundingData.totalAmount,
             totalClaims: claimData.count,
@@ -235,6 +349,8 @@ export class StatisticsService {
             chunkStatistics,
             rescuedAmount: rescueData.totalAmount,
             rescueTransactions: rescueData.transactions,
+            testStatistics,
+            productionStatistics,
         };
     }
 
@@ -552,7 +668,55 @@ export class StatisticsService {
     }
 
     /**
-     * Aggregate claim data from outgoing transfer events
+     * Aggregate claim data from outgoing transfer events with test/production classification
+     */
+    private static aggregateClaimDataWithClassification (
+        events: (ethers.EventLog | ethers.Log)[],
+        decimals: number,
+        config: TestDetectionConfig,
+    ): { 
+        count: number; 
+        totalAmount: string;
+        testCount: number;
+        testAmount: string;
+        productionCount: number;
+        productionAmount: string;
+    } {
+        let totalAmount = BigInt(0);
+        let testAmount = BigInt(0);
+        let productionAmount = BigInt(0);
+        let testCount = 0;
+        let productionCount = 0;
+
+        for (const event of events) {
+            if ('args' in event && event.args && event.args.value) {
+                const amount = BigInt(event.args.value.toString());
+                totalAmount += amount;
+
+                // Classify as test or production based on CLAIM thresholds
+                const amountInTokens = Number(ethers.formatUnits(amount.toString(), decimals));
+                if (this.isTestClaim(amountInTokens, config)) {
+                    testAmount += amount;
+                    testCount++;
+                } else {
+                    productionAmount += amount;
+                    productionCount++;
+                }
+            }
+        }
+
+        return {
+            count: events.length,
+            totalAmount: ethers.formatUnits(totalAmount.toString(), decimals),
+            testCount,
+            testAmount: ethers.formatUnits(testAmount.toString(), decimals),
+            productionCount,
+            productionAmount: ethers.formatUnits(productionAmount.toString(), decimals),
+        };
+    }
+
+    /**
+     * Aggregate claim data from outgoing transfer events (legacy method for compatibility)
      */
     private static aggregateClaimData (
         events: (ethers.EventLog | ethers.Log)[],
@@ -573,7 +737,114 @@ export class StatisticsService {
     }
 
     /**
-     * Aggregate funding data from incoming transfer events
+     * Aggregate funding data from incoming transfer events with test/production classification
+     */
+    private static aggregateFundingDataWithClassification (
+        events: (ethers.EventLog | ethers.Log)[],
+        decimals: number,
+        config: TestDetectionConfig,
+    ): { 
+        totalAmount: string; 
+        topFunders: FundingTransaction[];
+        testCount: number;
+        testAmount: string;
+        testTopFunders: FundingTransaction[];
+        productionCount: number;
+        productionAmount: string;
+        productionTopFunders: FundingTransaction[];
+    } {
+        let totalAmount = BigInt(0);
+        let testAmount = BigInt(0);
+        let productionAmount = BigInt(0);
+        let testCount = 0;
+        let productionCount = 0;
+
+        const allFundingTransfers: Array<{
+            from: string;
+            amount: bigint;
+            blockNumber: number;
+            isTest: boolean;
+        }> = [];
+
+        for (const event of events) {
+            if ('args' in event && event.args && event.args.value) {
+                const amount = BigInt(event.args.value.toString());
+                totalAmount += amount;
+
+                // Classify as test or production based on FUNDING thresholds
+                const amountInTokens = Number(ethers.formatUnits(amount.toString(), decimals));
+                const isTest = this.isTestFunding(amountInTokens, config);
+
+                if (isTest) {
+                    testAmount += amount;
+                    testCount++;
+                } else {
+                    productionAmount += amount;
+                    productionCount++;
+                }
+
+                allFundingTransfers.push({
+                    from: event.args.from,
+                    amount,
+                    blockNumber: event.blockNumber || 0,
+                    isTest,
+                });
+            }
+        }
+
+        // Sort all funders
+        allFundingTransfers.sort((a, b) => {
+            if (a.amount > b.amount) return -1;
+            if (a.amount < b.amount) return 1;
+            return 0;
+        });
+
+        // Get top 5 overall funders
+        const topFunders = allFundingTransfers
+            .slice(0, 5)
+            .map(f => ({
+                from: f.from,
+                amount: ethers.formatUnits(f.amount.toString(), decimals),
+                blockNumber: f.blockNumber,
+                isTest: f.isTest,
+            }));
+
+        // Get top test funders
+        const testFunders = allFundingTransfers.filter(f => f.isTest);
+        const testTopFunders = testFunders
+            .slice(0, 5)
+            .map(f => ({
+                from: f.from,
+                amount: ethers.formatUnits(f.amount.toString(), decimals),
+                blockNumber: f.blockNumber,
+                isTest: true,
+            }));
+
+        // Get top production funders
+        const productionFunders = allFundingTransfers.filter(f => !f.isTest);
+        const productionTopFunders = productionFunders
+            .slice(0, 5)
+            .map(f => ({
+                from: f.from,
+                amount: ethers.formatUnits(f.amount.toString(), decimals),
+                blockNumber: f.blockNumber,
+                isTest: false,
+            }));
+
+        return {
+            totalAmount: ethers.formatUnits(totalAmount.toString(), decimals),
+            topFunders,
+            testCount,
+            testAmount: ethers.formatUnits(testAmount.toString(), decimals),
+            testTopFunders,
+            productionCount,
+            productionAmount: ethers.formatUnits(productionAmount.toString(), decimals),
+            productionTopFunders,
+        };
+    }
+
+    /**
+     * Aggregate funding data from incoming transfer events (legacy method for compatibility)
      */
     private static aggregateFundingData (
         events: (ethers.EventLog | ethers.Log)[],
@@ -729,13 +1000,60 @@ export class StatisticsService {
     static formatStatisticsOutput (stats: StatisticsData): string[] {
         const output: string[] = [];
 
-        output.push('\n📊 Claims Statistics:');
-        output.push(`   - Total Funded: ${Number(stats.totalFunded).toLocaleString()} ${stats.symbol}`);
-        output.push(`   - Total Claims: ${stats.totalClaims.toLocaleString()}`);
-        output.push(`   - Total Amount Claimed: ${Number(stats.totalClaimed).toLocaleString()} ${stats.symbol} (${stats.claimedPercentage}%)`);
-        output.push(`   - Remaining Balance: ${Number(stats.remainingBalance).toLocaleString()} ${stats.symbol} (${stats.remainingPercentage}%)`);
+        // 1. STATISTICS TABLE (if test/production breakdown exists)
+        if (stats.testStatistics && stats.productionStatistics) {
+            output.push('\n📊 Statistics Breakdown:');
+            output.push('');
+            
+            // Helper function to format numbers with commas
+            const fmt = (num: string | number) => Number(num).toLocaleString();
+            
+            // Calculate column widths for better alignment
+            const testFunded = fmt(stats.testStatistics.totalFunded);
+            const prodFunded = fmt(stats.productionStatistics.totalFunded);
+            const totalFunded = fmt(stats.totalFunded);
+            
+            const testClaims = stats.testStatistics.totalClaims.toLocaleString();
+            const prodClaims = stats.productionStatistics.totalClaims.toLocaleString();
+            const totalClaims = stats.totalClaims.toLocaleString();
+            
+            const testClaimed = `${fmt(stats.testStatistics.totalClaimed)} (${stats.testStatistics.claimedPercentage}%)`;
+            const prodClaimed = `${fmt(stats.productionStatistics.totalClaimed)} (${stats.productionStatistics.claimedPercentage}%)`;
+            const totalClaimed = `${fmt(stats.totalClaimed)} (${stats.claimedPercentage}%)`;
+            
+            // Create the table
+            output.push(`   ┌────────────────┬─────────────────┬─────────────────┬─────────────────┐`);
+            output.push(`   │ Parameter      │ Test 🧪         │ Production 🚀   │ Total           │`);
+            output.push(`   ├────────────────┼─────────────────┼─────────────────┼─────────────────┤`);
+            output.push(`   │ Funded         │ ${testFunded.padEnd(15)} │ ${prodFunded.padEnd(15)} │ ${totalFunded.padEnd(15)} │`);
+            output.push(`   │ Claims         │ ${testClaims.padEnd(15)} │ ${prodClaims.padEnd(15)} │ ${totalClaims.padEnd(15)} │`);
+            output.push(`   │ Amount Claimed │ ${testClaimed.padEnd(15)} │ ${prodClaimed.padEnd(15)} │ ${totalClaimed.padEnd(15)} │`);
+            output.push(`   └────────────────┴─────────────────┴─────────────────┴─────────────────┘`);
 
-        // Display rescue transactions if any
+            // Add remaining balance info
+            output.push('');
+            output.push(`   Remaining Balance: ${fmt(stats.remainingBalance)} ${stats.symbol} (${stats.remainingPercentage}%)`);
+            
+        } else {
+            // Original format without test/production breakdown
+            output.push('\n📊 Claims Statistics:');
+            output.push(`   - Total Funded: ${Number(stats.totalFunded).toLocaleString()} ${stats.symbol}`);
+            output.push(`   - Total Claims: ${stats.totalClaims.toLocaleString()}`);
+            output.push(`   - Total Amount Claimed: ${Number(stats.totalClaimed).toLocaleString()} ${stats.symbol} (${stats.claimedPercentage}%)`);
+            output.push(`   - Remaining Balance: ${Number(stats.remainingBalance).toLocaleString()} ${stats.symbol} (${stats.remainingPercentage}%)`);
+        }
+
+        // 2. TOP FUNDING TRANSACTIONS (with test indicators)
+        if (stats.topFunders.length > 0) {
+            output.push('\n💰 Top Funding Transactions:');
+            stats.topFunders.forEach((funder, i) => {
+                const shortAddress = `${funder.from.slice(0, 6)}...${funder.from.slice(-4)}`;
+                const testIndicator = funder.isTest ? ' 🧪' : '';
+                output.push(`   ${i + 1}. ${Number(funder.amount).toLocaleString()} ${stats.symbol} from ${shortAddress} (Block ${funder.blockNumber})${testIndicator}`);
+            });
+        }
+
+        // 3. RESCUE TRANSACTIONS
         if (stats.rescueTransactions.length > 0) {
             output.push('\n🚨 Rescue Transactions:');
             output.push(`   - Total Rescued: ${Number(stats.rescuedAmount).toLocaleString()} ${stats.symbol}`);
@@ -745,16 +1063,7 @@ export class StatisticsService {
             });
         }
 
-        // Display top funders if any
-        if (stats.topFunders.length > 0) {
-            output.push('\n💰 Top Funding Transactions:');
-            stats.topFunders.forEach((funder, i) => {
-                const shortAddress = `${funder.from.slice(0, 6)}...${funder.from.slice(-4)}`;
-                output.push(`   ${i + 1}. ${Number(funder.amount).toLocaleString()} ${stats.symbol} from ${shortAddress} (Block ${funder.blockNumber})`);
-            });
-        }
-
-        // Show timeline
+        // 4. TIMELINE
         if (stats.timeline.firstClaim || stats.timeline.lastClaim) {
             output.push('\n📅 Timeline:');
             if (stats.timeline.firstClaim) {
@@ -765,7 +1074,7 @@ export class StatisticsService {
             }
         }
 
-        // Display chunk statistics if available with enhanced rates
+        // 5. QUERY PERFORMANCE STATISTICS
         if (stats.chunkStatistics && stats.chunkStatistics.length > 0) {
             output.push('\n📈 Query Performance Statistics:');
             output.push('   Chunk Size | Chunks | 1st Try | Total | 1st Rate | Total Rate');
