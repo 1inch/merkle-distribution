@@ -26,7 +26,8 @@ export const config: Config = {
         generatedData: './drops/gendata',
     },
     urls: {
-        baseUrl: 'https://app.1inch.io/#/{chainId}/qr?',
+        // baseUrl: 'https://app.1inch.io/#/{chainId}/qr?',
+        baseUrl: 'https://1inch.network/qr?d=',
         encodedPrefix: 'https://wallet.1inch.io/app/w3browser?link=',
     },
     defaults: {
