@@ -202,6 +202,78 @@ yarn drop base --v 53 --a 100,250,500 --n 50,30,20
 yarn drop hardhat --v 54 --a 10,20 --n 5,5 --debug
 ```
 
+### Administrative Commands
+
+#### Statistics Collection
+
+Collect and display on-chain statistics for deployed merkle drops:
+
+```bash
+yarn stat <network> --v <version>
+```
+
+**Parameters:**
+- `network`: Target network (mainnet, base, bsc, etc.)
+- `--v`: Deployment version number
+
+This command will:
+1. Connect to the deployed merkle drop contract
+2. Scan blockchain events from deployment to current block
+3. Collect claim statistics and funding information
+4. Display comprehensive statistics including:
+   - Total number of claims
+   - Total amount claimed
+   - Contract funding status
+   - Remaining balance
+
+**Example:**
+```bash
+# Get statistics for version 61 on Base network
+yarn stat base --v 61
+
+# Get statistics for version 42 on mainnet
+yarn stat mainnet --v 42
+```
+
+#### Token Rescue
+
+Rescue (withdraw) remaining tokens from a deployed merkle drop contract:
+
+```bash
+yarn rescue <network> --v <version>
+```
+
+**Parameters:**
+- `network`: Target network (mainnet, base, bsc, etc.)
+- `--v`: Deployment version number
+
+**Important Notes:**
+- **Only the contract owner** (original deployer) can execute this command
+- Used to recover unclaimed tokens after a distribution period ends
+- The command will verify ownership before attempting rescue
+- All remaining tokens will be transferred to the owner's address
+
+This command will:
+1. Verify that you are the contract owner
+2. Check the current token balance in the contract
+3. Execute the rescue transaction to withdraw all remaining tokens
+4. Display transaction details and final balances
+
+**Example:**
+```bash
+# Rescue tokens from version 61 on Base network
+yarn rescue base --v 61
+
+# Rescue tokens from version 42 on mainnet
+yarn rescue mainnet --v 42
+```
+
+**Security Considerations:**
+- The rescue function is protected by ownership checks
+- Only execute after the distribution period is complete
+- Consider notifying recipients before rescuing unclaimed tokens
+- Transaction requires gas fees on the respective network
+
 ## Development
 
 ### Project Structure
