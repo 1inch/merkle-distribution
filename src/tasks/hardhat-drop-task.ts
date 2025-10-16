@@ -431,7 +431,7 @@ export async function rescueTask (
     try {
         const owner = await dropContract.owner();
         if (owner.toLowerCase() !== deployer.toLowerCase()) {
-            console.error(`\n❌ Error: Only the contract owner can rescue funds`);
+            console.error('\n❌ Error: Only the contract owner can rescue funds');
             console.error(`   Current owner: ${owner}`);
             console.error(`   Your address: ${deployer}`);
             return;
@@ -474,7 +474,7 @@ export async function rescueTask (
     }
   
     // Execute rescue
-    console.log(`\n🚀 Initiating rescue transaction...`);
+    console.log('\n🚀 Initiating rescue transaction...');
     console.log(`   Amount to rescue: ${ethers.formatUnits(balance, decimals)} ${symbol}`);
   
     try {
@@ -487,8 +487,8 @@ export async function rescueTask (
         if (receipt.status === 1) {
             console.log('\n✅ SUCCESS! Tokens rescued successfully');
             console.log(`${'━'.repeat(50)}`);
-            console.log(`📊 Rescue Summary:`);
-            console.log(`   - Status: SUCCESS ✅`);
+            console.log('📊 Rescue Summary:');
+            console.log('   - Status: SUCCESS ✅');
             console.log(`   - Amount Retrieved: ${ethers.formatUnits(balance, decimals)} ${symbol}`);
             console.log(`   - Recipient Address: ${deployer}`);
             console.log(`   - Transaction Hash: ${receipt.hash}`);
@@ -498,7 +498,7 @@ export async function rescueTask (
             // Verify the tokens were transferred
             const newBalance = await tokenContract.balanceOf(deployed.address);
             const rescuerBalance = await tokenContract.balanceOf(deployer);
-            console.log(`\n📍 Final Balances:`);
+            console.log('\n📍 Final Balances:');
             console.log(`   - Contract Balance: ${ethers.formatUnits(newBalance, decimals)} ${symbol}`);
             console.log(`   - Your Balance: ${ethers.formatUnits(rescuerBalance, decimals)} ${symbol}`);
         } else {
