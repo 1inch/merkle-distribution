@@ -26,6 +26,12 @@ export interface ChunkStatistics {
     totalRate: number;         // Success rate after all retries
 }
 
+export interface RescueTransaction {
+    amount: string;
+    blockNumber: number;
+    timestamp?: Date;
+}
+
 export interface StatisticsData {
     totalFunded: string;
     totalClaims: number;
@@ -41,6 +47,8 @@ export interface StatisticsData {
     symbol: string;
     decimals: number;
     chunkStatistics?: ChunkStatistics[];
+    rescuedAmount: string;
+    rescueTransactions: RescueTransaction[];
 }
 
 interface EventQueryResult {
@@ -60,6 +68,20 @@ export class StatisticsService {
         provider: ethers.Provider,
         startBlock: number = 0,
     ): Promise<StatisticsData> {
+        // Connect to drop contract to get owner
+        const dropContractABI = [
+            'function owner() external view returns (address)',
+        ];
+        const dropContract = new ethers.Contract(dropContractAddress, dropContractABI, provider);
+        
+        // Get contract owner address
+        let contractOwner: string | null = null;
+        try {
+            contractOwner = await dropContract.owner();
+        } catch {
+            // Contract might not have an owner function (older versions)
+        }
+
         // Connect to token contract
         const tokenABI = [
             'event Transfer(address indexed from, address indexed to, uint256 value)',
@@ -156,11 +178,30 @@ export class StatisticsService {
             })).filter(stat => stat.chunks > 0);
         }
 
-        console.log(`   - Found ${outgoingEvents.length} claim events and ${incomingEvents.length} funding events`);
+        // Separate claim events from rescue events
+        const claimEvents: (ethers.EventLog | ethers.Log)[] = [];
+        const rescueEvents: (ethers.EventLog | ethers.Log)[] = [];
+        
+        for (const event of outgoingEvents) {
+            if ('args' in event && event.args && contractOwner) {
+                // Check if the recipient is the contract owner (rescue transaction)
+                if (event.args.to && event.args.to.toLowerCase() === contractOwner.toLowerCase()) {
+                    rescueEvents.push(event);
+                } else {
+                    claimEvents.push(event);
+                }
+            } else {
+                // If we can't determine the owner, treat all as claims
+                claimEvents.push(event);
+            }
+        }
+
+        console.log(`   - Found ${claimEvents.length} claim events, ${rescueEvents.length} rescue events, and ${incomingEvents.length} funding events`);
 
         // Aggregate data
-        const claimData = this.aggregateClaimData(outgoingEvents, decimals);
+        const claimData = this.aggregateClaimData(claimEvents, decimals);
         const fundingData = this.aggregateFundingData(incomingEvents, decimals);
+        const rescueData = await this.aggregateRescueData(rescueEvents, decimals, provider);
 
         // Get remaining balance
         const remainingBalance = await this.getRemainingBalance(
@@ -177,8 +218,8 @@ export class StatisticsService {
             ? ((Number(remainingBalance) / Number(fundingData.totalAmount)) * 100).toFixed(1)
             : '0.0';
 
-        // Get timeline
-        const timeline = await this.getTimeline(outgoingEvents, provider);
+        // Get timeline (only from actual claim events, not rescues)
+        const timeline = await this.getTimeline(claimEvents, provider);
 
         return {
             totalFunded: fundingData.totalAmount,
@@ -192,6 +233,8 @@ export class StatisticsService {
             symbol,
             decimals,
             chunkStatistics,
+            rescuedAmount: rescueData.totalAmount,
+            rescueTransactions: rescueData.transactions,
         };
     }
 
@@ -577,6 +620,49 @@ export class StatisticsService {
     }
 
     /**
+     * Aggregate rescue data from rescue transfer events
+     */
+    private static async aggregateRescueData (
+        events: (ethers.EventLog | ethers.Log)[],
+        decimals: number,
+        provider: ethers.Provider,
+    ): Promise<{ totalAmount: string; transactions: RescueTransaction[] }> {
+        let totalAmount = BigInt(0);
+        const transactions: RescueTransaction[] = [];
+
+        for (const event of events) {
+            if ('args' in event && event.args && event.args.value) {
+                const amount = BigInt(event.args.value.toString());
+                totalAmount += amount;
+
+                const rescueTx: RescueTransaction = {
+                    amount: ethers.formatUnits(amount.toString(), decimals),
+                    blockNumber: event.blockNumber || 0,
+                };
+
+                // Try to get timestamp
+                if (event.blockNumber) {
+                    try {
+                        const block = await provider.getBlock(event.blockNumber);
+                        if (block && block.timestamp) {
+                            rescueTx.timestamp = new Date(block.timestamp * 1000);
+                        }
+                    } catch {
+                        // Skip timestamp if block info can't be fetched
+                    }
+                }
+
+                transactions.push(rescueTx);
+            }
+        }
+
+        return {
+            totalAmount: ethers.formatUnits(totalAmount.toString(), decimals),
+            transactions,
+        };
+    }
+
+    /**
      * Get remaining balance on the contract
      */
     private static async getRemainingBalance (
@@ -648,6 +734,16 @@ export class StatisticsService {
         output.push(`   - Total Claims: ${stats.totalClaims.toLocaleString()}`);
         output.push(`   - Total Amount Claimed: ${Number(stats.totalClaimed).toLocaleString()} ${stats.symbol} (${stats.claimedPercentage}%)`);
         output.push(`   - Remaining Balance: ${Number(stats.remainingBalance).toLocaleString()} ${stats.symbol} (${stats.remainingPercentage}%)`);
+
+        // Display rescue transactions if any
+        if (stats.rescueTransactions.length > 0) {
+            output.push('\n🚨 Rescue Transactions:');
+            output.push(`   - Total Rescued: ${Number(stats.rescuedAmount).toLocaleString()} ${stats.symbol}`);
+            stats.rescueTransactions.forEach((rescue, i) => {
+                const timestampStr = rescue.timestamp ? ` at ${rescue.timestamp.toISOString()}` : '';
+                output.push(`   ${i + 1}. ${Number(rescue.amount).toLocaleString()} ${stats.symbol} (Block ${rescue.blockNumber}${timestampStr})`);
+            });
+        }
 
         // Display top funders if any
         if (stats.topFunders.length > 0) {
