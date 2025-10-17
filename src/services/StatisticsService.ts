@@ -266,7 +266,7 @@ export class StatisticsService {
             }
         }
 
-        console.log(`   - Found ${claimEvents.length} claim events, ${rescueEvents.length} rescue events, and ${incomingEvents.length} funding events`);
+        console.log(`\n   - Found ${claimEvents.length} claim events, ${rescueEvents.length} rescue events, and ${incomingEvents.length} funding events`);
 
         // Aggregate data with test/production classification
         const config = testConfig || this.DEFAULT_TEST_CONFIG;

@@ -73,27 +73,52 @@ class ProgressReporter {
     private completedChunks = 0;
     private totalChunks: number;
     private sharedTracker?: { completed: number; total: number };
+    private currentMessage: string = '';
+    private isRecursive: boolean = false;
 
     constructor(totalChunks: number, sharedTracker?: { completed: number; total: number }) {
         this.totalChunks = totalChunks;
         this.sharedTracker = sharedTracker;
     }
 
-    update(chunkSize?: number): void {
+    reset(totalChunks: number, message?: string, isRecursive: boolean = false): void {
+        this.completedChunks = 0;
+        this.totalChunks = totalChunks;
+        this.isRecursive = isRecursive;
+        if (message) {
+            this.currentMessage = message;
+        }
+    }
+
+    update(chunkSize?: number, incrementShared: boolean = true): void {
         this.completedChunks++;
         
-        if (this.sharedTracker) {
+        // Only update shared tracker for original chunks (not recursive)
+        if (this.sharedTracker && incrementShared && !this.isRecursive) {
             this.sharedTracker.completed++;
             const progressBar = this.createProgressBar(
                 this.sharedTracker.completed,
                 this.sharedTracker.total
             );
             process.stdout.write(`\r   - ${progressBar}`);
-        } else {
+        } else if (!this.sharedTracker) {
+            const prefix = this.currentMessage ? `${this.currentMessage}: ` : 'Progress: ';
             const message = chunkSize 
-                ? `Progress: ${this.completedChunks}/${this.totalChunks} chunks completed (size: ${chunkSize})`
-                : `Progress: ${this.completedChunks}/${this.totalChunks} chunks completed`;
+                ? `${prefix}${this.completedChunks}/${this.totalChunks} chunks completed (size: ${chunkSize})`
+                : `${prefix}${this.completedChunks}/${this.totalChunks} chunks completed`;
             process.stdout.write(`\r   - ${message}`);
+        }
+    }
+
+    updateAllChunksComplete(chunkCount: number): void {
+        // Special method for when optimistic query succeeds
+        if (this.sharedTracker) {
+            this.sharedTracker.completed += chunkCount;
+            const progressBar = this.createProgressBar(
+                this.sharedTracker.completed,
+                this.sharedTracker.total
+            );
+            process.stdout.write(`\r   - ${progressBar}`);
         }
     }
 
@@ -111,260 +136,201 @@ class ProgressReporter {
 }
 
 /**
- * Retry a function with exponential backoff
+ * Query a single chunk range with basic retry
  */
-async function retryWithBackoff<T>(
-    fn: () => Promise<T>,
-    retries: number = 3,
-    baseDelay: number = 200
-): Promise<T | null> {
-    for (let attempt = 0; attempt < retries; attempt++) {
-        try {
-            return await fn();
-        } catch (error) {
-            if (attempt < retries - 1) {
-                await new Promise(resolve => 
-                    global.setTimeout(resolve, baseDelay * (attempt + 1))
-                );
-            }
-        }
-    }
-    return null;
-}
-
-/**
- * Query a single chunk with retry logic
- */
-async function queryChunkWithRetry(
+async function queryChunkRange(
     contract: ethers.Contract,
     filter: ethers.ContractEventName,
     from: number,
     to: number,
-    retries: number = 3,
-    baseDelay: number = 200
-): Promise<(ethers.EventLog | ethers.Log)[] | null> {
-    const result = await retryWithBackoff(
-        () => contract.queryFilter(filter, from, to),
-        retries,
-        baseDelay
-    );
-    return result;
-}
-
-/**
- * Process a chunk with size fallback strategy
- */
-async function processChunkWithFallback(
-    contract: ethers.Contract,
-    filter: ethers.ContractEventName,
-    chunk: ChunkRange,
-    statsTracker: ChunkStatsTracker,
-    config: QueryConfig = {}
-): Promise<EventQueryResult> {
-    const { retries = 3, baseDelay = 200 } = config;
-    const originalChunkSize = chunk.to - chunk.from + 1;
-
-    // Try each chunk size in the fallback sequence
-    for (const targetSize of CHUNK_SIZE_FALLBACK_SEQUENCE) {
-        if (targetSize >= originalChunkSize) {
-            // Try the whole chunk with this size
-            statsTracker.recordChunk(targetSize);
-            
-            for (let attempt = 0; attempt < retries; attempt++) {
-                const isFirstTry = attempt === 0;
-                const events = await queryChunkWithRetry(
-                    contract, filter, chunk.from, chunk.to, 1, baseDelay * (attempt + 1)
-                );
-                
-                if (events) {
-                    statsTracker.recordAttempt(targetSize, true, isFirstTry);
-                    return { events, failed: false };
-                }
-                statsTracker.recordAttempt(targetSize, false, isFirstTry);
-            }
-        } else {
-            // Split into smaller sub-chunks
-            const result = await processWithSubChunks(
-                contract, filter, chunk, targetSize, statsTracker, config
-            );
-            if (result) return result;
-        }
+): Promise<{ events: (ethers.EventLog | ethers.Log)[]; success: boolean }> {
+    try {
+        const events = await contract.queryFilter(filter, from, to);
+        return { events, success: true };
+    } catch (error) {
+        return { events: [], success: false };
     }
-
-    // Final fallback to smallest size
-    console.log(`\n   - Chunk ${chunk.from}-${chunk.to} falling back to smallest size...`);
-    return await processWithSmallestChunks(contract, filter, chunk, statsTracker);
 }
 
 /**
- * Process a chunk by splitting it into smaller sub-chunks
+ * Split a chunk into smaller chunks
  */
-async function processWithSubChunks(
-    contract: ethers.Contract,
-    filter: ethers.ContractEventName,
-    chunk: ChunkRange,
-    targetSize: number,
-    statsTracker: ChunkStatsTracker,
-    config: QueryConfig
-): Promise<EventQueryResult | null> {
-    const subChunkEvents: (ethers.EventLog | ethers.Log)[] = [];
-    const { retries = 3, baseDelay = 200 } = config;
-
+function splitChunkIntoSmaller(chunk: ChunkRange, targetSize: number): ChunkRange[] {
+    const chunks: ChunkRange[] = [];
     for (let from = chunk.from; from <= chunk.to; from += targetSize) {
         const to = Math.min(from + targetSize - 1, chunk.to);
-        statsTracker.recordChunk(targetSize);
-        
-        let succeeded = false;
-        for (let attempt = 0; attempt < retries; attempt++) {
-            const events = await queryChunkWithRetry(
-                contract, filter, from, to, 1, baseDelay * (attempt + 1)
-            );
-            
-            if (events) {
-                subChunkEvents.push(...events);
-                statsTracker.recordAttempt(targetSize, true, attempt === 0);
-                succeeded = true;
-                break;
-            }
-            statsTracker.recordAttempt(targetSize, false, attempt === 0);
-        }
-        
-        if (!succeeded) return null; // Move to next smaller size
+        chunks.push({ from, to });
     }
-
-    return { events: subChunkEvents, failed: false };
+    return chunks;
 }
 
 /**
- * Process with the smallest chunk size as final fallback
+ * Process chunks in parallel with batching
  */
-async function processWithSmallestChunks(
-    contract: ethers.Contract,
-    filter: ethers.ContractEventName,
-    chunk: ChunkRange,
-    statsTracker: ChunkStatsTracker
-): Promise<EventQueryResult> {
-    const events: (ethers.EventLog | ethers.Log)[] = [];
-    const failedRanges: string[] = [];
-    const smallestSize = CHUNK_SIZE_FALLBACK_SEQUENCE[CHUNK_SIZE_FALLBACK_SEQUENCE.length - 1];
-
-    for (let from = chunk.from; from <= chunk.to; from += smallestSize) {
-        const to = Math.min(from + smallestSize - 1, chunk.to);
-        statsTracker.recordChunk(smallestSize);
-        
-        const result = await queryChunkWithRetry(contract, filter, from, to, 1, 100);
-        if (result) {
-            events.push(...result);
-            statsTracker.recordAttempt(smallestSize, true, true);
-        } else {
-            failedRanges.push(`${from}-${to}`);
-            statsTracker.recordAttempt(smallestSize, false, true);
-        }
-    }
-
-    return { 
-        events, 
-        failed: failedRanges.length > 0,
-        chunk,
-        failedRanges
-    };
-}
-
-/**
- * Process chunks in parallel batches
- */
-async function processChunksInBatches(
+async function processChunksParallel(
     contract: ethers.Contract,
     filter: ethers.ContractEventName,
     chunks: ChunkRange[],
-    statsTracker: ChunkStatsTracker,
     progressReporter: ProgressReporter,
-    config: QueryConfig
+    maxConcurrent: number = 5,
+    updateSharedProgress: boolean = true
 ): Promise<{
-    events: (ethers.EventLog | ethers.Log)[];
-    failedChunks: Array<{ chunk: ChunkRange; failedRanges: string[] }>;
+    succeeded: { chunk: ChunkRange; events: (ethers.EventLog | ethers.Log)[] }[];
+    failed: ChunkRange[];
 }> {
-    const { maxConcurrent = 5 } = config;
-    const events: (ethers.EventLog | ethers.Log)[] = [];
-    const failedChunks: Array<{ chunk: ChunkRange; failedRanges: string[] }> = [];
+    const succeeded: { chunk: ChunkRange; events: (ethers.EventLog | ethers.Log)[] }[] = [];
+    const failed: ChunkRange[] = [];
 
     for (let i = 0; i < chunks.length; i += maxConcurrent) {
         const batch = chunks.slice(i, Math.min(i + maxConcurrent, chunks.length));
         
         const batchPromises = batch.map(async (chunk) => {
-            const result = await processChunkWithFallback(
-                contract, filter, chunk, statsTracker, config
-            );
-            
-            progressReporter.update(chunk.to - chunk.from + 1);
-            return result;
+            const result = await queryChunkRange(contract, filter, chunk.from, chunk.to);
+            progressReporter.update(chunk.to - chunk.from + 1, updateSharedProgress);
+            return { chunk, ...result };
         });
 
         const batchResults = await Promise.all(batchPromises);
 
         for (const result of batchResults) {
-            events.push(...result.events);
-            if (result.failed && result.chunk && result.failedRanges) {
-                failedChunks.push({ 
-                    chunk: result.chunk, 
-                    failedRanges: result.failedRanges 
-                });
+            if (result.success) {
+                succeeded.push({ chunk: result.chunk, events: result.events });
+            } else {
+                failed.push(result.chunk);
             }
         }
     }
 
-    return { events, failedChunks };
+    return { succeeded, failed };
 }
 
 /**
- * Retry failed chunks with recovery strategy
+ * Main recursive query function with optimistic approach
  */
-async function retryFailedChunks(
+async function queryEventsRecursive(
     contract: ethers.Contract,
     filter: ethers.ContractEventName,
-    failedChunks: Array<{ chunk: ChunkRange; failedRanges: string[] }>,
-    statsTracker: ChunkStatsTracker
+    allChunks: ChunkRange[],
+    currentSizeIndex: number,
+    statsTracker: ChunkStatsTracker,
+    progressReporter: ProgressReporter,
+    config: QueryConfig,
+    depth: number = 0
 ): Promise<(ethers.EventLog | ethers.Log)[]> {
-    if (failedChunks.length === 0) return [];
-    
-    console.log(`\n   - Retrying ${failedChunks.length} failed chunks...`);
+    const { retries = 3, maxConcurrent = 5 } = config;
     const events: (ethers.EventLog | ethers.Log)[] = [];
-    const smallestSize = CHUNK_SIZE_FALLBACK_SEQUENCE[CHUNK_SIZE_FALLBACK_SEQUENCE.length - 1];
-    let recoveredCount = 0;
+    
+    // Get current chunk size
+    const currentSize = CHUNK_SIZE_FALLBACK_SEQUENCE[currentSizeIndex];
+    if (!currentSize) return events;
 
-    for (const { failedRanges } of failedChunks) {
-        for (const rangeStr of failedRanges) {
-            const [fromStr, toStr] = rangeStr.split('-');
-            const from = parseInt(fromStr);
-            const to = parseInt(toStr);
-
-            for (let retryFrom = from; retryFrom <= to; retryFrom += smallestSize) {
-                const retryTo = Math.min(retryFrom + smallestSize - 1, to);
-                
-                const result = await queryChunkWithRetry(
-                    contract, filter, retryFrom, retryTo, 1, 500
-                );
-                
-                if (result) {
-                    events.push(...result);
-                    recoveredCount += result.length;
-                    statsTracker.recordAttempt(smallestSize, true, false);
-                } else {
-                    statsTracker.recordAttempt(smallestSize, false, false);
-                }
-            }
+    // Optimistic approach: try to get the whole range at once (only at depth 0)
+    if (depth === 0 && allChunks.length > 0) {
+        const firstChunk = allChunks[0];
+        const lastChunk = allChunks[allChunks.length - 1];
+        
+        const fullRangeResult = await queryChunkRange(
+            contract, 
+            filter, 
+            firstChunk.from, 
+            lastChunk.to
+        );
+        
+        if (fullRangeResult.success) {
+            // Update progress for all chunks if using shared tracker
+            progressReporter.updateAllChunksComplete(allChunks.length);
+            
+            statsTracker.recordChunk(lastChunk.to - firstChunk.from + 1);
+            statsTracker.recordAttempt(lastChunk.to - firstChunk.from + 1, true, true);
+            return fullRangeResult.events;
         }
     }
 
-    if (recoveredCount > 0) {
-        console.log(`   - Recovered ${recoveredCount} additional events`);
+    // Process chunks in parallel
+    // Only count original chunks in progress (depth === 0 or 1)
+    const isRecursive = depth > 1;  // Only recursive for depth > 1
+    progressReporter.reset(
+        allChunks.length, 
+        depth <= 1 ? 'Processing chunks' : `Processing with size ${currentSize}`,
+        isRecursive
+    );
+    const { succeeded, failed } = await processChunksParallel(
+        contract,
+        filter,
+        allChunks,
+        progressReporter,
+        maxConcurrent,
+        !isRecursive  // Only update shared progress for original chunks
+    );
+
+    // Collect successful events
+    for (const { events: chunkEvents } of succeeded) {
+        events.push(...chunkEvents);
+        statsTracker.recordChunk(currentSize);
+        statsTracker.recordAttempt(currentSize, true, true);
+    }
+
+    // Retry failed chunks
+    if (failed.length > 0) {
+        progressReporter.reset(failed.length, 'Retrying failed chunks', true); // Mark as recursive to not count in shared progress
+        
+        let remainingFailed = [...failed];
+        for (let attempt = 0; attempt < retries && remainingFailed.length > 0; attempt++) {
+            const retryResults = await processChunksParallel(
+                contract,
+                filter,
+                remainingFailed,
+                progressReporter,
+                maxConcurrent,
+                false  // Don't update shared progress for retries
+            );
+
+            // Collect newly successful events
+            for (const { events: chunkEvents } of retryResults.succeeded) {
+                events.push(...chunkEvents);
+                statsTracker.recordChunk(currentSize);
+                statsTracker.recordAttempt(currentSize, true, attempt === 0);
+            }
+
+            remainingFailed = retryResults.failed;
+        }
+
+        // Process remaining failed chunks with smaller size if available
+        if (remainingFailed.length > 0) {
+            const nextSizeIndex = currentSizeIndex + 1;
+            
+            if (nextSizeIndex < CHUNK_SIZE_FALLBACK_SEQUENCE.length) {
+                const nextSize = CHUNK_SIZE_FALLBACK_SEQUENCE[nextSizeIndex];
+                
+                for (const chunk of remainingFailed) {
+                    const smallerChunks = splitChunkIntoSmaller(chunk, nextSize);
+                    const recursiveEvents = await queryEventsRecursive(
+                        contract,
+                        filter,
+                        smallerChunks,
+                        nextSizeIndex,
+                        statsTracker,
+                        progressReporter,
+                        config,
+                        depth + 1
+                    );
+                    events.push(...recursiveEvents);
+                }
+            } else {
+                // No smaller size available, record failures
+                for (const _chunk of remainingFailed) {
+                    statsTracker.recordChunk(currentSize);
+                    statsTracker.recordAttempt(currentSize, false, false);
+                }
+            }
+        }
     }
 
     return events;
 }
 
 /**
- * Main function to query events with retry logic and parallel processing
+ * Main entry point - query events with retry logic and parallel processing
  */
 export async function queryEventsWithRetry(
     tokenContract: ethers.Contract,
@@ -378,33 +344,36 @@ export async function queryEventsWithRetry(
     const config: QueryConfig = {
         maxConcurrent: 5,
         retries: 3,
-        baseDelay: 100
+        baseDelay: 200
     };
 
     const statsTracker = new ChunkStatsTracker();
     const progressReporter = new ProgressReporter(chunks.length, progressTracker);
 
-    // Process chunks in batches
-    const { events, failedChunks } = await processChunksInBatches(
+    // Fallback to chunked processing (optimistic will be tried inside recursive function)
+    const events = await queryEventsRecursive(
         tokenContract,
         filter,
         chunks,
+        0, // Start with index 0 (largest size)
         statsTracker,
         progressReporter,
-        config
+        config,
+        0  // Start at depth 0 to allow optimistic attempt
     );
 
-    // Retry failed chunks
-    const recoveredEvents = await retryFailedChunks(
-        tokenContract,
-        filter,
-        failedChunks,
-        statsTracker
-    );
-    events.push(...recoveredEvents);
+    // Clear progress line only if not using shared tracker
+    if (!progressTracker) {
+        progressReporter.clear();
+    }
 
-    // Clear progress line
-    progressReporter.clear();
+    // Sort events by block number and log index for consistency
+    events.sort((a, b) => {
+        if (a.blockNumber !== b.blockNumber) {
+            return a.blockNumber - b.blockNumber;
+        }
+        return a.index - b.index;
+    });
 
     return { 
         events, 
