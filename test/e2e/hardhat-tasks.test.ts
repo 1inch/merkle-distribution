@@ -120,7 +120,7 @@ describe('Hardhat Tasks E2E Tests', () => {
       
             // Verify each link format
             result.urls.forEach(url => {
-                expect(url).to.match(/^https:\/\/app\.1inch\.io\/#\/1\/qr\?d=/);
+                expect(url).to.match(/^https:\/\/1inch\.network\/qr\?d=/);
             });
         });
 
@@ -143,7 +143,7 @@ describe('Hardhat Tasks E2E Tests', () => {
 
             const result = await generateLinks('1', '5', '100', 56, true); // BSC
 
-            expect(result.urls[0]).to.include('https://app.1inch.io/#/56/qr?');
+            expect(result.urls[0]).to.include('https://1inch.network/qr?');
         });
 
         it('should create test and production links separately', async () => {

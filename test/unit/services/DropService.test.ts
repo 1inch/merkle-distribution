@@ -63,7 +63,7 @@ describe('DropService', () => {
             expect(settings.testCount).to.equal(5);
             expect(settings.version).to.equal(11);
             expect(settings.chainId).to.equal(1);
-            expect(settings.prefix).to.equal('https://app.1inch.io/#/1/qr?');
+            expect(settings.prefix).to.equal('https://1inch.network/qr?d=');
             expect(settings.fileLinks).to.include('11-qr-links.json');
             expect(settings.testLinks).to.include('11-qr-links-test.json');
         });

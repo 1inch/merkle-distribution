@@ -309,77 +309,78 @@ export async function collectStatsTask (
 ): Promise<void> {
     const { deployments, ethers } = hre;
     const networkName = hre.network.name;
-  
-    // Get deployment
-    const deployed = await deployments.getOrNull(`MerkleDrop128-${version}`);
-  
-    if (!deployed) {
-        console.error(`❌ Deployment file not found for version: ${version}`);
-        return;
-    }
-  
-    console.log(`\n📊 On-Chain Statistics for Drop Version ${version}`);
+    
+    // Parse comma-separated versions
+    const versions = version.split(',').map(v => v.trim());
+    
+    console.log(`\n📊 On-Chain Statistics for Drop Version${versions.length > 1 ? 's' : ''}: ${versions.join(', ')}`);
     console.log(`${'━'.repeat(50)}`);
     console.log(`📍 Network: ${networkName}`);
-    console.log(`📍 Contract: ${deployed.address}`);
-  
-    // Connect to the drop contract to get token address
+    
+    // Collect deployment info for all versions
+    const dropConfigs: Array<{
+        version: string;
+        contractAddress: string;
+        tokenAddress: string;
+        deploymentBlock: number;
+    }> = [];
+    
     const dropContractABI = [
         'function token() external view returns (address)',
     ];
-    const dropContract = new ethers.Contract(deployed.address, dropContractABI, ethers.provider);
-  
-    let tokenAddress: string;
-    try {
-        tokenAddress = await dropContract.token();
-        console.log(`📍 Token: ${tokenAddress}\n`);
-    } catch (error) {
-        console.error(`❌ Failed to get token address from drop contract: ${error}`);
-        return;
-    }
-  
-    console.log('📈 Collecting claim statistics...');
-  
-    try {
-        // Get current block number
-        const currentBlock = await ethers.provider.getBlockNumber();
+    
+    for (const v of versions) {
+        const deployed = await deployments.getOrNull(`MerkleDrop128-${v}`);
         
-        // Find deployment block from transaction hash if available
-        let startBlock = 0;
-        if (deployed.receipt && deployed.receipt.blockNumber) {
-            startBlock = deployed.receipt.blockNumber;
-            console.log(`   - Scanning from deployment block ${startBlock} to ${currentBlock}`);
-        } else {
-            console.log(`   - Scanning from block 0 to ${currentBlock}`);
+        if (!deployed) {
+            console.warn(`⚠️  Deployment file not found for version: ${v}, skipping...`);
+            continue;
         }
         
+        // Get token address
+        const dropContract = new ethers.Contract(deployed.address, dropContractABI, ethers.provider);
+        let tokenAddress: string;
+        
+        try {
+            tokenAddress = await dropContract.token();
+        } catch {
+            console.warn(`⚠️  Failed to get token address for version ${v}, skipping...`);
+            continue;
+        }
+        
+        dropConfigs.push({
+            version: v,
+            contractAddress: deployed.address,
+            tokenAddress,
+            deploymentBlock: deployed.receipt?.blockNumber || 0,
+        });
+        
+        console.log(`📍 Drop v${v}: ${deployed.address}`);
+    }
+    
+    if (dropConfigs.length === 0) {
+        console.error('❌ No valid deployments found for the specified versions');
+        return;
+    }
+    
+    console.log(`\n📈 Collecting statistics for ${dropConfigs.length} drop${dropConfigs.length > 1 ? 's' : ''}...`);
+    
+    try {
         // Get test detection config for the current network
         const testConfig = getTestDetectionConfig(networkName);
         
-        // Use StatisticsService to collect statistics with test detection
-        const stats = await StatisticsService.collectStatistics(
-            deployed.address,
-            tokenAddress,
+        // Use multi-drop collection method (works for single drop too)
+        const multiStats = await StatisticsService.collectStatisticsForMultipleDrops(
+            dropConfigs,
             ethers.provider,
-            startBlock,
             testConfig,
         );
         
-        // Check if there's any activity
-        if (stats.totalClaims === 0 && Number(stats.totalFunded) === 0) {
-            console.log('\n📊 Claims Statistics:');
-            console.log('   - Total Claims: 0');
-            console.log(`   - Total Amount Claimed: 0 ${stats.symbol}`);
-            console.log('\n✅ No activity has been recorded yet.');
-            return;
-        }
-        
         // Format and display statistics
-        const output = StatisticsService.formatStatisticsOutput(stats);
-        output.forEach(line => console.log(line));
+        StatisticsService.formatMultiDropStatisticsOutput(multiStats);
         
         console.log('\n✅ Statistics collection complete!');
-  
+        
     } catch (error) {
         console.error(`\n❌ Failed to collect statistics: ${error}`);
         return;

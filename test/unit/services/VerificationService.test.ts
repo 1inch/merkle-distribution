@@ -40,7 +40,7 @@ describe('VerificationService', () => {
             expect(result.wallet).to.equal(testWallets[0].address);
             expect(result.amount).to.equal(testAmounts[0]);
             expect(parseClaimUrlStub.calledOnce).to.be.true;
-            expect(parseClaimUrlStub.calledWith(url, root, 'https://app.1inch.io/#/1/qr?', false)).to.be.true;
+            expect(parseClaimUrlStub.calledWith(url, root, 'https://1inch.network/qr?d=', false)).to.be.true;
         });
 
         it('should handle invalid link', () => {
@@ -81,7 +81,7 @@ describe('VerificationService', () => {
             const result = VerificationService.verifyLink(url, root, chainId, true);
 
             expect(result.isValid).to.be.true;
-            expect(parseClaimUrlStub.calledWith(url, root, 'https://app.1inch.io/#/1/qr?', true)).to.be.true;
+            expect(parseClaimUrlStub.calledWith(url, root, 'https://1inch.network/qr?d=', true)).to.be.true;
             // Check that console.log was called (the exact message may vary)
             expect(consoleLogStub.called).to.be.true;
         });
@@ -121,7 +121,7 @@ describe('VerificationService', () => {
 
             VerificationService.verifyLink(url, root, chainId, false);
 
-            expect(parseClaimUrlStub.calledWith(url, root, 'https://app.1inch.io/#/56/qr?', false)).to.be.true;
+            expect(parseClaimUrlStub.calledWith(url, root, 'https://1inch.network/qr?d=', false)).to.be.true;
         });
 
         it('should handle errors gracefully', () => {
