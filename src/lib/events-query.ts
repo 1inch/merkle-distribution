@@ -247,11 +247,11 @@ async function queryEventsRecursive(
     }
 
     // Process chunks in parallel
-    // Only count original chunks in progress (depth === 0 or 1)
-    const isRecursive = depth > 1;  // Only recursive for depth > 1
+    // Only count original chunks in progress (depth === 0)
+    const isRecursive = depth > 0;  // Mark as recursive for any depth > 0
     progressReporter.reset(
         allChunks.length, 
-        depth <= 1 ? 'Processing chunks' : `Processing with size ${currentSize}`,
+        depth === 0 ? 'Processing chunks' : `Processing with size ${currentSize}`,
         isRecursive
     );
     const { succeeded, failed } = await processChunksParallel(
@@ -260,7 +260,7 @@ async function queryEventsRecursive(
         allChunks,
         progressReporter,
         maxConcurrent,
-        !isRecursive  // Only update shared progress for original chunks
+        depth === 0  // Only update shared progress for original chunks at depth 0
     );
 
     // Collect successful events
