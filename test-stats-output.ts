@@ -18,7 +18,7 @@ const mockMultiStats: MultiDropStatistics = {
         ],
         timeline: {
             firstClaim: { blockNumber: 31942800, timestamp: new Date('2024-01-15T10:00:00Z') },
-            lastClaim: { blockNumber: 37077000, timestamp: new Date('2024-10-20T09:00:00Z') }
+            lastClaim: { blockNumber: 37077000, timestamp: new Date('2024-10-20T09:00:00Z') },
         },
         symbol: '1INCH',
         decimals: 18,
@@ -30,7 +30,7 @@ const mockMultiStats: MultiDropStatistics = {
         ],
         rescuedAmount: '1000',
         rescueTransactions: [
-            { amount: '1000', blockNumber: 37077050, timestamp: new Date('2024-10-20T10:00:00Z') }
+            { amount: '1000', blockNumber: 37077050, timestamp: new Date('2024-10-20T10:00:00Z') },
         ],
         testStatistics: {
             totalFunded: '100',
@@ -38,8 +38,8 @@ const mockMultiStats: MultiDropStatistics = {
             totalClaimed: '50.5',
             claimedPercentage: '50.5',
             topFunders: [
-                { from: '0xtest1234567890123456789012345678901234', amount: '100', blockNumber: 31942719, isTest: true }
-            ]
+                { from: '0xtest1234567890123456789012345678901234', amount: '100', blockNumber: 31942719, isTest: true },
+            ],
         },
         productionStatistics: {
             totalFunded: '9900',
@@ -48,9 +48,9 @@ const mockMultiStats: MultiDropStatistics = {
             claimedPercentage: '4.0',
             topFunders: [
                 { from: '0xabc123def456789012345678901234567890abcd', amount: '5000', blockNumber: 31942720, isTest: false },
-                { from: '0xdef456789012345678901234567890abcdef1234', amount: '3000', blockNumber: 31942721, isTest: false }
-            ]
-        }
+                { from: '0xdef456789012345678901234567890abcdef1234', amount: '3000', blockNumber: 31942721, isTest: false },
+            ],
+        },
     },
     '0x2345678901234567890123456789012345678901': {
         version: '61',
@@ -67,7 +67,7 @@ const mockMultiStats: MultiDropStatistics = {
         ],
         timeline: {
             firstClaim: { blockNumber: 31942850, timestamp: new Date('2024-01-16T10:00:00Z') },
-            lastClaim: { blockNumber: 37077010, timestamp: new Date('2024-10-20T09:30:00Z') }
+            lastClaim: { blockNumber: 37077010, timestamp: new Date('2024-10-20T09:30:00Z') },
         },
         symbol: '1INCH',
         decimals: 18,
@@ -85,8 +85,8 @@ const mockMultiStats: MultiDropStatistics = {
             totalClaimed: '150.75',
             claimedPercentage: '75.4',
             topFunders: [
-                { from: '0xtest2345678901234567890123456789012345', amount: '200', blockNumber: 31942729, isTest: true }
-            ]
+                { from: '0xtest2345678901234567890123456789012345', amount: '200', blockNumber: 31942729, isTest: true },
+            ],
         },
         productionStatistics: {
             totalFunded: '14800',
@@ -95,9 +95,9 @@ const mockMultiStats: MultiDropStatistics = {
             claimedPercentage: '18.2',
             topFunders: [
                 { from: '0xbcd234ef567890123456789012345678901abcd', amount: '8000', blockNumber: 31942730, isTest: false },
-                { from: '0xef567890123456789012345678901abcdef2345', amount: '4000', blockNumber: 31942731, isTest: false }
-            ]
-        }
+                { from: '0xef567890123456789012345678901abcdef2345', amount: '4000', blockNumber: 31942731, isTest: false },
+            ],
+        },
     },
     '0x3456789012345678901234567890123456789012': {
         version: '63',
@@ -112,7 +112,7 @@ const mockMultiStats: MultiDropStatistics = {
             { from: '0xf678901234567890123456789012abcdef3456', amount: '2000', blockNumber: 31942741, isTest: false },
         ],
         timeline: {
-            firstClaim: { blockNumber: 31942900, timestamp: new Date('2024-01-17T10:00:00Z') }
+            firstClaim: { blockNumber: 31942900, timestamp: new Date('2024-01-17T10:00:00Z') },
         },
         symbol: '1INCH',
         decimals: 18,
@@ -123,8 +123,8 @@ const mockMultiStats: MultiDropStatistics = {
             { chunkSize: 500, chunks: 4, firstTrySuccesses: 2, totalSuccesses: 4, firstTryRate: 50.0, totalRate: 100.0 },
         ],
         rescuedAmount: '0',
-        rescueTransactions: []
-    }
+        rescueTransactions: [],
+    },
 };
 
 // Test single drop output
@@ -133,7 +133,7 @@ console.log('TESTING SINGLE DROP OUTPUT:');
 console.log('═══════════════════════════════════════════════════════════════');
 
 const singleDropStats: MultiDropStatistics = {
-    '0x1234567890123456789012345678901234567890': mockMultiStats['0x1234567890123456789012345678901234567890']
+    '0x1234567890123456789012345678901234567890': mockMultiStats['0x1234567890123456789012345678901234567890'],
 };
 
 StatisticsService.formatMultiDropStatisticsOutput(singleDropStats);

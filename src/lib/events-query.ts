@@ -1,4 +1,4 @@
-import { ethers } from "ethers";
+import { ethers } from 'ethers';
 
 // Configurable chunk size fallback sequence (in blocks)
 // Starts with largest size and falls back to smaller sizes on failure
@@ -34,7 +34,7 @@ class ChunkStatsTracker {
         successes: number;
     }>();
 
-    constructor() {
+    constructor () {
         CHUNK_SIZE_FALLBACK_SEQUENCE.forEach(size => {
             this.stats.set(size, {
                 chunks: 0,
@@ -45,12 +45,12 @@ class ChunkStatsTracker {
         });
     }
 
-    recordChunk(chunkSize: number): void {
+    recordChunk (chunkSize: number): void {
         const stat = this.stats.get(chunkSize);
         if (stat) stat.chunks++;
     }
 
-    recordAttempt(chunkSize: number, success: boolean, isFirstTry: boolean): void {
+    recordAttempt (chunkSize: number, success: boolean, isFirstTry: boolean): void {
         const stat = this.stats.get(chunkSize);
         if (stat) {
             stat.attempts++;
@@ -61,7 +61,7 @@ class ChunkStatsTracker {
         }
     }
 
-    getStats(): Map<number, any> {
+    getStats (): Map<number, any> {
         return this.stats;
     }
 }
@@ -76,12 +76,12 @@ class ProgressReporter {
     private currentMessage: string = '';
     private isRecursive: boolean = false;
 
-    constructor(totalChunks: number, sharedTracker?: { completed: number; total: number }) {
+    constructor (totalChunks: number, sharedTracker?: { completed: number; total: number }) {
         this.totalChunks = totalChunks;
         this.sharedTracker = sharedTracker;
     }
 
-    reset(totalChunks: number, message?: string, isRecursive: boolean = false): void {
+    reset (totalChunks: number, message?: string, isRecursive: boolean = false): void {
         this.completedChunks = 0;
         this.totalChunks = totalChunks;
         this.isRecursive = isRecursive;
@@ -90,7 +90,7 @@ class ProgressReporter {
         }
     }
 
-    update(chunkSize?: number, incrementShared: boolean = true): void {
+    update (chunkSize?: number, incrementShared: boolean = true): void {
         this.completedChunks++;
         
         // Only update shared tracker for original chunks (not recursive)
@@ -98,35 +98,35 @@ class ProgressReporter {
             this.sharedTracker.completed++;
             const progressBar = this.createProgressBar(
                 this.sharedTracker.completed,
-                this.sharedTracker.total
+                this.sharedTracker.total,
             );
             process.stdout.write(`\r   - ${progressBar}`);
         } else if (!this.sharedTracker) {
             const prefix = this.currentMessage ? `${this.currentMessage}: ` : 'Progress: ';
-            const message = chunkSize 
+            const message = chunkSize
                 ? `${prefix}${this.completedChunks}/${this.totalChunks} chunks completed (size: ${chunkSize})`
                 : `${prefix}${this.completedChunks}/${this.totalChunks} chunks completed`;
             process.stdout.write(`\r   - ${message}`);
         }
     }
 
-    updateAllChunksComplete(chunkCount: number): void {
+    updateAllChunksComplete (chunkCount: number): void {
         // Special method for when optimistic query succeeds
         if (this.sharedTracker) {
             this.sharedTracker.completed += chunkCount;
             const progressBar = this.createProgressBar(
                 this.sharedTracker.completed,
-                this.sharedTracker.total
+                this.sharedTracker.total,
             );
             process.stdout.write(`\r   - ${progressBar}`);
         }
     }
 
-    clear(): void {
+    clear (): void {
         process.stdout.write('\r' + ' '.repeat(80) + '\r');
     }
 
-    private createProgressBar(current: number, total: number, width: number = 20): string {
+    private createProgressBar (current: number, total: number, width: number = 20): string {
         const percentage = Math.min(100, Math.floor((current / total) * 100));
         const filled = Math.floor((percentage / 100) * width);
         const empty = width - filled;
@@ -138,7 +138,7 @@ class ProgressReporter {
 /**
  * Query a single chunk range with basic retry
  */
-async function queryChunkRange(
+async function queryChunkRange (
     contract: ethers.Contract,
     filter: ethers.ContractEventName,
     from: number,
@@ -147,7 +147,7 @@ async function queryChunkRange(
     try {
         const events = await contract.queryFilter(filter, from, to);
         return { events, success: true };
-    } catch (error) {
+    } catch {
         return { events: [], success: false };
     }
 }
@@ -155,7 +155,7 @@ async function queryChunkRange(
 /**
  * Split a chunk into smaller chunks
  */
-function splitChunkIntoSmaller(chunk: ChunkRange, targetSize: number): ChunkRange[] {
+function splitChunkIntoSmaller (chunk: ChunkRange, targetSize: number): ChunkRange[] {
     const chunks: ChunkRange[] = [];
     for (let from = chunk.from; from <= chunk.to; from += targetSize) {
         const to = Math.min(from + targetSize - 1, chunk.to);
@@ -167,13 +167,13 @@ function splitChunkIntoSmaller(chunk: ChunkRange, targetSize: number): ChunkRang
 /**
  * Process chunks in parallel with batching
  */
-async function processChunksParallel(
+async function processChunksParallel (
     contract: ethers.Contract,
     filter: ethers.ContractEventName,
     chunks: ChunkRange[],
     progressReporter: ProgressReporter,
     maxConcurrent: number = 5,
-    updateSharedProgress: boolean = true
+    updateSharedProgress: boolean = true,
 ): Promise<{
     succeeded: { chunk: ChunkRange; events: (ethers.EventLog | ethers.Log)[] }[];
     failed: ChunkRange[];
@@ -207,7 +207,7 @@ async function processChunksParallel(
 /**
  * Main recursive query function with optimistic approach
  */
-async function queryEventsRecursive(
+async function queryEventsRecursive (
     contract: ethers.Contract,
     filter: ethers.ContractEventName,
     allChunks: ChunkRange[],
@@ -215,7 +215,7 @@ async function queryEventsRecursive(
     statsTracker: ChunkStatsTracker,
     progressReporter: ProgressReporter,
     config: QueryConfig,
-    depth: number = 0
+    depth: number = 0,
 ): Promise<(ethers.EventLog | ethers.Log)[]> {
     const { retries = 3, maxConcurrent = 5 } = config;
     const events: (ethers.EventLog | ethers.Log)[] = [];
@@ -230,10 +230,10 @@ async function queryEventsRecursive(
         const lastChunk = allChunks[allChunks.length - 1];
         
         const fullRangeResult = await queryChunkRange(
-            contract, 
-            filter, 
-            firstChunk.from, 
-            lastChunk.to
+            contract,
+            filter,
+            firstChunk.from,
+            lastChunk.to,
         );
         
         if (fullRangeResult.success) {
@@ -250,9 +250,9 @@ async function queryEventsRecursive(
     // Only count original chunks in progress (depth === 0)
     const isRecursive = depth > 0;  // Mark as recursive for any depth > 0
     progressReporter.reset(
-        allChunks.length, 
+        allChunks.length,
         depth === 0 ? 'Processing chunks' : `Processing with size ${currentSize}`,
-        isRecursive
+        isRecursive,
     );
     const { succeeded, failed } = await processChunksParallel(
         contract,
@@ -260,7 +260,7 @@ async function queryEventsRecursive(
         allChunks,
         progressReporter,
         maxConcurrent,
-        depth === 0  // Only update shared progress for original chunks at depth 0
+        depth === 0,  // Only update shared progress for original chunks at depth 0
     );
 
     // Collect successful events
@@ -282,7 +282,7 @@ async function queryEventsRecursive(
                 remainingFailed,
                 progressReporter,
                 maxConcurrent,
-                false  // Don't update shared progress for retries
+                false,  // Don't update shared progress for retries
             );
 
             // Collect newly successful events
@@ -312,7 +312,7 @@ async function queryEventsRecursive(
                         statsTracker,
                         progressReporter,
                         config,
-                        depth + 1
+                        depth + 1,
                     );
                     events.push(...recursiveEvents);
                 }
@@ -332,7 +332,7 @@ async function queryEventsRecursive(
 /**
  * Main entry point - query events with retry logic and parallel processing
  */
-export async function queryEventsWithRetry(
+export async function queryEventsWithRetry (
     tokenContract: ethers.Contract,
     filter: ethers.ContractEventName,
     chunks: ChunkRange[],
@@ -344,7 +344,7 @@ export async function queryEventsWithRetry(
     const config: QueryConfig = {
         maxConcurrent: 5,
         retries: 3,
-        baseDelay: 200
+        baseDelay: 200,
     };
 
     const statsTracker = new ChunkStatsTracker();
@@ -359,7 +359,7 @@ export async function queryEventsWithRetry(
         statsTracker,
         progressReporter,
         config,
-        0  // Start at depth 0 to allow optimistic attempt
+        0,  // Start at depth 0 to allow optimistic attempt
     );
 
     // Clear progress line only if not using shared tracker
@@ -375,8 +375,8 @@ export async function queryEventsWithRetry(
         return a.index - b.index;
     });
 
-    return { 
-        events, 
-        chunkStats: statsTracker.getStats() 
+    return {
+        events,
+        chunkStats: statsTracker.getStats(),
     };
 }

@@ -343,7 +343,7 @@ export async function collectStatsTask (
         
         try {
             tokenAddress = await dropContract.token();
-        } catch (error) {
+        } catch {
             console.warn(`⚠️  Failed to get token address for version ${v}, skipping...`);
             continue;
         }
