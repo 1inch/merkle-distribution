@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import { CHUNK_SIZE_FALLBACK_SEQUENCE, queryEventsWithRetry } from '../lib/evm-query';
+import { CHUNK_SIZE_FALLBACK_SEQUENCE, queryEventsWithRetry } from '../lib/events-query';
 
 // Interfaces for statistics data
 export interface FundingTransaction {
