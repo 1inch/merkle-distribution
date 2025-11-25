@@ -10,7 +10,7 @@ module.exports = tseslint.config(
     
     // Global ignores
     {
-        ignores: ['node_modules/**', 'coverage/**', 'dist/**', 'artifacts/**', 'cache/**', 'deployments/**', 'eslint.config.js']
+        ignores: ['node_modules/**', 'coverage/**', 'dist/**', 'artifacts/**', 'cache/**', 'deployments/**', 'eslint.config.cjs']
     },
     
   // Configuration for TypeScript files
