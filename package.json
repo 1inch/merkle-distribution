@@ -73,7 +73,7 @@
     "lint:sol": "solhint --max-warnings 0 \"contracts/**/*.sol\"",
     "lint:sol:all": "solhint \"contracts/**/*.sol\"",
     "lint:sol:fix": "solhint --max-warnings 0 \"contracts/**/*.sol\" --fix",
-    "test": "hardhat test",
+    "test": "yarn hardhat test ./test/**/*.test.ts",
     "test:unit": "hardhat test test/unit/**/*.test.ts",
     "test:integration": "hardhat test test/integration/**/*.test.ts",
     "test:e2e": "hardhat test test/e2e/*.test.ts",
