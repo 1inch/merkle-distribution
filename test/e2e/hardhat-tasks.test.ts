@@ -9,7 +9,7 @@ import {
     verifyDeploymentTask,
 } from '../../src/tasks/hardhat-drop-task';
 import { config } from '../../src/config';
-const { expect } = require('@1inch/solidity-utils');
+import { expect } from 'chai';
 
 describe('Hardhat Tasks E2E Tests', () => {
     let tempDir: string;

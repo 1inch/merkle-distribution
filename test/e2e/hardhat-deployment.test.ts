@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/types';
 import { Contract } from 'ethers';
 import {
     generateLinks,
@@ -10,17 +12,21 @@ import {
 import { DropService } from '../../src/services/DropService';
 import { VerificationService } from '../../src/services/VerificationService';
 import { config } from '../../src/config';
-const { expect } = require('@1inch/solidity-utils');
 
-// ethers is available as a global in Hardhat tests
-// Using any here because ethers is injected by Hardhat with additional methods
-declare const ethers: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+import { expect } from 'chai';
+import { network } from 'hardhat';
+
+// ES Module equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const { ethers } = await network.connect();
 
 describe('Hardhat Deployment E2E Tests', function () {
     this.timeout(60000); // Increase timeout for deployment tests
   
-    let owner: SignerWithAddress;
-    let receiver: SignerWithAddress;
+    let owner: HardhatEthersSigner;
+    let receiver: HardhatEthersSigner;
     let mockToken: Contract;
     let tempDir: string;
     let originalCwd: string;
