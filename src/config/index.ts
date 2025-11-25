@@ -1,4 +1,28 @@
 import { Config } from '../types';
+import * as path from 'path';
+
+// Get paths based on environment (test mode or normal mode)
+function getPaths() {
+    const tempDir = process.env.TEMP_DIR;
+    
+    if (tempDir) {
+        // Test mode - use temporary directory
+        return {
+            latestVersion: path.join(tempDir, 'src', '.latest'),
+            qrCodes: path.join(tempDir, 'drops', 'qr'),
+            testQrCodes: path.join(tempDir, 'drops', 'test_qr'),
+            generatedData: path.join(tempDir, 'drops', 'gendata'),
+        };
+    } else {
+        // Normal mode - use default paths
+        return {
+            latestVersion: './src/.latest',
+            qrCodes: './drops/qr',
+            testQrCodes: './drops/test_qr',
+            generatedData: './drops/gendata',
+        };
+    }
+}
 
 export const config: Config = {
     chains: {
@@ -19,12 +43,7 @@ export const config: Config = {
             tokenAddress: '0x111111111117dC0aa78b770fA6A738034120C302',
         },
     },
-    paths: {
-        latestVersion: './src/.latest',
-        qrCodes: './drops/qr',
-        testQrCodes: './drops/test_qr',
-        generatedData: './drops/gendata',
-    },
+    paths: getPaths(),
     urls: {
         // baseUrl: 'https://app.1inch.io/#/{chainId}/qr?',
         baseUrl: 'https://1inch.network/qr?d=',

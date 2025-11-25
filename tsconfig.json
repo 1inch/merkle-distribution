@@ -22,6 +22,11 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node",
+    "transpileOnly": true
+  },
   "include": [
     "src/**/*",
     "test/**/*",
