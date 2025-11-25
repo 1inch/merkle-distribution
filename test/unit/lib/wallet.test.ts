@@ -4,7 +4,7 @@ import {
     getAddressFromPrivateKey,
     generateWallets,
 } from '../../../src/lib/wallet';
-const { expect } = require('@1inch/solidity-utils');
+import { expect } from 'chai';
 
 describe('Wallet Library', () => {
     describe('generatePrivateKey', () => {

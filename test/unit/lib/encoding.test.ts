@@ -7,7 +7,7 @@ import {
 } from '../../../src/lib/encoding';
 import { createMerkleDrop } from '../../../src/lib/merkle';
 import { testWallets, testAmounts } from '../../fixtures/test-data';
-const { expect } = require('@1inch/solidity-utils');
+import { expect } from 'chai';
 
 describe('Encoding Library', () => {
     describe('uriEncode', () => {
@@ -92,12 +92,14 @@ describe('Encoding Library', () => {
     });
 
     describe('parseClaimUrl', () => {
+        const urlprefix = 'https://app.1inch.io/#/1/qr?';
+        // const urlprefix = 'https://1inch.network/qr?';
+
         it('should parse and verify a valid claim URL', () => {
             // Create a real merkle drop
             const wallets = [testWallets[0].address];
             const amounts = [testAmounts[0]];
             const drop = createMerkleDrop(wallets, amounts);
-      
             // Generate a claim URL
             const privateKey = testWallets[0].privateKey;
             const url = generateClaimUrl(
@@ -105,11 +107,11 @@ describe('Encoding Library', () => {
                 amounts[0],
                 drop.proofs[0],
                 1,
-                'https://app.1inch.io/#/1/qr?',
+                urlprefix,
             );
       
             // Parse and verify
-            const result = parseClaimUrl(url, drop.root, 'https://app.1inch.io/#/1/qr?');
+            const result = parseClaimUrl(url, drop.root, urlprefix);
       
             expect(result.isValid).to.be.true;
             expect(result.wallet?.toLowerCase()).to.equal(wallets[0].toLowerCase());
