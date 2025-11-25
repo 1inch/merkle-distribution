@@ -3,7 +3,7 @@ import * as path from 'path';
 import AdmZip from 'adm-zip';
 import sinon from 'sinon';
 import { zipFolder, zipFolders, cleanDir, cleanDirs } from '../../../src/lib/zip';
-const { expect } = require('@1inch/solidity-utils');
+import { expect } from 'chai';
 
 describe('Zip Library Integration Tests', () => {
     const testDir = './test-zip-output';

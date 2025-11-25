@@ -47,8 +47,8 @@ describe('CLI E2E Tests', () => {
         fs.mkdirSync(paths.generatedData, { recursive: true });
     
         // Stub console to prevent output during tests
-        // sinon.stub(console, 'log');
-        // sinon.stub(console, 'error');
+        sinon.stub(console, 'log');
+        sinon.stub(console, 'error');
     });
 
     afterEach(() => {

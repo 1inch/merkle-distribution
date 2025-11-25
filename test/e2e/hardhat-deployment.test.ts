@@ -12,6 +12,8 @@ import {
 import { DropService } from '../../src/services/DropService';
 import { VerificationService } from '../../src/services/VerificationService';
 import { config } from '../../src/config';
+import sinon from 'sinon';
+
 
 import { expect } from 'chai';
 import { network } from 'hardhat';
@@ -79,9 +81,14 @@ describe('Hardhat Deployment E2E Tests', function () {
     
         // Create version file
         fs.writeFileSync(paths.latestVersion, '999');
+
+        sinon.stub(console, 'log');
+        sinon.stub(console, 'error');        
     });
 
     afterEach(() => {
+        sinon.restore();
+        
         process.chdir(originalCwd);
         if (fs.existsSync(tempDir)) {
             fs.rmSync(tempDir, { recursive: true, force: true });
