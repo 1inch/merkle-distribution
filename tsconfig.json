@@ -2,14 +2,13 @@
   "compilerOptions": {
     "target": "ES2020",
     "lib": ["ES2020"],
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "outDir": "./dist",
-    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["node"],
+    "types": ["node", "chai", "sinon", "hardhat", "ethers"],
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "declaration": true,
@@ -24,12 +23,14 @@
     "emitDecoratorMetadata": true
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "test/**/*",
+    "hardhat.config.ts"
   ],
   "exclude": [
     "node_modules",
     "dist",
-    "test",
-    "**/*.test.ts"
+    // "test",
+    // "**/*.test.ts"
   ]
 }

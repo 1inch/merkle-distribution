@@ -1,21 +1,21 @@
-import '@nomicfoundation/hardhat-chai-matchers';
-import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
-import { deployContract, expect } from '@1inch/solidity-utils';
 import { MerkleTree } from 'merkletreejs';
 import keccak256 from 'keccak256';
-import { Contract, Signer } from 'ethers';
 import { shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234 } from './behaviors/MerkleDrop.behavior';
 import { shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234 } from './behaviors/CumulativeMerkleDrop.behavior';
-const hre = require('hardhat');
-const { ethers } = hre;
+import type { Contract, Signer } from 'ethers';
+import { expect } from 'chai';
+import hre from 'hardhat';
 
-// import { gasspectEVM } from '@1inch/solidity-utils';
+const { ethers, networkHelpers } = await hre.network.connect();
+const { loadFixture } = networkHelpers;
 
-interface MerkleDropData {
+export interface MerkleDropData {
     hashedElements: string[];
     leaves: string[];
     root: string;
     proofs: string[][];
+    wallets?: Signer[];
+    salts?: string[];
 }
 
 interface Contracts {
@@ -49,8 +49,8 @@ describe('CumulativeMerkleDrop', function () {
     }
 
     async function initContracts (): Promise<Contracts> {
-        const token = await deployContract('TokenMock', ['1INCH Token', '1INCH']) as unknown as Contract;
-        const drop = await deployContract('CumulativeMerkleDrop', [await token.getAddress()]) as unknown as Contract;
+        const token = await ethers.deployContract('TokenMock', ['1INCH Token', '1INCH']) as unknown as Contract;
+        const drop = await ethers.deployContract('CumulativeMerkleDrop', [await token.getAddress()]) as unknown as Contract;
         return { token, drop };
     }
 
@@ -80,7 +80,7 @@ describe('CumulativeMerkleDrop', function () {
         await drop.verifyAsm(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[0]);
         expect(await drop.verifyAsm(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[0])).to.be.true;
         const tx = await drop.claim(accounts[0], 1, params.root, params.proofs[findSortedIndex(params, 0)]);
-        await expect(tx).to.changeTokenBalances(token, [accounts[0], drop], [1, -1]);
+        await expect(tx).to.changeTokenBalances(ethers, token, [accounts[0], drop], [1, -1]);
     });
 
     describe('behave like merkle drop', function () {
@@ -107,6 +107,7 @@ describe('CumulativeMerkleDrop', function () {
                     amounts: [1n, 2n, 3n, 4n],
                     deposit: 10n,
                 },
+                loadFixture,
             });
         });
 
@@ -126,6 +127,7 @@ describe('CumulativeMerkleDrop', function () {
                     amounts: [3n, 5n, 7n, 9n],
                     deposit: 2n + 3n + 4n + 5n,
                 },
+                loadFixture
             });
         });
     });

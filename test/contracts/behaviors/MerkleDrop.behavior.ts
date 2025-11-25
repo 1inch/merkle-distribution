@@ -1,12 +1,9 @@
-import '@nomicfoundation/hardhat-chai-matchers';
-import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
-import { expect } from '@1inch/solidity-utils';
-import { Contract, Signer } from 'ethers';
-const hre = require('hardhat');
-const { ethers } = hre;
+import { expect } from 'chai';
+import type { Contract, Signer } from 'ethers';
+import hre from 'hardhat';
+const { ethers } = await hre.network.connect();
 
-
-interface MerkleDropData {
+export interface MerkleDropData {
     hashedElements: string[];
     leaves: string[];
     root: string;
@@ -15,7 +12,7 @@ interface MerkleDropData {
     salts?: string[];
 }
 
-interface MerkleDropBehaviorConfig {
+export interface MerkleDropBehaviorConfig {
     walletsCount: number;
     initContracts: () => Promise<{ token: Contract; drop: Contract }>;
     functions: {
@@ -32,6 +29,7 @@ interface MerkleDropBehaviorConfig {
         amounts: bigint[];
         deposit: bigint;
     };
+    loadFixture: <T>(fixture: () => Promise<T>) => Promise<T>;
 }
 
 export function shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234 ({
@@ -40,6 +38,7 @@ export function shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234 ({
     functions: { makeDrop, findSortedIndex },
     is128version = false,
     makeDropParams,
+    loadFixture,
 }: MerkleDropBehaviorConfig) {
     describe('Single drop for wallets', async function () {
         async function deployContractsFixture () {
@@ -49,7 +48,7 @@ export function shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234 ({
             const params = await makeDrop(token, drop, wallets, makeDropParams);
 
             return {
-                contracts: { drop },
+                contracts: { token, drop },
                 other: { params },
             };
         }
@@ -73,7 +72,7 @@ export function shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234 ({
 
                 it('should fail to claim second time', async function () {
                     const {
-                        contracts: { drop },
+                        contracts: { token, drop },
                         other: { params },
                     } = await loadFixture(deployContractsFixture);
 

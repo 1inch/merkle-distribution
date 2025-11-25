@@ -1,16 +1,14 @@
-import '@nomicfoundation/hardhat-chai-matchers';
-import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
-import { deployContract, expect } from '@1inch/solidity-utils';
 import { MerkleTree } from 'merkletreejs';
-import keccak256 from 'keccak256';
 import { personalSign } from '@metamask/eth-sig-util';
-import Wallet from 'ethereumjs-wallet';
-import { Contract, Signer } from 'ethers';
-const hre = require('hardhat');
-const { ethers } = hre;
+import { expect } from 'chai';
+import { type Contract, type Signer, keccak256 } from 'ethers';
+import hre from 'hardhat';
+
+const { ethers, networkHelpers } = await hre.network.connect();
+const { loadFixture } = networkHelpers;
 
 function keccak128 (input: Buffer | string): Buffer {
-    return keccak256(input).slice(0, 16);
+    return Buffer.from(keccak256(input).slice(2, 34), 'hex');
 }
 
 interface AccountWithDropValue {
@@ -21,31 +19,16 @@ interface AccountWithDropValue {
 describe('SignatureMerkleDrop128', function () {
     async function deployContractsFixture () {
         const [owner, alice, bob, carol, dan] = await ethers.getSigners();
-        const token = await deployContract('TokenMock', ['1INCH Token', '1INCH']) as unknown as Contract;
+        const token = await ethers.deployContract('TokenMock', ['1INCH Token', '1INCH']) as unknown as Contract;
 
         await Promise.all([alice, bob, carol, dan].map(w => token.mint(w, 1n)));
 
         const accountWithDropValues: AccountWithDropValue[] = [
-            {
-                account: owner,
-                amount: 1,
-            },
-            {
-                account: alice,
-                amount: 1,
-            },
-            {
-                account: bob,
-                amount: 1,
-            },
-            {
-                account: carol,
-                amount: 1,
-            },
-            {
-                account: dan,
-                amount: 1,
-            },
+            { account: owner, amount: 1, },
+            { account: alice, amount: 1, },
+            { account: bob, amount: 1, },
+            { account: carol, amount: 1, },
+            { account: dan, amount: 1, },
         ];
 
         const elements = await Promise.all(accountWithDropValues.map(async (w) => {
@@ -64,9 +47,12 @@ describe('SignatureMerkleDrop128', function () {
         const drop = await SignatureMerkleDrop128Factory.deploy(await token.getAddress(), root, tree.getDepth());
         await token.mint(await drop.getAddress(), accountWithDropValues.map(w => w.amount).reduce((a, b) => a + b, 0));
 
-        const account = Wallet.fromPrivateKey(Buffer.from('ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', 'hex'));
-        const data = MerkleTree.bufferToHex(keccak256(await alice.getAddress()));
-        const signature = personalSign({ privateKey: account.getPrivateKey(), data });
+        const data = keccak256(await alice.getAddress());
+        // const account = Wallet.fromPrivateKey(Buffer.from('ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', 'hex'));
+        const signature = personalSign({ 
+            privateKey: Buffer.from('ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', 'hex'), 
+            data 
+        });
 
         return {
             accounts: { owner, alice, bob, carol, dan },
@@ -93,7 +79,7 @@ describe('SignatureMerkleDrop128', function () {
     it('Should transfer money to another wallet with extra value', async function () {
         const { accounts: { alice }, contracts: { drop }, others: { hashedElements, leaves, proofs, signature } } = await loadFixture(deployContractsFixture);
         const txn = await drop.claim(alice, 1, proofs[leaves.indexOf(hashedElements[0])], signature, { value: 10 });
-        expect(txn).to.changeEtherBalance(alice, 10);
+        await expect(txn).to.changeEtherBalance(ethers, alice, 10);
     });
 
     it('Should disallow invalid proof', async function () {
