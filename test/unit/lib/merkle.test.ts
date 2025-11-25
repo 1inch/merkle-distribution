@@ -1,3 +1,4 @@
+import { expect } from 'chai';
 import {
     keccak128,
     createMerkleDrop,
@@ -5,7 +6,6 @@ import {
     calculateMerkleHeight,
 } from '../../../src/lib/merkle';
 import { testWallets, testAmounts } from '../../fixtures/test-data';
-import { expect } from 'chai';
 
 describe('Merkle Library', () => {
     describe('keccak128', () => {

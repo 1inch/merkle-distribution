@@ -1,10 +1,10 @@
+import { expect } from 'chai';
 import {
     config,
     formatBaseUrl,
     getChainConfig,
     getTokenAddress,
 } from '../../../src/config';
-import { expect } from 'chai';
 
 describe('Config Module', () => {
     describe('chains configuration', () => {

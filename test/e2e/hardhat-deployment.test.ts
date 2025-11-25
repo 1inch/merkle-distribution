@@ -4,6 +4,9 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/types';
 import { Contract } from 'ethers';
+import sinon from 'sinon';
+import { expect } from 'chai';
+import { network } from 'hardhat';
 import {
     generateLinks,
     verifyLink,
@@ -12,11 +15,8 @@ import {
 import { DropService } from '../../src/services/DropService';
 import { VerificationService } from '../../src/services/VerificationService';
 import { config } from '../../src/config';
-import sinon from 'sinon';
 
 
-import { expect } from 'chai';
-import { network } from 'hardhat';
 
 // ES Module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -83,7 +83,7 @@ describe('Hardhat Deployment E2E Tests', function () {
         fs.writeFileSync(paths.latestVersion, '999');
 
         sinon.stub(console, 'log');
-        sinon.stub(console, 'error');        
+        sinon.stub(console, 'error');
     });
 
     afterEach(() => {

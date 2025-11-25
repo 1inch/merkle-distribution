@@ -1,10 +1,10 @@
+import { expect } from 'chai';
 import {
     generatePrivateKey,
     generatePrivateKeys,
     getAddressFromPrivateKey,
     generateWallets,
 } from '../../../src/lib/wallet';
-import { expect } from 'chai';
 
 describe('Wallet Library', () => {
     describe('generatePrivateKey', () => {

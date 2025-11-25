@@ -1,11 +1,11 @@
 import { MerkleTree } from 'merkletreejs';
 import keccak256 from 'keccak256';
 import type { Contract, Signer } from 'ethers';
+import { expect } from 'chai';
+import hre from 'hardhat';
 import { shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234 } from './behaviors/MerkleDrop.behavior';
 import { shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234 } from './behaviors/CumulativeMerkleDrop.behavior';
 
-import { expect } from 'chai';
-import hre from 'hardhat';
 
 const { ethers, networkHelpers } = await hre.network.connect();
 const { loadFixture } = networkHelpers;
@@ -14,7 +14,7 @@ function keccak128 (input: Buffer | string): Buffer {
     return keccak256(input).slice(0, 16);
 }
 
-function generateSalt(): string {
+function generateSalt (): string {
     return ethers.Wallet.createRandom().privateKey.slice(0, 34);
 }
 

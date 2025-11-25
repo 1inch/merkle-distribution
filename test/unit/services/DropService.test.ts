@@ -2,8 +2,8 @@ import esmock from 'esmock';
 import sinon from 'sinon';
 import mockFs from 'mock-fs';
 import { ethers } from 'ethers';
-import { testWallets } from '../../fixtures/test-data';
 import { expect } from 'chai';
+import { testWallets } from '../../fixtures/test-data';
 import type { DropService as DropServiceType } from '../../../src/services/DropService';
 
 describe('DropService', () => {

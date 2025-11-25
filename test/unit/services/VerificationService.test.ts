@@ -1,7 +1,7 @@
 import esmock from 'esmock';
 import sinon from 'sinon';
-import { testWallets, testAmounts } from '../../fixtures/test-data';
 import { expect } from 'chai';
+import { testWallets, testAmounts } from '../../fixtures/test-data';
 import type { VerificationService as VerificationServiceType } from '../../../src/services/VerificationService';
 
 describe('VerificationService', () => {

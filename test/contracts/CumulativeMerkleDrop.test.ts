@@ -1,10 +1,10 @@
 import { MerkleTree } from 'merkletreejs';
 import keccak256 from 'keccak256';
-import { shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234 } from './behaviors/MerkleDrop.behavior';
-import { shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234 } from './behaviors/CumulativeMerkleDrop.behavior';
 import type { Contract, Signer } from 'ethers';
 import { expect } from 'chai';
 import hre from 'hardhat';
+import { shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234 } from './behaviors/CumulativeMerkleDrop.behavior';
+import { shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234 } from './behaviors/MerkleDrop.behavior';
 
 const { ethers, networkHelpers } = await hre.network.connect();
 const { loadFixture } = networkHelpers;
@@ -127,7 +127,7 @@ describe('CumulativeMerkleDrop', function () {
                     amounts: [3n, 5n, 7n, 9n],
                     deposit: 2n + 3n + 4n + 5n,
                 },
-                loadFixture
+                loadFixture,
             });
         });
     });

@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import sinon from 'sinon';
-import { generateQrCodes, saveQrCode, ensureDirectoryExists } from '../../../src/lib/qr';
 import { expect } from 'chai';
+import { generateQrCodes, saveQrCode, ensureDirectoryExists } from '../../../src/lib/qr';
 
 describe('QR Library Integration Tests', () => {
     const testDir = './test-qr-output';

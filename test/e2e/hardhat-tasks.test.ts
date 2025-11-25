@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import sinon from 'sinon';
+import { expect } from 'chai';
 import {
     generateLinks,
     verifyLink,
@@ -9,7 +10,6 @@ import {
     verifyDeploymentTask,
 } from '../../src/tasks/hardhat-drop-task';
 import { config } from '../../src/config';
-import { expect } from 'chai';
 
 describe('Hardhat Tasks E2E Tests', () => {
     let tempDir: string;

@@ -1,3 +1,4 @@
+import { expect } from 'chai';
 import {
     uriEncode,
     uriDecode,
@@ -7,7 +8,6 @@ import {
 } from '../../../src/lib/encoding';
 import { createMerkleDrop } from '../../../src/lib/merkle';
 import { testWallets, testAmounts } from '../../fixtures/test-data';
-import { expect } from 'chai';
 
 describe('Encoding Library', () => {
     describe('uriEncode', () => {

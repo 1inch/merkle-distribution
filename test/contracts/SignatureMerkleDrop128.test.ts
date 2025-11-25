@@ -24,11 +24,11 @@ describe('SignatureMerkleDrop128', function () {
         await Promise.all([alice, bob, carol, dan].map(w => token.mint(w, 1n)));
 
         const accountWithDropValues: AccountWithDropValue[] = [
-            { account: owner, amount: 1, },
-            { account: alice, amount: 1, },
-            { account: bob, amount: 1, },
-            { account: carol, amount: 1, },
-            { account: dan, amount: 1, },
+            { account: owner, amount: 1 },
+            { account: alice, amount: 1 },
+            { account: bob, amount: 1 },
+            { account: carol, amount: 1 },
+            { account: dan, amount: 1 },
         ];
 
         const elements = await Promise.all(accountWithDropValues.map(async (w) => {
@@ -49,9 +49,9 @@ describe('SignatureMerkleDrop128', function () {
 
         const data = keccak256(await alice.getAddress());
         // const account = Wallet.fromPrivateKey(Buffer.from('ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', 'hex'));
-        const signature = personalSign({ 
-            privateKey: Buffer.from('ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', 'hex'), 
-            data 
+        const signature = personalSign({
+            privateKey: Buffer.from('ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', 'hex'),
+            data,
         });
 
         return {

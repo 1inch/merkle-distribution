@@ -1,8 +1,8 @@
-import { Config } from '../types';
 import * as path from 'path';
+import { Config } from '../types';
 
 // Get paths based on environment (test mode or normal mode)
-function getPaths() {
+function getPaths () {
     const tempDir = process.env.TEMP_DIR;
     
     if (tempDir) {
