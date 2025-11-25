@@ -45,6 +45,7 @@
     "eslint": "^9.32.0",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-promise": "^7.2.1",
+    "esmock": "^2.7.3",
     "ethers": "6.15.0",
     "hardhat": "3.0.15",
     "mock-fs": "^5.5.0",
