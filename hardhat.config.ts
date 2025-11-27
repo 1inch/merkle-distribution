@@ -23,6 +23,7 @@ export default defineConfig({
     },
     solidity: {
         version: '0.8.23',
+        npmFilesToBuild: ["@1inch/solidity-utils/contracts/mocks/TokenMock.sol"],
         settings: {
             optimizer: {
                 enabled: true,

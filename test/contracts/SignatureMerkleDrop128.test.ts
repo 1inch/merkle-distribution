@@ -2,9 +2,9 @@ import { MerkleTree } from 'merkletreejs';
 import { personalSign } from '@metamask/eth-sig-util';
 import { expect } from 'chai';
 import { type Contract, type Signer, keccak256 } from 'ethers';
-import hre from 'hardhat';
+import { network } from 'hardhat';
 
-const { ethers, networkHelpers } = await hre.network.connect();
+const { ethers, networkHelpers } = await network.connect();
 const { loadFixture } = networkHelpers;
 
 function keccak128 (input: Buffer | string): Buffer {
