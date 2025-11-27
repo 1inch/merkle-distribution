@@ -115,26 +115,26 @@ describe('CLI E2E Tests', () => {
             console.log('Exit Code:', result.code);
 
             expect(result.code).to.equal(0);
-            // expect(result.stdout).to.include('Generating merkle drop');
-            // expect(result.stdout).to.include('Generation complete');
-            // expect(result.stdout).to.include('Merkle root: 0x');
+            expect(result.stdout).to.include('Generating merkle drop');
+            expect(result.stdout).to.include('Generation complete');
+            expect(result.stdout).to.include('Merkle root: 0x');
       
-            // // Check QR codes were created
-            // const qrFiles = fs.readdirSync(paths.qrCodes);
-            // const testQrFiles = fs.readdirSync(paths.testQrCodes);
+            // Check QR codes were created
+            const qrFiles = fs.readdirSync(paths.qrCodes);
+            const testQrFiles = fs.readdirSync(paths.testQrCodes);
       
-            // expect(qrFiles.length).to.be.greaterThan(0);
-            // expect(testQrFiles.length).to.equal(10); // 10 test codes
+            expect(qrFiles.length).to.be.greaterThan(0);
+            expect(testQrFiles.length).to.equal(10); // 10 test codes
       
-            // // Check links file was created
-            // const linksFile = path.join(paths.generatedData, '100-qr-links.json');
-            // expect(fs.existsSync(linksFile)).to.be.true;
+            // Check links file was created
+            const linksFile = path.join(paths.generatedData, '100-qr-links.json');
+            expect(fs.existsSync(linksFile)).to.be.true;
       
-            // const linksData = JSON.parse(fs.readFileSync(linksFile, 'utf8'));
-            // // The file contains an object with metadata and codes array
-            // expect(linksData).to.have.property('codes');
-            // expect(linksData.codes).to.be.an('array');
-            // expect(linksData.count).to.equal(15); // 5 + 10 production codes (test codes are in separate file)
+            const linksData = JSON.parse(fs.readFileSync(linksFile, 'utf8'));
+            // The file contains an object with metadata and codes array
+            expect(linksData).to.have.property('codes');
+            expect(linksData.codes).to.be.an('array');
+            expect(linksData.count).to.equal(15); // 5 + 10 production codes (test codes are in separate file)
         });
 
         it('should generate and zip QR codes', async () => {
