@@ -204,22 +204,23 @@ export default defineConfig({
 
 With `hardhat-dependency-compiler` gone, Hardhat 3 provides a native way to compile contracts from npm packages using the `npmFilesToBuild` configuration option ([see NPM artifacts docs](https://hardhat.org/docs/cookbook/npm-artifacts#_top)):
 
-```typescript
+```diff
 export default defineConfig({
     plugins,
     solidity: {
         version: '0.8.23',
         settings: { ... },
++       npmFilesToBuild: ["@1inch/solidity-utils/contracts/mocks/TokenMock.sol"],
     },
-    npmFilesToBuild: [
-        "@1inch/solidity-utils/contracts/mocks/TokenMock.sol"
-    ],
+-   dependencyCompiler: {
+-       paths: ['@1inch/solidity-utils/contracts/mocks/TokenMock.sol'],
+-   },
 });
 ```
 
 If you don't add external contracts to `npmFilesToBuild`, they won't be compiled and won't be available in your tests.
 
-## 4. Test File Migration
+## 4. Tests Migration
 
 ### 4.1 Import Changes
 
