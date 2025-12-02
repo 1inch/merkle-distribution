@@ -30,12 +30,11 @@
     "include": [
         "src/**/*",
         "test/**/*",
+        "ignition/**/*",
         "hardhat.config.ts"
     ],
     "exclude": [
         "node_modules",
         "dist",
-        // "test",
-        // "**/*.test.ts"
     ]
 }

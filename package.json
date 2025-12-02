@@ -13,7 +13,7 @@
     "@openzeppelin/contracts": "5.4.0",
     "adm-zip": "^0.5.16",
     "commander": "14.0.0",
-    "dotenv": "17.2.1",
+    "dotenv": "17.2.3",
     "ethereumjs-wallet": "^1.0.2",
     "keccak256": "1.0.6",
     "merkletreejs": "0.5.2",
