@@ -35,7 +35,7 @@ The project uses Hardhat for three main purposes:
 
 **Contract Management via Tasks:** We built custom Hardhat tasks for the full drop lifecycle: generating claim links, deploying contracts, verifying deployments on block explorers, checking claim statistics, and rescuing unclaimed tokens.
 
-This combination — tests with shared behaviors, multi-network deployments, and heavy task usage — exercises most of the Hardhat features that change in v3.
+The goal for this migration was to move all of these functionalities to Hardhat 3 with minimal effort.
 
 ### 1.3 Article Series Overview
 
