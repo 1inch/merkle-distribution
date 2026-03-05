@@ -228,7 +228,162 @@ Make sure you have a node running with `yarn hardhat node` first.
 
 ## 9. Contract Verification
 
-*Coming soon — contract verification with Ignition will be covered in a future update.*
+After deploying a contract, you typically want to verify its source code on a block explorer like Etherscan. Hardhat 3 uses the `@nomicfoundation/hardhat-verify` plugin (v3) for this.
+
+### 9.1 Plugin Setup
+
+We already added `@nomicfoundation/hardhat-verify` v3 as part of the dependency updates in [Part 1](/articles/hardhat-v3-migration-part1). If you don't have it installed yet:
+
+```bash
+yarn add -D @nomicfoundation/hardhat-verify
+```
+
+**hardhat.config.ts:**
+
+```typescript
+import hardhatVerify from "@nomicfoundation/hardhat-verify";
+
+const plugins: HardhatPlugin[] = [
+    // ... other plugins
+    hardhatVerify,
+];
+
+export default defineConfig({
+    plugins,
+    // ...
+    verify: {
+        etherscan: {
+            apiKey: configDotenv().parsed?.ETHERSCAN_API_KEY || '',
+        },
+        blockscout: {
+            enabled: false,
+        },
+        sourcify: {
+            enabled: false,
+        },
+    }
+});
+```
+
+Note the config structure change from Hardhat 2: the Etherscan API key now lives under `verify.etherscan.apiKey` instead of the top-level `etherscan` object. Blockscout and Sourcify are enabled by default — disable them explicitly if you only want Etherscan verification.
+
+### 9.2 Build Profiles and `evmVersion`: The Verification Pitfall (Watch Out!)
+
+This was the most frustrating issue we encountered during migration. Verification would fail with:
+
+```
+Fail - Unable to verify. Compiled contract deployment bytecode
+does NOT match the transaction deployment bytecode.
+```
+
+The exact same contract, compiler version, and optimizer settings that worked perfectly with Hardhat 2 suddenly produced bytecode mismatches. Two issues were at play:
+
+**Issue 1: Build profiles.** Hardhat 3 introduces [build profiles](https://hardhat.org/docs/guides/writing-contracts/build-profiles) — a new concept that doesn't exist in Hardhat 2:
+- **`default`** — used by most tasks (compile, test)
+- **`production`** — used by Hardhat Ignition for deployments, with its own defaults (optimizer enabled, [Isolated Builds](https://hardhat.org/docs/guides/writing-contracts/isolated-builds) enabled)
+
+When you define your Solidity config without explicit profiles, **you're only configuring the `default` profile**. The `production` profile keeps its own defaults — which may differ from your settings (e.g., optimizer `runs` defaults to 200, not your configured 1,000,000).
+
+Here's the sequence that causes the failure:
+1. Ignition deploys using the `production` profile → bytecode compiled with production defaults
+2. `verifyContract` reads build artifacts from the `default` profile → sends different compilation settings to Etherscan
+3. Etherscan recompiles with those different settings → bytecode doesn't match → verification fails
+
+**Issue 2: `evmVersion` default.** If you were relying on an explicit `evmVersion` in your Hardhat 2 config (as we were with `'shanghai'`), make sure to carry it over. Hardhat's default `evmVersion` is `paris`, not the solc default of `shanghai` for 0.8.23+. The difference is significant — `shanghai` uses the `PUSH0` opcode while `paris` doesn't, producing entirely different bytecode.
+
+**The fix:** Explicitly configure both profiles with identical settings, including `evmVersion`:
+
+```diff
+export default defineConfig({
+    solidity: {
+-       version: '0.8.23',
+-       settings: {
+-           optimizer: {
+-               enabled: true,
+-               runs: 1000000,
+-           },
+-       },
++       profiles: {
++           default: {
++               version: '0.8.23',
++               settings: {
++                   optimizer: {
++                       enabled: true,
++                       runs: 1000000,
++                   },
++                   evmVersion: 'shanghai',
++               },
++           },
++           production: {
++               version: '0.8.23',
++               settings: {
++                   optimizer: {
++                       enabled: true,
++                       runs: 1000000,
++                   },
++                   evmVersion: 'shanghai',
++               },
++           },
++       },
+        npmFilesToBuild: ["@1inch/solidity-utils/contracts/mocks/TokenMock.sol"],
+    },
+});
+```
+
+### 9.3 Programmatic Verification
+
+To verify from a deploy script (useful when deployment is triggered by a Hardhat task), use the `verifyContract` function:
+
+```typescript
+import hre from 'hardhat';
+import { verifyContract } from "@nomicfoundation/hardhat-verify/verify";
+
+export async function deploy(version: number, merkleRoot: string, merkleHeight: number) {
+    const connection = await hre.network.connect();
+    const chainId = connection.networkConfig.chainId;
+
+    const constructorArgs: [string, string, number] = [rewardToken.addr, merkleRoot, merkleHeight];
+
+    const { drop } = await connection.ignition.deploy(SignatureDropModule, {
+        parameters: { /* ... */ },
+        deploymentId: `${connection.networkName}-MerkleDrop-${version}`,
+    });
+
+    // Verify on Etherscan (skip for local networks)
+    if (chainId !== 31337) {
+        await verifyContract({
+            address: drop.target.toString(),
+            constructorArgs: constructorArgs,
+        }, hre);
+    }
+}
+```
+
+### 9.4 CLI Verification
+
+You can also verify after deployment using the CLI:
+
+```bash
+yarn hardhat verify --network sepolia 0x1234567890...
+```
+
+Hardhat automatically determines which contract to verify by compiling all contracts in the project and matching the resulting bytecodes against the deployed bytecode fetched from the on-chain address. If you have contracts with the same name in different files, you can disambiguate with `--contract`:
+
+```bash
+yarn hardhat verify --network sepolia --contract contracts/SignatureMerkleDrop128.sol:SignatureMerkleDrop128 0x1234...
+```
+
+If your contract has constructor arguments, pass them after the address:
+
+```bash
+yarn hardhat verify --network sepolia 0x1234... "0xTokenAddr" "0xMerkleRoot" 7
+```
+
+By default, the `verify` task uses the `production` build profile. If you deployed with a different profile, specify it with `--build-profile`:
+
+```bash
+yarn hardhat verify --network sepolia --build-profile default 0x1234...
+```
 
 ## 10. What's Next
 

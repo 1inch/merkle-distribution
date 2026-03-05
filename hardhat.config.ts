@@ -28,15 +28,29 @@ export default defineConfig({
         artifacts: './artifacts',
     },
     solidity: {
-        version: '0.8.23',
-        npmFilesToBuild: ["@1inch/solidity-utils/contracts/mocks/TokenMock.sol"],
-        settings: {
-            optimizer: {
-                enabled: true,
-                runs: 1000000,
+        profiles: {
+            default: {
+                version: '0.8.23',
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 1000000,
+                    },
+                    evmVersion: 'shanghai',
+                },
             },
-            // evmVersion: (networks[getNetwork()] as { hardfork?: string })?.hardfork || 'shanghai',
+            production: {
+                version: '0.8.23',
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 1000000,
+                    },
+                    evmVersion: 'shanghai',
+                },
+            },
         },
+        npmFilesToBuild: ["@1inch/solidity-utils/contracts/mocks/TokenMock.sol"],
     },
     networks: {
         hardhat: {
