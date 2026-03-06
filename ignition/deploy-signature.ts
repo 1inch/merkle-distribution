@@ -1,14 +1,13 @@
 import hre from 'hardhat';
-
+import { verifyContract } from '@nomicfoundation/hardhat-verify/verify';
 import SignatureDropModule from './modules/signature';
-import { verifyContract } from "@nomicfoundation/hardhat-verify/verify";
 
 interface OneInchAddress {
     networkId: number;
     addr: string;
 }
 
-export async function deploy(version: number, merkleRoot: string, merkleHeight: number) {
+export async function deploy (version: number, merkleRoot: string, merkleHeight: number) {
     const connection = await hre.network.connect();
     const chainId = connection.networkConfig.chainId;
     const networkName = connection.networkName;
@@ -29,11 +28,11 @@ export async function deploy(version: number, merkleRoot: string, merkleHeight: 
 
     const { drop } = await connection.ignition.deploy(SignatureDropModule, {
         parameters: {
-            "SignatureDrop": {
-                "token": rewardToken.addr,
-                "merkleRoot": merkleRoot,
-                "merkleHeight": merkleHeight
-            }
+            'SignatureDrop': {
+                'token': rewardToken.addr,
+                'merkleRoot': merkleRoot,
+                'merkleHeight': merkleHeight,
+            },
         },
         deploymentId: `${networkName}-MerkleDrop-${version}`,
     });
@@ -51,7 +50,7 @@ export async function deploy(version: number, merkleRoot: string, merkleHeight: 
 }
 
 // Test deployment with sample data
-// TODO: Remove when hardhat task is ready 
+// TODO: Remove when hardhat task is ready
 deploy(94, '0xbe18eb3a9c6bff90059911a3d28f87af', 7).catch((error) => {
     console.error('Error deploying contract:', error);
     process.exit(1);

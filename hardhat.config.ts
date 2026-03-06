@@ -5,8 +5,7 @@ import hardhatToolboxMochaEthers from '@nomicfoundation/hardhat-toolbox-mocha-et
 import hardhatEthersChaiMatchers from '@nomicfoundation/hardhat-ethers-chai-matchers';
 import hardhatNetworkHelpers from '@nomicfoundation/hardhat-network-helpers';
 import hardhatIgnition from '@nomicfoundation/hardhat-ignition';
-import hardhatVerify from "@nomicfoundation/hardhat-verify";
-
+import hardhatVerify from '@nomicfoundation/hardhat-verify';
 import { configDotenv } from 'dotenv';
 
 // Ensure TypeScript recognizes these as valid plugins
@@ -50,7 +49,7 @@ export default defineConfig({
                 },
             },
         },
-        npmFilesToBuild: ["@1inch/solidity-utils/contracts/mocks/TokenMock.sol"],
+        npmFilesToBuild: ['@1inch/solidity-utils/contracts/mocks/TokenMock.sol'],
     },
     networks: {
         hardhat: {
@@ -73,7 +72,7 @@ export default defineConfig({
             url: configDotenv().parsed?.SEPOLIA_RPC_URL || '',
             chainId: 11155111,
             accounts: [configDotenv().parsed?.SEPOLIA_PRIVATE_KEY || ''],
-        }
+        },
     },
     verify: {
         etherscan: {
@@ -85,5 +84,5 @@ export default defineConfig({
         sourcify: {
             enabled: false,
         },
-    }
+    },
 });
