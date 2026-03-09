@@ -332,7 +332,7 @@ export default defineConfig({
 
 ### 9.3 Programmatic Verification
 
-To verify from a deploy script (useful when deployment is triggered by a Hardhat task), use the `verifyContract` function:
+To verify from a deploy script (useful when deployment is triggered by a Hardhat task), use the `verifyContract` function exported by the `@nomicfoundation/hardhat-verify` plugin:
 
 ```typescript
 import hre from 'hardhat';
@@ -387,7 +387,15 @@ yarn hardhat verify --network sepolia --build-profile default 0x1234...
 
 ## 10. What's Next
 
-In **Part 3**, we'll cover migrating Hardhat tasks to the new v3 task system, including:
+In this second part, we covered the deployment side of migrating to Hardhat 3:
+- Replacing `hardhat-deploy` with Hardhat Ignition
+- Creating declarative Ignition modules and deploy scripts
+- Deployment folder structure differences
+- Migrating existing deployment artifacts
+- Contract verification setup, including the build profiles pitfall
+- Programmatic and CLI verification workflows
+
+In **Part 3: Making Tasks Work with Hardhat 3**, we'll cover migrating Hardhat tasks to the new v3 task system, including:
 - The new task definition syntax
 - Accessing network connections from tasks
 - Integrating tasks with Ignition deploy scripts
