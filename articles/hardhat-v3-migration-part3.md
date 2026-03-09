@@ -1,10 +1,10 @@
-# Migrating to Hardhat 3 - Part 3: Making Tasks Work with Hardhat 3
+# Migrating to Hardhat 3 - Part 3: Tasks Migration
 
 ## 1. Introduction
 
-In [Part 1](/articles/hardhat-v3-migration-part1), we covered the foundation of migrating to Hardhat 3: ES module configuration, dependency updates, hardhat.config.ts changes, and test file migration. In [Part 2](/articles/hardhat-v3-migration-part2), we tackled deployment migration - replacing `hardhat-deploy` with Hardhat Ignition.
+In [Part 1](https://github.com/1inch/merkle-distribution/blob/hardhat-3/articles/hardhat-v3-migration-part1.md), we covered the foundation of migrating to Hardhat 3: basic configuration changes, and tests migration. In [Part 2](https://github.com/1inch/merkle-distribution/blob/hardhat-3/articles/hardhat-v3-migration-part2.md), we replaced `hardhat-deploy` with Hardhat Ignition.
 
-In this final part, we cover **custom Hardhat task migration** - the last piece of our move to Hardhat 3. Our project has several custom tasks that manage the full drop lifecycle: generating claim links and deploying contracts, verifying links against deployed contracts, verifying contracts on Etherscan, collecting on-chain statistics, and rescuing unclaimed tokens. In Hardhat 2, all of these lived in a single file. Hardhat 3 takes a much more structured approach to tasks - typed arguments and lazy-loaded action modules - which results in cleaner, more maintainable code.
+In the final part, we cover **custom Hardhat task migration** - the last piece of our move to Hardhat 3. Our project has several custom tasks that manage the full drop lifecycle: generating claim links and deploying contracts, collecting on-chain statistics, and rescuing unclaimed tokens.
 
 We'll cover:
 
@@ -37,8 +37,6 @@ task('drop', 'Generate merkle drop links, deploy contract, and verify all genera
 
 export default { solidity: {...}, networks: {...} };
 ```
-
-In Hardhat 2, calling `task()` was a side effect - it registered the task globally. The config exported a plain object.
 
 **After (Hardhat 3):**
 
@@ -76,27 +74,28 @@ const drop = task('drop', 'Generate merkle drop links, deploy contract, and veri
     .build();
 
 export default defineConfig({
-    tasks: [drop, verifyLinks, verifyDeployment, stats, rescue],
+    // ...
+    tasks: [drop],
     // ...
 });
 ```
 
 Key differences:
 
-- **Builder pattern with `.build()`** - `task()` returns a builder. You chain methods and finalize with `.build()`, which returns a task object. Forgetting `.build()` is a common mistake - the task simply won't be registered.
+- **Builder pattern with `.build()`** - `task()` returns a builder. You chain methods and finalize with `.build()`, which returns a task object. If you forget `.build()` the task simply won't be registered.
 - **Explicit registration** - The built task is stored in a variable and passed to `defineConfig({ tasks: [...] })`. No more side-effect registration.
 - **Structured argument definitions** - `.addParam('v', 'desc')` becomes `.addOption({ name, shortName, description, defaultValue, type })`. Arguments are now typed via the `ArgumentType` enum and support short names natively (see details in [Section 4](#4-cli-arguments-hardhat-2-to-hardhat-3-mapping)).
 - **Lazy-loaded actions** - `.setAction()` takes a module import instead of an inline function (more on this in the next section).
 
 ## 3. Actions vs Inline Actions
 
-Hardhat 3 supports two patterns for defining task actions.
+Hardhat 3 supports two patterns for defining task actions (see [details and comparison](https://hardhat.org/docs/guides/writing-tasks#choosing-between-setaction-and-setinlineaction)).
 
 **Inline action** - define the function directly:
 
 ```typescript
 const myTask = task('my-task', 'Do something')
-    .setAction(async (args, hre) => {
+    .setInlineAction(async (args, hre) => {
         const conn = await hre.network.connect();
         console.log('Connected to', conn.networkName);
         return successfulResult(true);
@@ -106,7 +105,7 @@ const myTask = task('my-task', 'Do something')
 
 This works for simple tasks, but it puts your logic into `hardhat.config.ts`.
 
-**Module action (lazy-loaded)** - point to a module:
+**Module action (lazy-loaded)** - points to a module:
 
 ```typescript
 const drop = task('drop', 'Generate merkle drop links...')
@@ -264,7 +263,7 @@ ignition/deployments/sepolia-MerkleDrop-78/
 }
 ```
 
-`journal.jsonl` is a line-by-line log of the deployment process. Each line is a JSON object with a** `type` **field. The most useful entry types are:**
+`journal.jsonl` is a line-by-line log of the deployment process. Each line is a JSON object with a `type` field. We used the following entry types:
 
 - `DEPLOYMENT_EXECUTION_STATE_INITIALIZE` - contains `constructorArgs`, `contractName`, and the deployer address (`from`)
 - `TRANSACTION_CONFIRM` - contains the transaction `hash` and `receipt` with `blockNumber`, `blockHash`, and `contractAddress`
