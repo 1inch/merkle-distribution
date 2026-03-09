@@ -72,7 +72,7 @@ export function shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234 ({
 
                 it('should fail to claim second time', async function () {
                     const {
-                        contracts: { token, drop },
+                        contracts: { drop },
                         other: { params },
                     } = await loadFixture(deployContractsFixture);
 

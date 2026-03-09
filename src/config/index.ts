@@ -42,6 +42,10 @@ export const config: Config = {
             id: 56,
             tokenAddress: '0x111111111117dC0aa78b770fA6A738034120C302',
         },
+        sepolia: {
+            id: 11155111,
+            tokenAddress: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
+        },
     },
     paths: getPaths(),
     urls: {

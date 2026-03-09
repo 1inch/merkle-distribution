@@ -37,7 +37,7 @@ export async function deploy (version: number, merkleRoot: string, merkleHeight:
         deploymentId: `${networkName}-MerkleDrop-${version}`,
     });
 
-    console.log(`Deployed at address: ${drop.target}`);
+    console.log(`Deployed at address: ${drop.target}\n`);
 
     if (chainId !== 31337) {
         await verifyContract({
@@ -48,10 +48,3 @@ export async function deploy (version: number, merkleRoot: string, merkleHeight:
 
     return drop;
 }
-
-// Test deployment with sample data
-// TODO: Remove when hardhat task is ready
-deploy(94, '0xbe18eb3a9c6bff90059911a3d28f87af', 7).catch((error) => {
-    console.error('Error deploying contract:', error);
-    process.exit(1);
-});
