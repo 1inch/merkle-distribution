@@ -2,36 +2,35 @@
 
 ## 1. Introduction
 
-### 1.1 Our Journey: Hardhat → Forge → Hardhat 3
+### 1.1 Our Journey: Hardhat 2 → Forge → Hardhat 3
 
 At 1inch, we've been on quite a journey with Ethereum development tooling.
 
-A couple of years ago, we started migrating from Hardhat v2 to Forge (Foundry) because it offered something we really wanted: **tests written in Solidity**. The ability to write tests in the same language as our contracts seemed like a significant advantage for testing complex DeFi protocols.
+About a couple of years ago, we moved from Hardhat v2 to Forge (Foundry) because it offered tests written in Solidity. The ability to write tests in the same language as our contracts seemed like a significant advantage for testing complex DeFi protocols.
 
 However, Forge caused us considerable pain in practice. While powerful in some areas, the overall experience didn't work well for our workflow.
 
-When **Hardhat 3** was released, we saw an opportunity to return. Hardhat 3 now supports:
-- **Native Solidity tests** — the feature that originally attracted us to Forge
-- **Fuzz testing** — automated property-based testing with random inputs  
-- **Invariant testing** — continuous verification of system invariants
+When **Hardhat 3** was released, we saw an opportunity to come back. Hardhat 3 now supports:
+- **Native Solidity tests** - the feature that originally attracted us to Forge
+- **Fuzz testing** - automated property-based testing with random inputs  
+- **Invariant testing** - continuous verification of system invariants
 
-These additions, combined with our existing familiarity with Hardhat's tooling and the fact that we already had significant TypeScript infrastructure built around it, made migrating back a practical choice.
+These additions, combined with our experience with Hardhat's tooling and the fact that we already had TypeScript infrastructure built around it, made migrating back a practical choice.
 
-**This article series documents our migration experience**, sharing the challenges we encountered and solutions we developed so other developers can avoid the same pitfalls.
+This article series documents our migration experience, sharing the challenges we encountered and solutions we developed so other developers can avoid the same pitfalls.
 
 ### 1.2 The Project Being Migrated
 
-For this migration, we chose the **Merkle Distribution** project ([github.com/1inch/merkle-distribution](https://github.com/1inch/merkle-distribution)). It's an open-source tool for generating and managing token drops — distributing tokens to users via merkle tree proofs through QR codes, web links, or NFC tags. We use it internally and make it available for anyone to use.
+For this migration, we chose the [Merkle Distribution](https://github.com/1inch/merkle-distribution) project. It's an open-source tool for generating and managing token drops.  We picked this project specifically because it is standalone and doesn't depend on other protocols like 1inch Aggregator or Limit Orders. This isolation made it a safe candidate to test the migration process without breaking dependencies across our codebase.
 
-**Tech stack:** The project uses Solidity for smart contracts, TypeScript for tooling and tests, Hardhat v2 as the development framework, yarn as package manager, plus ESLint for TypeScript and Solhint for Solidity linting.
+**Tech stack:** The project uses Solidity for smart contracts, TypeScript for tooling and tests, Hardhat v2 as the development framework, plus ESLint for TypeScript and Solhint for Solidity linting.
 
-We picked this project specifically because it's standalone — it doesn't depend on our other protocols like 1inch Aggregator or Limit Orders. This isolation made it a safe candidate to test the migration process without risking breaking dependencies across our codebase.
 
 The project uses Hardhat for three main purposes:
 
-**Testing:** We have smart contract tests for our merkle drop contracts, plus unit and integration tests for the TypeScript services. The test suite includes shared behavior modules — a pattern where common test logic is extracted into reusable functions.
+**Testing:** We have smart contract tests for our merkle drop contracts, plus unit and integration tests for the TypeScript services. The test suite includes shared behavior modules - a pattern where common test logic is extracted into reusable functions.
 
-**Deployments:** The contracts are deployed across multiple networks using `hardhat-deploy`. Each deployment is versioned, and we've accumulated several dozen deployment artifacts over time that need to be preserved.
+**Deployments:** The contracts can be deployed on multiple networks using `hardhat-deploy`. Each deployment is versioned, and we've accumulated deployment artifacts over time that need to be preserved.
 
 **Contract Management via Tasks:** We built custom Hardhat tasks for the full drop lifecycle: generating claim links, deploying contracts, verifying deployments on block explorers, checking claim statistics, and rescuing unclaimed tokens.
 
@@ -41,11 +40,11 @@ The goal for this migration was to move all of these functionalities to Hardhat 
 
 This migration guide is organized into three parts:
 
-- **Part 1: Initial Configuration and Test Migration** ← you are here
-- **Part 2: Deployment Migration**
-- **Part 3: Making Tasks Work with Hardhat 3**
+- Part 1: Initial Configuration and Test Migration ← you are here
+- [Part 2: Deployment Migration](https://github.com/1inch/merkle-distribution/blob/hardhat-3/articles/hardhat-v3-migration-part2.md)
+- [Part 3: Tasks migration](https://github.com/1inch/merkle-distribution/blob/hardhat-3/articles/hardhat-v3-migration-part3.md)
 
-In this first part, we cover configuration file changes and test migration, including some non-obvious issues we encountered along the way.
+In this first part, we cover configuration file changes and tests migration, including some non-obvious issues we encountered along the way.
 
 ## 2. Configuration Changes
 
@@ -83,13 +82,13 @@ Even in a TypeScript project, this setting is required. When you run code via `t
 ```
 
 The `module` and `moduleResolution` changes:
-- `module: "esnext"` — Outputs standard ES modules. The previous `nodenext` was tied to Node.js-specific ESM quirks; `esnext` is more compatible with Hardhat 3's module system.
-- `moduleResolution: "bundler"` — This newer resolution strategy supports modern package.json `exports` fields, which Hardhat 3 packages use extensively. The old `nodenext` resolution had stricter requirements that don't work well with how Hardhat 3 exports its modules.
+- `module: "esnext"` - Outputs standard ES modules. The `nodenext` is tied to Node.js-specific ESM quirks; `esnext` is more compatible with Hardhat 3's module system.
+- `moduleResolution: "bundler"` - This newer resolution strategy supports modern package.json `exports` fields, which Hardhat 3 packages use. The old `nodenext` resolution had stricter requirements that don't work well with how Hardhat 3 exports its modules.
 
 The `ts-node` section enables running TypeScript files directly with ESM:
-- `esm: true` — Enable ES module mode
-- `experimentalSpecifierResolution: "node"` — Allows Node.js-style imports (like importing directories with index files)
-- `transpileOnly: true` — Faster compilation by skipping type checking
+- `esm: true` - Enable ES module mode
+- `experimentalSpecifierResolution: "node"` - Allows Node.js-style imports (like importing directories with index files)
+- `transpileOnly: true` - Faster compilation by skipping type checking
 
 **Additional tsconfig.json changes:**
 
@@ -110,8 +109,8 @@ You may also need to update `types` and `exclude` sections:
 }
 ```
 
-- **types:** In Hardhat 2 with CommonJS, type declarations were auto-discovered through module resolution — when you `import 'hardhat'`, TypeScript follows the module and finds its `.d.ts` files automatically. In Hardhat 3 with ESM, the module structure is different. The `await network.connect()` pattern returns objects whose types need to be resolved differently, so adding explicit `"hardhat"` and `"ethers"` entries ensures TypeScript can find the type declarations.
-- **exclude:** If you previously excluded test files, remove them from `exclude`. Otherwise VS Code won't recognize Hardhat objects in your tests and will show compilation errors — even though the tests actually run correctly via ts-node.
+- **types:** In Hardhat 2 with CommonJS, type declarations were auto-discovered through module resolution - when you `import 'hardhat'`. Adding explicit `"hardhat"` and `"ethers"` entries ensures TypeScript can find the type declarations.
+- **exclude:** If you previously excluded test files, remove them from `exclude`. Otherwise VS Code won't recognize Hardhat objects in your tests and will show compilation errors - even though the tests actually run correctly via ts-node.
 
 ### 2.2 Dependency Updates
 
@@ -147,9 +146,17 @@ The Hardhat 3 ecosystem uses a new set of packages. In `package.json`, you'll ne
 }
 ```
 
-Note that some packages like `hardhat-deploy`, `hardhat-dependency-compiler`, `hardhat-gas-reporter`, and `solidity-coverage` are no longer compatible with Hardhat 3.
+Note that some packages like `hardhat-deploy`, `hardhat-dependency-compiler`, and others are no longer compatible with Hardhat 3. Here is the list of Hardhat 3 replacements we used for migration.
 
-> **Note on yarn:** Yarn doesn't auto-install peer dependencies by default. You may need to manually add some dependencies that other packages require as peers — check the installation warnings and add them explicitly.
+| HH2 plugin | HH3 status / replacement |
+|------------|--------------------------|
+| hardhat-deploy | Used built-in deployment engine **Hardhat Ignition** |
+| hardhat-dependency-compiler | Used built-in config parameter **`npmFilesToBuild`** |
+| hardhat-gas-reporter | Used built-in gas statistics in HH3 |
+| solidity-coverage | No official HH3-compatible version; removed for migration |
+| hardhat-tracer | No HH3 support, removed for migration |
+
+> **Note on yarn:** Yarn doesn't auto-install peer dependencies by default. You may need to manually add some dependencies that other packages require as peers - check the installation warnings and add them explicitly.
 
 ## 3. Hardhat Configuration Migration
 
@@ -160,7 +167,7 @@ Hardhat 3 introduces a new configuration format ([see configuration reference](h
 
 ### 3.1 Configuration Code Changes
 
-In Hardhat 3, plugins must be explicitly registered in the `plugins` array. If a plugin is not listed there, the objects and functions it provides will be `undefined` when you try to access them from hardhat runtime environment. This is a common source of errors during migration — if something that worked before is now undefined, check that its plugin is registered.
+In Hardhat 3, plugins must be explicitly registered in the `plugins` array. If a plugin is not listed there, the objects and functions it provides will be `undefined` when you try to access them from hardhat runtime environment. This is a common source of errors during migration - if something that worked before is now `undefined`, check that its plugin is registered.
 
 **Before (Hardhat 2):**
 ```typescript
@@ -250,7 +257,7 @@ Key changes:
 - `loadFixture` comes from `networkHelpers` returned by `network.connect()`
 - `chai` can be imported directly with named exports
 
-> **Note on type-only imports:** When you only use an import for type annotations (like `Contract` for typing a variable), use `import { type X }`. This tells TypeScript not to emit the import in the JavaScript output, avoiding potential runtime errors in ESM mode when the module's exports don't match what Node.js expects.
+> **Note on type-only imports:** When you only use an import for type annotations (like `Contract` for typing a variable), use `import type` instead of `import`. This tells TypeScript not to emit the import in the JavaScript output, avoiding potential runtime errors in ESM mode when the module's exports don't match what Node.js expects.
 
 ### 4.2 loadFixture with Modular Tests (Watch Out!)
 
@@ -258,13 +265,13 @@ This is a subtle issue that caused us significant debugging time. When organizin
 
 **The symptom:** Tests work when defined in a single file but fail when behavior functions are extracted to separate modules. The fixture appears to run only once instead of being reset for each test.
 
-**The root cause:** In ESM, each module calling `await network.connect()` at the top level gets its own separate blockchain simulation instance. If `behavior.ts` has its own `network.connect()` call, it uses a different `loadFixture` instance than the test file — and these don't coordinate their snapshot/restore mechanisms.
+**The root cause:** In ESM, each module calling `await network.connect()` at the top level gets its own separate blockchain simulation instance. If behavior module has its own `network.connect()` call, it uses a different `loadFixture` instance than the test file - and these don't coordinate their snapshot/restore mechanisms.
 
 **Failing (separate modules):**
 ```typescript
 // behavior.ts
 import { network } from 'hardhat';
-const { networkHelpers } = await network.connect();  // ⚠️ Own network instance
+const { networkHelpers } = await network.connect();  // ⚠️ Behavior module network instance
 const { loadFixture } = networkHelpers;
 
 export function shouldBehaveLikeDrop() {
@@ -274,8 +281,9 @@ export function shouldBehaveLikeDrop() {
 // test.ts
 import { shouldBehaveLikeDrop } from './behavior';
 import { network } from 'hardhat';
-const { networkHelpers } = await network.connect();  // ⚠️ Different network instance
+const { networkHelpers } = await network.connect();  // ⚠️ Test network instance
 // Tests fail - fixtures don't reset properly
+shouldBehaveLikeDrop();
 ```
 
 **The solution:** Pass `loadFixture` from the test file to behavior modules, ensuring a single source of truth:
@@ -308,7 +316,7 @@ In Hardhat 3, several chai matchers have updated signatures. Because Hardhat 3 s
 + await expect(tx).to.changeTokenBalance(ethers, token, sender, -1000);
 ```
 
-Be careful to pass the correct `ethers` instance — the one from the same `network.connect()` call that your test is using. If you pass an `ethers` from a different connection (like one imported from a behavior module with its own `network.connect()`), the matcher will query a different blockchain state and produce incorrect results or cryptic errors.
+Be careful to pass the correct `ethers` instance - the one from the same `network.connect()` call that your test is using. If you pass an `ethers` from a different connection (like one imported from a behavior module with its own `network.connect()`), the matcher will query a different blockchain state and produce incorrect results or cryptic errors.
 
 ### 4.4 HHE100 Error? Check Your `await` Statements
 
@@ -326,7 +334,7 @@ The error message doesn't point to the actual problem. After investigation, we f
 + await expect(txn).to.changeEtherBalance(ethers, alice, 10);
 ```
 
-This test worked in Hardhat 2 (by coincidence) but fails in Hardhat 3. **If you see `HHE100` or other cryptic internal errors, check for missing `await` statements** — especially on chai matchers like `.to.changeEtherBalance`, `.to.emit`, and `.to.be.reverted`.
+This test worked in Hardhat 2 (by coincidence) but fails in Hardhat 3. If you see `HHE100`, check for missing `await` statements** - especially on chai matchers like `.to.changeEtherBalance`, `.to.emit`, and `.to.be.reverted`.
 
 ### 4.5 Contract Deployment Changes
 
@@ -350,7 +358,7 @@ The simplest solution is to rename your ESLint config file to use the `.cjs` ext
 
 The `.cjs` extension forces Node.js to treat the file as CommonJS, regardless of the package's `type` setting. Your config can continue using `require()` and `module.exports`.
 
-Don't forget to update the global ignores in your config to match the new filename:
+Don't forget to update the global ignores in your `eslint.config.cjs` config to match the new filename:
 
 ```diff
 {
@@ -371,6 +379,6 @@ In this first part, we covered the foundation of migrating to Hardhat 3:
 - Test file import changes and common gotchas
 - ESLint configuration for ESM
 
-In **Part 2: Deployment Migration**, we'll cover how to replace `hardhat-deploy` (which isn't compatible with Hardhat 3) and migrate to Hardhat Ignition while preserving existing deployment artifacts.
+In [Part 2: Deployment Migration](https://github.com/1inch/merkle-distribution/blob/hardhat-3/articles/hardhat-v3-migration-part2.md), we'll cover how to replace `hardhat-deploy` (which isn't compatible with Hardhat 3) and migrate to Hardhat Ignition.
 
-In **Part 3: Making Tasks Work with Hardhat 3**, we'll tackle the new task API and how to migrate existing custom Hardhat tasks.
+In [Part 3: Tasks migration](https://github.com/1inch/merkle-distribution/blob/hardhat-3/articles/hardhat-v3-migration-part3.md), we'll see how to migrate existing custom Hardhat tasks.

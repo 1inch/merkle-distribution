@@ -2,9 +2,9 @@
 
 ## 1. Introduction
 
-In [Part 1](/articles/hardhat-v3-migration-part1), we covered the foundation of migrating to Hardhat 3: ES module configuration, dependency updates, hardhat.config.ts changes, and test file migration.
+In [Part 1](https://github.com/1inch/merkle-distribution/blob/hardhat-3/articles/hardhat-v3-migration-part1.md), we covered the foundation of migrating to Hardhat 3: ES module configuration, dependency updates, hardhat.config.ts changes, and test file migration.
 
-In this second part, we tackle **deployment migration** — specifically, replacing `hardhat-deploy` with Hardhat Ignition. This turned out to be one of the more significant changes in our migration, as `hardhat-deploy` (the plugin we were using) is not compatible with Hardhat 3.
+In this second part, we tackle deployment migration - specifically, replacing `hardhat-deploy` with Hardhat Ignition. This turned out to be one of the more significant changes in our migration, as `hardhat-deploy` (the plugin we were using) is not compatible with Hardhat 3.
 
 We'll cover:
 - Why hardhat-deploy doesn't work and what replaces it
@@ -23,9 +23,9 @@ Our project previously used `hardhat-deploy` for contract deployments. This popu
 
 **The problem:** `hardhat-deploy` is not compatible with Hardhat 3. The plugin relies on Hardhat 2's internal APIs.
 
-We attempted to use `hardhat-deploy@next` — an experimental version intended for Hardhat 3 support — but couldn't get it to work with the latest Hardhat release.
+We attempted to use `hardhat-deploy@next` - an experimental version intended for Hardhat 3 support - but couldn't get it to work with the latest Hardhat release.
 
-This led us to **Hardhat Ignition** — the official deployment system built into Hardhat 3. Beyond being the supported replacement, Ignition brings major new features:
+This led us to **Hardhat Ignition** - the official deployment system built into Hardhat 3. Beyond being the supported replacement, Ignition brings major new features:
 - Declarative module-based deployments
 - Automatic transaction batching and parallelization
 - Built-in recovery from failed deployments
@@ -44,7 +44,7 @@ To use Ignition, add the plugin to your configuration.
 yarn add -D @nomicfoundation/hardhat-ignition @nomicfoundation/ignition-core
 ```
 
-**hardhat.config.ts:**
+**hardhat.config.ts** - add Hardhat Ignition plugin to your config.
 
 ```typescript
 import hardhatIgnition from '@nomicfoundation/hardhat-ignition';
@@ -55,7 +55,7 @@ const plugins: HardhatPlugin[] = [
 ];
 ```
 
-**tsconfig.json** — add the ignition folder to the include section:
+**tsconfig.json** - add the ignition folder to the include section:
 
 ```diff
 {
@@ -70,7 +70,7 @@ const plugins: HardhatPlugin[] = [
 
 Without this change, VS Code will show errors when you try to reference ignition modules from other scripts.
 
-Once registered, the plugin adds an `ignition` property to network connections, which you'll use for deploying modules.
+Once registered, the plugin adds an `ignition` property to network connections, which you will use for deploying modules.
 
 ## 4. Creating Ignition Modules
 
@@ -94,16 +94,22 @@ export default buildModule("SignatureDrop", (m) => {
 ```
 
 Key concepts:
-- **`buildModule(name, callback)`** — Creates a named module. The name is used to identify this module in deployments.
-- **`m.contract(name, args)`** — Declares a contract deployment. Arguments can be static values or parameters.
-- **`m.getParameter<T>(name)`** — Declares a parameter that must be provided at deploy time. This keeps your modules reusable across different deployments.
-- **Return object** — Exposed contracts that can be used by other modules or accessed after deployment.
+- **`buildModule(name, callback)`** - Creates a named module. The name is used to identify this module in deployments.
+- **`contract(name, args)`** - Declares a contract deployment. Arguments can be static values or parameters.
+- **`getParameter<T>(name)`** - Declares a parameter that must be provided at deploy time. This keeps your modules reusable across different deployments.
+- **`Return object`** - Exposed contracts that can be used by other modules or accessed after deployment.
 
-Our contract is relatively simple with just a single deployment. Ignition is capable of much more — you can program complex multi-contract deployment scenarios with dependencies, call existing contracts, and orchestrate entire protocol deployments. However, these complex scenarios are limited to single-repo deployments — Ignition doesn't support cross-repo deployment coordination.
+Now the contract can be deployed running
+```bash
+yarn hardhat ignition deploy ignition/modules/signature.ts
+```
+It is necessary to mention that parameters are passed to Ignition through parameters `.json` file which can be specified with `--parameters` argument.
+
+Our contract is relatively simple with just a single deployment. Ignition is capable of much more - you can program complex multi-contract deployment scenarios with dependencies, call existing contracts, and orchestrate entire protocol deployments. However, these complex scenarios are limited to single-repo deployments - Ignition doesn't support cross-repo deployment coordination.
 
 ## 5. Writing Deploy Scripts
 
-In our project, deployment parameters (version, merkle root, tree height) come from a Hardhat task that the user runs interactively. Ignition modules have [certain limitations](https://hardhat.org/ignition/docs/guides/scripts).
+In our project, deployment parameters (version, merkle root, tree height) are calculated in script execution time and come from a Hardhat task that the user runs. Ignition modules have [certain limitations](https://hardhat.org/ignition/docs/guides/scripts), for example conditional logic and async/await is prohibited.
 
 To overcome these limitations, we wrap Ignition in a deploy script. This gives us the flexibility to process parameters from tasks and handle custom logging.
 
@@ -145,16 +151,22 @@ export async function deploy(version: number, merkleRoot: string, merkleHeight: 
 
 Key points:
 
-- **`hre.network.connect()`** — Creates a connection to the network, same pattern as in tests.
-- **`connection.ignition.deploy(module, options)`** — Deploys the module with parameters.
-- **`parameters` object** — This is where you pass values for `m.getParameter()` calls. The object is keyed by module name, then parameter name. **Note:** The docs primarily show file-based parameters, but passing them as an object works and is more flexible for programmatic deployments.
-- **`deploymentId`** — Unique identifier for this deployment. Ignition uses this to track deployment state and enable resumption if something fails.
+- **`hre.network.connect()`** - Creates a connection to the network, same pattern as in tests.
+- **`connection.ignition.deploy(module, options)`** - Deploys the module with parameters.
+- **`parameters`** object - This is how you pass values for `m.getParameter()` calls. The object is keyed by module name, then parameter name. 
+>**Note:** The docs primarily show file-based parameters, but passing them as an object works and is more flexible for programmatic deployments.
+- **`deploymentId`** - Unique identifier for this deployment. Ignition uses this to track deployment state and enable resumption if something fails.
+
+Regular ignition modules are deployed with `hardhad ignition deploy` command. But since we have wrapping script we should use 
+```bash
+yarn hardhat run ./ignition/deploy-signature.ts
+```
 
 ## 6. Deployment Folder Structure
 
 One notable difference from `hardhat-deploy`: Ignition uses a **flat deployment structure**.
 
-With `hardhat-deploy`, we had:
+With `hardhat-deploy`, we had deployments folder structured by networks where deployments happened
 ```
 deployments/
 ├── mainnet/
@@ -166,7 +178,7 @@ deployments/
     └── MerkleDrop128-3.json
 ```
 
-With Ignition, deployments are stored in:
+With Ignition, deployments are stored in `ignition/deployments` folder:
 ```
 ignition/deployments/
 ├── mainnet-MerkleDrop-2/
@@ -175,7 +187,26 @@ ignition/deployments/
 └── bsc-MerkleDrop-3/
 ```
 
-Ignition doesn't support organizing deployments into `chainName/deploymentId` subfolders — all deployments are at the same level. The network name is encoded in the `deploymentId` instead.
+Ignition doesn't support organizing deployments into `chainName/deploymentId` subfolders - all deployments are at the same level. The network name is encoded in the `deploymentId` instead.
+
+Here's what each deployment folder looks like, using our project as an example:
+
+```
+ignition/deployments/sepolia-MerkleDrop-78/
+├── artifacts/
+│   └── SignatureDrop#SignatureMerkleDrop128.json
+├── build-info/
+│   └── solc-0_8_23-....json
+├── deployed_addresses.json
+└── journal.jsonl
+```
+
+It contains 
+- `artifacts/` folder - compiled contract artifacts (ABI, bytecode, source info)
+- `build-info/` folder - Solidity compiler input/output for reproducible builds
+- `deployed_addresses.json` - contract addresses keyed by future ID
+- `journal.jsonl` - line-delimited JSON log of every deployment step
+
 
 ## 7. Migration from hardhat-deploy
 
@@ -186,7 +217,7 @@ Our approach:
 - **Use Ignition for all new deployments** going forward
 - **Implement auto-discovery logic** in tasks to determine whether a deployment comes from the old (`hardhat-deploy`) or new (Ignition) format, and read from the appropriate location
 
-Another challenge: with `hardhat-deploy`, the `deployments` object provided convenient methods to load and read deployment files. Ignition doesn't offer an equivalent — we now have to parse deployment JSON files manually in our tasks.
+Another challenge: with `hardhat-deploy`, the `deployments` object provided convenient methods to load and read deployment files. Ignition doesn't offer an equivalent - we now have to parse deployment JSON files manually in our tasks.
 
 ## 8. Testing Deployments
 
@@ -215,8 +246,8 @@ networks: {
 ```
 
 Key points:
-- **`type` property** — Hardhat 3 requires explicitly specifying the network type (`'edr-simulated'` for in-memory or `'http'` for RPC connections)
-- **`accounts` array** — Load private keys from environment variables for production deployments. Store them in a `.env` file and use `dotenv` to load them.
+- **`type` property** - Hardhat 3 requires explicitly specifying the network type (`'edr-simulated'` for in-memory or `'http'` for RPC connections)
+- **`accounts` array** - Load private keys from environment variables for production deployments. Store them in a `.env` file and use `dotenv` to load them.
 
 To test your deploy scripts locally:
 
@@ -265,11 +296,11 @@ export default defineConfig({
 });
 ```
 
-Note the config structure change from Hardhat 2: the Etherscan API key now lives under `verify.etherscan.apiKey` instead of the top-level `etherscan` object. Blockscout and Sourcify are enabled by default — disable them explicitly if you only want Etherscan verification.
+Note the config structure change from Hardhat 2: the Etherscan API key now lives under `verify.etherscan.apiKey` instead of the top-level `etherscan` object. Blockscout and Sourcify are enabled by default - disable them explicitly if you only want Etherscan verification.
 
 ### 9.2 Build Profiles and `evmVersion`: The Verification Pitfall (Watch Out!)
 
-This was the most frustrating issue we encountered during migration. Verification would fail with:
+After setting up verification we struggled with verification failing after deployment. Verification failed with error:
 
 ```
 Fail - Unable to verify. Compiled contract deployment bytecode
@@ -278,18 +309,18 @@ does NOT match the transaction deployment bytecode.
 
 The exact same contract, compiler version, and optimizer settings that worked perfectly with Hardhat 2 suddenly produced bytecode mismatches. Two issues were at play:
 
-**Issue 1: Build profiles.** Hardhat 3 introduces [build profiles](https://hardhat.org/docs/guides/writing-contracts/build-profiles) — a new concept that doesn't exist in Hardhat 2:
-- **`default`** — used by most tasks (compile, test)
-- **`production`** — used by Hardhat Ignition for deployments, with its own defaults (optimizer enabled, [Isolated Builds](https://hardhat.org/docs/guides/writing-contracts/isolated-builds) enabled)
+**Issue 1: Build profiles.** Hardhat 3 introduces [build profiles](https://hardhat.org/docs/guides/writing-contracts/build-profiles) - a new concept that doesn't exist in Hardhat 2:
+- **`default`** - used by most tasks (compile, test)
+- **`production`** - used by Hardhat Ignition for deployments, with its own defaults (optimizer enabled, [Isolated Builds](https://hardhat.org/docs/guides/writing-contracts/isolated-builds) enabled)
 
-When you define your Solidity config without explicit profiles, **you're only configuring the `default` profile**. The `production` profile keeps its own defaults — which may differ from your settings (e.g., optimizer `runs` defaults to 200, not your configured 1,000,000).
+When you define your Solidity config without explicit profiles, **you're only configuring the `default` profile**. The `production` profile keeps its own defaults - which may differ from your settings (e.g., optimizer `runs` defaults to 200, not your configured 1,000,000).
 
 Here's the sequence that causes the failure:
 1. Ignition deploys using the `production` profile → bytecode compiled with production defaults
 2. `verifyContract` reads build artifacts from the `default` profile → sends different compilation settings to Etherscan
 3. Etherscan recompiles with those different settings → bytecode doesn't match → verification fails
 
-**Issue 2: `evmVersion` default.** If you were relying on an explicit `evmVersion` in your Hardhat 2 config (as we were with `'shanghai'`), make sure to carry it over. Hardhat's default `evmVersion` is `paris`, not the solc default of `shanghai` for 0.8.23+. The difference is significant — `shanghai` uses the `PUSH0` opcode while `paris` doesn't, producing entirely different bytecode.
+**Issue 2: `evmVersion` default.** If you were relying on an explicit `evmVersion` in your Hardhat 2 config (as we were with `'shanghai'`), make sure to carry it over. Hardhat's default `evmVersion` is `paris`, not the solc default of `shanghai` for 0.8.23+. The difference is significant - `shanghai` uses the `PUSH0` opcode while `paris` doesn't, producing entirely different bytecode.
 
 **The fix:** Explicitly configure both profiles with identical settings, including `evmVersion`:
 
