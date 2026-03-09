@@ -395,26 +395,11 @@ export async function deploy(version: number, merkleRoot: string, merkleHeight: 
 You can also verify after deployment using the CLI:
 
 ```bash
-yarn hardhat verify --network sepolia 0x1234567890...
+yarn hardhat ignition verify deploymentId
 ```
 
-Hardhat automatically determines which contract to verify by compiling all contracts in the project and matching the resulting bytecodes against the deployed bytecode fetched from the on-chain address. If you have contracts with the same name in different files, you can disambiguate with `--contract`:
+Deployment artifacts for the `deploymentId` already contain the chain and contracts to verify, so you don't need to pass chain id.
 
-```bash
-yarn hardhat verify --network sepolia --contract contracts/SignatureMerkleDrop128.sol:SignatureMerkleDrop128 0x1234...
-```
-
-If your contract has constructor arguments, pass them after the address:
-
-```bash
-yarn hardhat verify --network sepolia 0x1234... "0xTokenAddr" "0xMerkleRoot" 7
-```
-
-By default, the `verify` task uses the `production` build profile. If you deployed with a different profile, specify it with `--build-profile`:
-
-```bash
-yarn hardhat verify --network sepolia --build-profile default 0x1234...
-```
 
 ## 10. What's Next
 
