@@ -20,23 +20,23 @@ import { configDotenv } from 'dotenv';
  *   4. Verifies all generated links against the deployed contract
  *
  * Parameters:
- *   --v     : (Optional) Deployment version number (defaults to .latest + 1)
- *   --a     : Comma-separated list of token amounts for each tier
- *   --n     : Comma-separated list of how many codes to generate per tier
- *   --debug : (Optional) Debug mode - generates links without deploying
+ *   -v/--ver     : (Optional) Deployment version number (defaults to .latest + 1)
+ *   -a/--amounts : Comma-separated list of token amounts for each tier
+ *   -n/--numbers : Comma-separated list of how many codes to generate per tier
+ *   -d/--debug   : (Optional) Debug mode - generates links without deploying
  *
  * Usage:
- *   yarn hardhat drop --network <network> [--v <version>] --a <amounts> --n <counts> [--debug]
+ *   yarn hardhat drop --network <network> [-v <version>] -a <amounts> -n <counts> [-d]
  *
  * Examples:
  *   # Deploy on base with auto-incremented version (reads from .latest file)
- *   yarn hardhat drop --network base --a 5,10,20,30,40,50 --n 10,15,20,25,20,10
+ *   yarn hardhat drop --network base -a 5,10,20,30,40,50 -n 10,15,20,25,20,10
  *
  *   # Deploy on base with specific version
- *   yarn hardhat drop --network base --v 53 --a 5,10,20,30,40,50 --n 10,15,20,25,20,10
+ *   yarn hardhat drop --network base -v 53 -a 5,10,20,30,40,50 -n 10,15,20,25,20,10
  *
  *   # Test generation without deployment (debug mode)
- *   yarn hardhat drop --network hardhat --v 55 --a 10,20 --n 5,5 --debug
+ *   yarn hardhat drop --network hardhat -v 55 -a 10,20 -n 5,5 -d
  */
 const drop = task('drop', 'Generate merkle drop links, deploy contract, and verify all generated claim links')
     .addOption({
@@ -76,17 +76,17 @@ const drop = task('drop', 'Generate merkle drop links, deploy contract, and veri
  *   the deployed contract to ensure they are valid.
  *
  * Parameters:
- *   --v : Deployment version number (must match the deployed contract)
+ *   -v/--ver : Deployment version number (must match the deployed contract)
  *
  * Usage:
- *   yarn hardhat verify-links --network <network> --v <version>
+ *   yarn hardhat verify-links --network <network> -v <version>
  *
  * Examples:
  *   # Verify links for version 61 on base network
- *   yarn hardhat verify-links --network base --v 61
+ *   yarn hardhat verify-links --network base -v 61
  *
  *   # Verify links for version 42 on mainnet
- *   yarn hardhat verify-links --network mainnet --v 42
+ *   yarn hardhat verify-links --network mainnet -v 42
  *
  * Note:
  *   - Requires deployment artifacts to exist in deployments/<network>/MerkleDrop128-<version>.json
@@ -113,17 +113,17 @@ const verifyLinks = task('verify-links', 'Verify all generated links against a d
  *   deployment artifacts to provide constructor arguments.
  *
  * Parameters:
- *   --v : Deployment version number (must match the deployed contract)
+ *   -v/--ver : Deployment version number (must match the deployed contract)
  *
  * Usage:
- *   yarn hardhat verify-deployment --network <network> --v <version>
+ *   yarn hardhat verify-deployment --network <network> -v <version>
  *
  * Examples:
  *   # Verify version 53 on base network
- *   yarn hardhat verify-deployment --network base --v 53
+ *   yarn hardhat verify-deployment --network base -v 53
  *
  *   # Verify version 42 on mainnet
- *   yarn hardhat verify-deployment --network mainnet --v 42
+ *   yarn hardhat verify-deployment --network mainnet -v 42
  *
  * Note:
  *   Requires deployment artifacts to exist
@@ -148,20 +148,20 @@ const verifyDeployment = task('verify-deployment', 'Verify a deployed merkle dro
  *   through the drop contract.
  *
  * Parameters:
- *   --v : Deployment version number (must match the deployed contract)
+ *   -v/--ver : Deployment version number (must match the deployed contract)
  *
  * Usage:
- *   yarn stat <network> --v <version>
+ *   yarn stat <network> -v <version>
  *
  * Examples:
  *   # Get statistics for version 61 on base network
- *   yarn stat base --v 61
+ *   yarn stat base -v 61
  *
  *   # Get statistics for version 41 on mainnet
- *   yarn stat mainnet --v 41
+ *   yarn stat mainnet -v 41
  *
  *   # Get statistics for version 3 on BSC
- *   yarn stat bsc --v 3
+ *   yarn stat bsc -v 3
  *
  * Statistics Displayed:
  *   - Total number of claims
@@ -190,20 +190,20 @@ const stats = task('stats', 'Collect on-chain statistics for deployed drops')
  *   will be transferred to the owner's address.
  *
  * Parameters:
- *   --v : Deployment version number (must match the deployed contract)
+ *   -v/--ver : Deployment version number (must match the deployed contract)
  *
  * Usage:
- *   yarn rescue <network> --v <version>
+ *   yarn rescue <network> -v <version>
  *
  * Examples:
  *   # Rescue tokens from version 61 on base network
- *   yarn rescue base --v 61
+ *   yarn rescue base -v 61
  *
  *   # Rescue tokens from version 41 on mainnet
- *   yarn rescue mainnet --v 41
+ *   yarn rescue mainnet -v 41
  *
  *   # Rescue tokens from version 3 on BSC
- *   yarn rescue bsc --v 3
+ *   yarn rescue bsc -v 3
  *
  * Information Displayed:
  *   - Current token balance on the contract
