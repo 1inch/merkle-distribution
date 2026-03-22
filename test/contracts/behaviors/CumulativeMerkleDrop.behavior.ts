@@ -1,9 +1,7 @@
-import '@nomicfoundation/hardhat-chai-matchers';
-import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
-import { expect } from '@1inch/solidity-utils';
-import { Contract, Signer } from 'ethers';
-const hre = require('hardhat');
-const { ethers } = hre;
+import type { Contract, Signer } from 'ethers';
+import { expect } from 'chai';
+import hre from 'hardhat';
+const { ethers } = await hre.network.connect();
 
 interface MerkleDropData {
     hashedElements: string[];
@@ -39,6 +37,7 @@ interface CumulativeMerkleDropBehaviorConfig {
         amounts: bigint[];
         deposit: bigint;
     };
+    loadFixture: <T>(fixture: () => Promise<T>) => Promise<T>;
 }
 
 export function shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234 ({
@@ -46,6 +45,7 @@ export function shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234 
     functions: { makeFirstDrop, makeSecondDrop, findSortedIndex },
     makeFirstDropParams,
     makeSecondDropParams,
+    loadFixture,
 }: CumulativeMerkleDropBehaviorConfig) {
     describe('Double drop for wallets', async function () {
         async function deployContractsFixture () {

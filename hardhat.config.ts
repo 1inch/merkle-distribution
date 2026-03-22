@@ -1,50 +1,16 @@
-import '@nomicfoundation/hardhat-verify';
-import '@nomicfoundation/hardhat-ethers';
-import '@nomicfoundation/hardhat-chai-matchers';
-import 'hardhat-dependency-compiler';
-import 'hardhat-deploy';
-import 'hardhat-gas-reporter';
-import 'solidity-coverage';
-import 'dotenv/config';
-import { task, HardhatUserConfig } from 'hardhat/config';
-import { Networks, getNetwork } from '@1inch/solidity-utils/hardhat-setup';
-import { dropTask, verifyDeploymentTask, deployQRDrop, verifyLinksTask, collectStatsTask, rescueTask } from './src/tasks/hardhat-drop-task';
-
-const { networks, etherscan } = new Networks().registerAll();
+import { defineConfig, task } from 'hardhat/config';
+import type { HardhatPlugin } from 'hardhat/types/plugins';
+import hardhatEthers from '@nomicfoundation/hardhat-ethers';
+import hardhatToolboxMochaEthers from '@nomicfoundation/hardhat-toolbox-mocha-ethers';
+import hardhatEthersChaiMatchers from '@nomicfoundation/hardhat-ethers-chai-matchers';
+import hardhatNetworkHelpers from '@nomicfoundation/hardhat-network-helpers';
+import hardhatIgnition from '@nomicfoundation/hardhat-ignition';
+import hardhatVerify from '@nomicfoundation/hardhat-verify';
+import { ArgumentType } from 'hardhat/types/arguments';
+import { configDotenv } from 'dotenv';
 
 /**
- * Deploy QR-based Merkle Drop Contract
- *
- * Description:
- *   Deploys a merkle drop contract using a pre-computed merkle root.
- *   This task is useful when you already have generated the merkle tree
- *   and just need to deploy the contract with specific parameters.
- *
- * Parameters:
- *   --v : Deployment version number (used for contract naming)
- *   --r : Pre-computed merkle root (hex string)
- *   --h : Height of the merkle tree
- *
- * Usage:
- *   yarn hardhat deploy:qr --network <network> --v <version> --r <root> --h <height>
- *
- * Examples:
- *   # Deploy on mainnet with version 35
- *   yarn hardhat deploy:qr --network mainnet --v 35 --r 0xc8f9f70ceaa4d05d893e74c933eed42b --h 9
- *
- *   # Deploy on base network
- *   yarn hardhat deploy:qr --network base --v 42 --r 0xabcdef1234567890 --h 10
- */
-task('deploy:qr', 'Deploy a QR-based merkle drop contract with pre-computed merkle root and tree height')
-    .addParam('r', 'Merkle root')
-    .addParam('v', 'Deployment version')
-    .addParam('h', 'Merkle tree height')
-    .setAction(async (taskArgs, hre) => {
-        await deployQRDrop(hre, taskArgs);
-    });
-
-/**
- * Complete Merkle Drop Deployment
+ * Merkle Drop Create and Deploy
  *
  * Description:
  *   Performs a complete merkle drop deployment workflow:
@@ -69,50 +35,37 @@ task('deploy:qr', 'Deploy a QR-based merkle drop contract with pre-computed merk
  *   # Deploy on base with specific version
  *   yarn hardhat drop --network base --v 53 --a 5,10,20,30,40,50 --n 10,15,20,25,20,10
  *
- *   # Deploy on mainnet with 3 tiers (auto-increment version)
- *   yarn hardhat drop --network mainnet --a 100,250,500 --n 50,30,20
- *
- *   # Test generation without deployment
+ *   # Test generation without deployment (debug mode)
  *   yarn hardhat drop --network hardhat --v 55 --a 10,20 --n 5,5 --debug
  */
-task('drop', 'Generate merkle drop links, deploy contract, and verify all generated claim links')
-    .addOptionalParam('v', 'Deployment version (defaults to .latest + 1)')
-    .addParam('a', 'Amounts to generate')
-    .addParam('n', 'Codes to generate')
-    .addFlag('debug', 'Debug mode')
-    .setAction(async (taskArgs, hre) => {
-        await dropTask(hre, taskArgs);
-    });
-
-/**
- * Verify Contract on Etherscan
- *
- * Description:
- *   Verifies a previously deployed merkle drop contract on Etherscan
- *   or the appropriate block explorer for the network. Uses saved
- *   deployment artifacts to provide constructor arguments.
- *
- * Parameters:
- *   --v : Deployment version number (must match the deployed contract)
- *
- * Usage:
- *   yarn hardhat verify-deployment --network <network> --v <version>
- *
- * Examples:
- *   # Verify version 53 on base network
- *   yarn hardhat verify-deployment --network base --v 53
- *
- *   # Verify version 42 on mainnet
- *   yarn hardhat verify-deployment --network mainnet --v 42
- *
- * Note:
- *   Requires deployment artifacts to exist in deployments/<network>/MerkleDrop128-<version>.json
- */
-task('verify-deployment', 'Verify a deployed merkle drop contract on Etherscan using deployment artifacts')
-    .addParam('v', 'Deployment version')
-    .setAction(async (taskArgs, hre) => {
-        await verifyDeploymentTask(hre, taskArgs.v);
-    });
+const drop = task('drop', 'Generate merkle drop links, deploy contract, and verify all generated claim links')
+    .addOption({
+        name: 'ver',
+        shortName: 'v',
+        description: 'Deployment version (defaults to .latest + 1)',
+        defaultValue: 0,
+        type: ArgumentType.INT,
+    })
+    .addOption({
+        name: 'amounts',
+        shortName: 'a',
+        description: 'Amounts for drop to generate',
+        defaultValue: 'not set',
+        type: ArgumentType.STRING,
+    })
+    .addOption({
+        name: 'numbers',
+        shortName: 'n',
+        description: 'Number of codes to generate',
+        defaultValue: 'not set',
+        type: ArgumentType.STRING,
+    })
+    .addFlag({
+        name: 'debug',
+        description: 'Debug mode',
+    })
+    .setAction(() => import('./src/tasks/drop'))
+    .build();
 
 /**
  * Verify Links for Deployed Contract
@@ -140,11 +93,51 @@ task('verify-deployment', 'Verify a deployed merkle drop contract on Etherscan u
  *   - Requires link files to exist in generated-data/<version>-qr-links.json
  *   - Will also check generated-data/<version>-qr-links-test.json if it exists
  */
-task('verify-links', 'Verify all generated links against a deployed merkle drop contract')
-    .addParam('v', 'Deployment version')
-    .setAction(async (taskArgs, hre) => {
-        await verifyLinksTask(hre, taskArgs.v);
-    });
+const verifyLinks = task('verify-links', 'Verify all generated links against a deployed merkle drop contract')
+    .addOption({
+        name: 'ver',
+        shortName: 'v',
+        description: 'Deployment version',
+        defaultValue: 0,
+        type: ArgumentType.INT,
+    })
+    .setAction(() => import('./src/tasks/verify-links'))
+    .build();
+
+/**
+ * Verify Contract on Etherscan
+ *
+ * Description:
+ *   Verifies a previously deployed merkle drop contract on Etherscan
+ *   or the appropriate block explorer for the network. Uses saved
+ *   deployment artifacts to provide constructor arguments.
+ *
+ * Parameters:
+ *   --v : Deployment version number (must match the deployed contract)
+ *
+ * Usage:
+ *   yarn hardhat verify-deployment --network <network> --v <version>
+ *
+ * Examples:
+ *   # Verify version 53 on base network
+ *   yarn hardhat verify-deployment --network base --v 53
+ *
+ *   # Verify version 42 on mainnet
+ *   yarn hardhat verify-deployment --network mainnet --v 42
+ *
+ * Note:
+ *   Requires deployment artifacts to exist
+ */
+const verifyDeployment = task('verify-deployment', 'Verify a deployed merkle drop contract on Etherscan using deployment artifacts')
+    .addOption({
+        name: 'ver',
+        shortName: 'v',
+        description: 'Deployment version',
+        defaultValue: 0,
+        type: ArgumentType.INT,
+    })
+    .setAction(() => import('./src/tasks/verify-deployment'))
+    .build();
 
 /**
  * Collect On-Chain Statistics for Deployed Drops
@@ -179,11 +172,14 @@ task('verify-links', 'Verify all generated links against a deployed merkle drop 
  * Note:
  *   Requires deployment artifacts to exist in deployments/<network>/MerkleDrop128-<version>.json
  */
-task('stats', 'Collect on-chain statistics for deployed drops')
-    .addParam('v', 'Deployment version')
-    .setAction(async (taskArgs, hre) => {
-        await collectStatsTask(hre, taskArgs.v);
-    });
+const stats = task('stats', 'Collect on-chain statistics for deployed drops')
+    .addVariadicArgument({
+        name: 'versions',
+        description: 'Deployment version',
+        type: ArgumentType.INT,
+    })
+    .setAction(() => import('./src/tasks/collect-stats'))
+    .build();
 
 /**
  * Rescue Tokens from Drop Contract
@@ -221,35 +217,93 @@ task('stats', 'Collect on-chain statistics for deployed drops')
  *   - Only the contract owner can execute this function
  *   - Will check the balance before attempting rescue
  */
-task('rescue', 'Rescue remaining tokens from a deployed merkle drop contract')
-    .addParam('v', 'Deployment version')
-    .setAction(async (taskArgs, hre) => {
-        await rescueTask(hre, taskArgs.v);
-    });
+const rescue = task('rescue', 'Rescue remaining tokens from a deployed merkle drop contract')
+    .addOption({
+        name: 'ver',
+        shortName: 'v',
+        description: 'Deployment version',
+        defaultValue: 0,
+        type: ArgumentType.INT,
+    })
+    .setAction(() => import('./src/tasks/rescue'))
+    .build();
 
-const config: HardhatUserConfig = {
-    etherscan,
+// Ensure TypeScript recognizes these as valid plugins
+const plugins: HardhatPlugin[] = [
+    hardhatNetworkHelpers,
+    hardhatEthers,
+    hardhatToolboxMochaEthers,
+    hardhatEthersChaiMatchers,
+    hardhatIgnition,
+    hardhatVerify,
+];
+
+export default defineConfig({
+    plugins,
+    paths: {
+        sources: './contracts',
+        tests: './test/contracts',
+        cache: './cache',
+        artifacts: './artifacts',
+    },
     solidity: {
-        settings: {
-            optimizer: {
-                enabled: true,
-                runs: 1000000,
+        profiles: {
+            default: {
+                version: '0.8.23',
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 1000000,
+                    },
+                    evmVersion: 'shanghai',
+                },
             },
-            evmVersion: (networks[getNetwork()] as { hardfork?: string })?.hardfork || 'shanghai',
+            production: {
+                version: '0.8.23',
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 1000000,
+                    },
+                    evmVersion: 'shanghai',
+                },
+            },
         },
-        version: '0.8.23',
+        npmFilesToBuild: ['@1inch/solidity-utils/contracts/mocks/TokenMock.sol'],
     },
-    namedAccounts: {
-        deployer: {
-            default: 0,
+    networks: {
+        hardhat: {
+            type: 'edr-simulated',
+            chainId: 31337,
+        },
+        localhost: {
+            type: 'http',
+            url: 'http://localhost:8545',
+            chainId: 31337,
+        },
+        base: {
+            type: 'http',
+            url: configDotenv().parsed?.BASE_RPC_URL || 'https://base.drpc.org',
+            chainId: 8453,
+            accounts: [configDotenv().parsed?.BASE_PRIVATE_KEY || ''],
+        },
+        sepolia: {
+            type: 'http',
+            url: configDotenv().parsed?.SEPOLIA_RPC_URL || '',
+            chainId: 11155111,
+            accounts: [configDotenv().parsed?.SEPOLIA_PRIVATE_KEY || ''],
         },
     },
-    networks,
-    dependencyCompiler: {
-        paths: [
-            '@1inch/solidity-utils/contracts/mocks/TokenMock.sol',
-        ],
+    verify: {
+        etherscan: {
+            apiKey: configDotenv().parsed?.ETHERSCAN_API_KEY || '',
+        },
+        blockscout: {
+            enabled: false,
+        },
+        sourcify: {
+            enabled: false,
+        },
     },
-};
-
-export default config;
+    tasks: [drop, verifyLinks, verifyDeployment, stats, rescue],
+});

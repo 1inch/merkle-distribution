@@ -61,7 +61,7 @@ class ChunkStatsTracker {
         }
     }
 
-    getStats (): Map<number, any> {
+    getStats (): Map<number, unknown> {
         return this.stats;
     }
 }
@@ -339,6 +339,7 @@ export async function queryEventsWithRetry (
     progressTracker?: { completed: number; total: number },
 ): Promise<{
     events: (ethers.EventLog | ethers.Log)[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     chunkStats: Map<number, any>;
 }> {
     const config: QueryConfig = {

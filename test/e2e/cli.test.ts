@@ -1,10 +1,15 @@
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import * as os from 'os';
 import sinon from 'sinon';
-import { config } from '../../src/config';
-const { expect } = require('@1inch/solidity-utils');
+import { expect } from 'chai';
+
+// ES Module equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 describe('CLI E2E Tests', () => {
     let tempDir: string;
@@ -12,10 +17,10 @@ describe('CLI E2E Tests', () => {
   
     // Helper function to get all paths with tempDir
     const getPaths = (tempDir: string) => {
-        const latestVersionPath = path.join(tempDir, config.paths.latestVersion.replace(/^\.\//, ''));
-        const qrCodesPath = path.join(tempDir, config.paths.qrCodes.replace(/^\.\//, ''));
-        const testQrCodesPath = path.join(tempDir, config.paths.testQrCodes.replace(/^\.\//, ''));
-        const generatedDataPath = path.join(tempDir, config.paths.generatedData.replace(/^\.\//, ''));
+        const latestVersionPath = path.join(tempDir, 'src', '.latest');
+        const qrCodesPath = path.join(tempDir, 'drops', 'qr');
+        const testQrCodesPath = path.join(tempDir, 'drops', 'test_qr');
+        const generatedDataPath = path.join(tempDir, 'drops', 'gendata');
     
         return {
             latestVersion: latestVersionPath,
@@ -65,9 +70,10 @@ describe('CLI E2E Tests', () => {
     function runCLI (args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
         return new Promise((resolve) => {
             const cliPath = path.join(__dirname, '../../src/cli/merkle-drop-cli.ts');
-            const child = spawn('ts-node', [cliPath, ...args], {
-                cwd: tempDir,
-                env: { ...process.env, NODE_ENV: 'test' },
+            const projectRoot = path.join(__dirname, '../..');
+            const child = spawn('node', ['--loader', 'ts-node/esm', '--experimental-specifier-resolution=node', cliPath, ...args], {
+                cwd: projectRoot,
+                env: { ...process.env, NODE_ENV: 'test', TEMP_DIR: tempDir },
             });
 
             let stdout = '';
@@ -103,6 +109,10 @@ describe('CLI E2E Tests', () => {
                 '-b', '1',
                 '-s',   // No deploy mode
             ]);
+
+            console.log('STDOUT:', result.stdout);
+            console.log('STDERR:', result.stderr);
+            console.log('Exit Code:', result.code);
 
             expect(result.code).to.equal(0);
             expect(result.stdout).to.include('Generating merkle drop');

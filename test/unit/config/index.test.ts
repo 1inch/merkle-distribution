@@ -1,10 +1,10 @@
+import { expect } from 'chai';
 import {
     config,
     formatBaseUrl,
     getChainConfig,
     getTokenAddress,
 } from '../../../src/config';
-const { expect } = require('@1inch/solidity-utils');
 
 describe('Config Module', () => {
     describe('chains configuration', () => {

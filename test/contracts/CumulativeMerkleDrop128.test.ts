@@ -1,25 +1,21 @@
-import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
-import { deployContract, expect } from '@1inch/solidity-utils';
 import { MerkleTree } from 'merkletreejs';
 import keccak256 from 'keccak256';
-import { Contract, Signer } from 'ethers';
-import Wallet from 'ethereumjs-wallet';
-// import { gasspectEVM } from '@1inch/solidity-utils';
-import {
-    shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234,
-} from './behaviors/MerkleDrop.behavior';
-import {
-    shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234,
-} from './behaviors/CumulativeMerkleDrop.behavior';
-const hre = require('hardhat');
-const { ethers } = hre;
+import type { Contract, Signer } from 'ethers';
+import { expect } from 'chai';
+import hre from 'hardhat';
+import { shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234 } from './behaviors/MerkleDrop.behavior';
+import { shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234 } from './behaviors/CumulativeMerkleDrop.behavior';
+
+
+const { ethers, networkHelpers } = await hre.network.connect();
+const { loadFixture } = networkHelpers;
 
 function keccak128 (input: Buffer | string): Buffer {
     return keccak256(input).slice(0, 16);
 }
 
 function generateSalt (): string {
-    return Wallet.generate().getPrivateKeyString().slice(0, 34);
+    return ethers.Wallet.createRandom().privateKey.slice(0, 34);
 }
 
 interface MerkleDropData {
@@ -68,8 +64,8 @@ describe('CumulativeMerkleDrop128', function () {
     }
 
     async function initContracts (): Promise<Contracts> {
-        const token = await deployContract('TokenMock', ['1INCH Token', '1INCH']) as unknown as Contract;
-        const drop = await deployContract('CumulativeMerkleDrop128', [await token.getAddress()]) as unknown as Contract;
+        const token = await ethers.deployContract('TokenMock', ['1INCH Token', '1INCH']) as unknown as Contract;
+        const drop = await ethers.deployContract('CumulativeMerkleDrop128', [await token.getAddress()]) as unknown as Contract;
         return { token, drop };
     }
 
@@ -99,7 +95,7 @@ describe('CumulativeMerkleDrop128', function () {
         await drop.verifyAsm(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[0]);
         expect(await drop.verifyAsm(params.proofs[findSortedIndex(params, 0)], params.root, params.leaves[0])).to.be.true;
         const tx = await drop.claim(accounts[0], 1, params.root, params.proofs[findSortedIndex(params, 0)]);
-        await expect(tx).to.changeTokenBalances(token, [accounts[0], drop], [1, -1]);
+        await expect(tx).to.changeTokenBalances(ethers, token, [accounts[0], drop], [1, -1]);
     });
 
     describe('behave like merkle drop', function () {
@@ -133,6 +129,7 @@ describe('CumulativeMerkleDrop128', function () {
                     amounts: [1n, 2n, 3n, 4n],
                     deposit: 10n,
                 },
+                loadFixture,
             });
         });
 
@@ -152,6 +149,7 @@ describe('CumulativeMerkleDrop128', function () {
                     amounts: [3n, 5n, 7n, 9n],
                     deposit: 2n + 3n + 4n + 5n,
                 },
+                loadFixture,
             });
         });
     });

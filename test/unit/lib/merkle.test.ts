@@ -1,3 +1,4 @@
+import { expect } from 'chai';
 import {
     keccak128,
     createMerkleDrop,
@@ -5,7 +6,6 @@ import {
     calculateMerkleHeight,
 } from '../../../src/lib/merkle';
 import { testWallets, testAmounts } from '../../fixtures/test-data';
-const { expect } = require('@1inch/solidity-utils');
 
 describe('Merkle Library', () => {
     describe('keccak128', () => {

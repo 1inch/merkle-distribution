@@ -1,6 +1,6 @@
 import { randomBytes } from 'crypto';
 import { promisify } from 'util';
-import Wallet from 'ethereumjs-wallet';
+import { ethers } from 'ethers';
 
 const randomBytesAsync = promisify(randomBytes);
 
@@ -23,8 +23,10 @@ export async function generatePrivateKeys (count: number): Promise<string[]> {
  * Get wallet address from private key
  */
 export function getAddressFromPrivateKey (privateKey: string): string {
-    const wallet = Wallet.fromPrivateKey(Buffer.from(privateKey, 'hex'));
-    return wallet.getAddressString();
+    const prefixedKey = privateKey.startsWith('0x') ? privateKey : '0x' + privateKey;
+    return ethers.computeAddress(prefixedKey).toLowerCase();
+    // const wallet = Wallet.fromPrivateKey(Buffer.from(privateKey, 'hex'));
+    // return wallet.getAddressString();
 }
 
 /**
