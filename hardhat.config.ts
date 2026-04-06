@@ -151,17 +151,17 @@ const verifyDeployment = task('verify-deployment', 'Verify a deployed merkle dro
  *   -v/--ver : Deployment version number (must match the deployed contract)
  *
  * Usage:
- *   yarn stat <network> -v <version>
+ *   yarn stat <network> <versions list>
  *
  * Examples:
  *   # Get statistics for version 61 on base network
- *   yarn stat base -v 61
+ *   yarn stat base 61
  *
  *   # Get statistics for version 41 on mainnet
- *   yarn stat mainnet -v 41
+ *   yarn stat mainnet 41
  *
- *   # Get statistics for version 3 on BSC
- *   yarn stat bsc -v 3
+ *   # Get statistics for versions 3 and 4 on mainnet 
+ *   yarn stat mainnet 3 4
  *
  * Statistics Displayed:
  *   - Total number of claims
