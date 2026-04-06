@@ -53,7 +53,7 @@ export function generateClaimUrl (
   
     // Encode and create URL
     const encoded = uriEncode(combinedBuffer);
-    return `${prefix}d=${encoded}`;
+    return `${prefix}${encoded}`;
 }
 
 /**
