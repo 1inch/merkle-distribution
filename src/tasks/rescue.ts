@@ -1,8 +1,14 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types/hre';
 import { ethers } from 'ethers';
 import { successfulResult, errorResult } from 'hardhat/utils/result';
-import { erc20TokenABI } from '../types/abi';
 import { SignatureDropIgnition } from './lib/hardhat-helpers';
+
+/** Minimal ERC-20 ABI for balance readout (no compile artifact in this repo). */
+const erc20TokenABI = [
+    'function balanceOf(address owner) view returns (uint256)',
+    'function decimals() view returns (uint8)',
+    'function symbol() view returns (string)',
+] as const;
 
 interface RescueTaskArguments {
     ver: number;
@@ -52,17 +58,16 @@ export default async function (
         return errorResult(new Error('Failed to verify ownership'));
     }
 
-    console.log('rewardToken', journal.rewardToken);
+    console.log(`📍 Reward Token: ${journal.rewardToken}`);
+
     // Connect to the token contract to check balance
     const tokenContract = await conn.ethers.getContractAt(erc20TokenABI, journal.rewardToken);
-    // const tokenContract = await conn.ethers.getContractAt(erc20TokenABI, '0x464682b682c3a1246324f93593b4b1c63599be12');
   
     let balance: bigint;
     let decimals: number;
     let symbol: string;
   
     try {
-        // Get token details
         [balance, decimals, symbol] = await Promise.all([
             tokenContract.balanceOf(journal.address),
             tokenContract.decimals(),
@@ -79,6 +84,50 @@ export default async function (
     } catch (error) {
         console.error('❌ Failed to get token balance: ', error);
         return errorResult(new Error('Failed to get token balance'));
+    }
+
+    // Execute rescue
+    console.log('\n🚀 Initiating rescue transaction...');
+    console.log(`   Amount to rescue: ${ethers.formatUnits(balance, decimals)} ${symbol}`);
+
+    try {
+        const tx = await contract.rescueFunds(journal.rewardToken, balance);
+        console.log(`\n📝 Transaction submitted: ${tx.hash}`);
+        console.log('⏳ Waiting for confirmation...');
+
+        const receipt = await tx.wait();
+
+        if (receipt.status === 1) {
+            console.log('\n✅ SUCCESS! Tokens rescued successfully');
+            console.log(`${'━'.repeat(50)}`);
+            console.log('📊 Rescue Summary:');
+            console.log('   - Status: SUCCESS ✅');
+            console.log(`   - Amount Retrieved: ${ethers.formatUnits(balance, decimals)} ${symbol}`);
+            console.log(`   - Recipient Address: ${signer.address}`);
+            console.log(`   - Transaction Hash: ${receipt.hash}`);
+            console.log(`   - Block Number: ${receipt.blockNumber}`);
+            console.log(`   - Gas Used: ${receipt.gasUsed.toString()}`);
+
+            const newBalance = await tokenContract.balanceOf(journal.address);
+            const rescuerBalance = await tokenContract.balanceOf(signer.address);
+            console.log('\n📍 Final Balances:');
+            console.log(`   - Contract Balance: ${ethers.formatUnits(newBalance, decimals)} ${symbol}`);
+            console.log(`   - Your Balance: ${ethers.formatUnits(rescuerBalance, decimals)} ${symbol}`);
+        } else {
+            console.error('\n❌ FAILED! Transaction was reverted');
+            console.log(`   - Transaction Hash: ${receipt.hash}`);
+            return errorResult(new Error('Rescue transaction reverted'));
+        }
+    } catch (error: any) {
+        console.error('\n❌ FAILED! Rescue transaction failed');
+        console.error(`   - Error: ${error.message || error}`);
+        if (error.reason) {
+            console.error(`   - Reason: ${error.reason}`);
+        }
+        if (error.code) {
+            console.error(`   - Error Code: ${error.code}`);
+        }
+        return errorResult(new Error('Rescue transaction failed'));
     }
 
     return successfulResult(true);
