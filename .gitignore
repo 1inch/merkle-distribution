@@ -12,3 +12,6 @@ dist
 drops
 deployments/**/solcInputs
 types
+# ignore test deployments
+ignition/deployments/sepolia*
+.DS_Store
