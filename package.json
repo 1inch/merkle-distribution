@@ -1,6 +1,6 @@
 {
   "name": "merkle-distribution",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "",
   "repository": {
     "type": "git",
@@ -80,6 +80,7 @@
     "rescue": "hardhat rescue --network"
   },
   "resolutions": {
-    "elliptic": "6.6.1"
+    "elliptic": "6.6.1",
+    "handlebars": "4.7.9"
   }
 }
