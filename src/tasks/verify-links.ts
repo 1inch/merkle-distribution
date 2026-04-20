@@ -14,7 +14,6 @@ export default async function (
     args: VerifyLinksTaskArguments,
     hre: HardhatRuntimeEnvironment,
 ) {
-
     const version = args.ver;
     if (version < 1) {
         console.error('❌ Error: Version must be specified with --v parameter');

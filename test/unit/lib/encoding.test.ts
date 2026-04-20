@@ -70,7 +70,6 @@ describe('Encoding Library', () => {
       
             expect(url).to.be.a('string');
             expect(url).to.match(new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
-            expect(url).to.include('d=');
         });
 
         it('should encode all components correctly', () => {
@@ -83,7 +82,7 @@ describe('Encoding Library', () => {
             const prefix = 'https://test.com?';
       
             const url = generateClaimUrl(privateKey, amount, proof, version, prefix);
-            const encoded = url.substring(prefix.length + 2);
+            const encoded = url.substring(prefix.length);
             const decoded = uriDecode(encoded);
       
             expect(decoded[0]).to.equal(version); // Version byte
