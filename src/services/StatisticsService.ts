@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import { CHUNK_SIZE_FALLBACK_SEQUENCE, queryEventsWithRetry } from '../lib/events-query';
+import { CHUNK_SIZE_FALLBACK_SEQUENCE, RpcCapabilityError, detectRpcCapabilityError, parseCapabilityErrorInfo, pickOptimalChunkSizeIndex, queryEventsWithRetry } from '../lib/events-query';
 
 // Interfaces for statistics data
 export interface FundingTransaction {
@@ -680,41 +680,8 @@ export class StatisticsService {
             contractAddressMap.set(config.contractAddress.toLowerCase(), config);
         }
 
-        console.log(`   - Querying Transfer events for ${dropConfigs.length} drop contracts...`);
+        console.log(`   - Querying Transfer events for ${dropConfigs.length} drop contract${dropConfigs.length > 1 ? 's' : ''}...`);
         console.log(`   - Scanning from block ${startBlock} to ${currentBlock}`);
-        
-        // Query all transfer events in the range
-        const transferFilter = tokenContract.filters.Transfer();
-        let allEvents: (ethers.EventLog | ethers.Log)[] = [];
-        let chunkStatistics: ChunkStatistics[] | undefined;
-        
-        try {
-            // Try direct query first
-            console.log('   - Attempting direct query for all transfers...');
-            allEvents = await tokenContract.queryFilter(transferFilter, startBlock, 'latest');
-        } catch {
-            // If direct query fails, use chunked query
-            console.log('   - Using chunked queries...');
-            const chunks = this.createChunks(startBlock, currentBlock, CHUNK_SIZE_FALLBACK_SEQUENCE[0]);
-            console.log(`   - Processing ${chunks.length} chunks...`);
-            
-            const progressTracker = { completed: 0, total: chunks.length };
-            const result = await queryEventsWithRetry(tokenContract, transferFilter, chunks, progressTracker);
-            
-            allEvents = result.events;
-            
-            // Convert chunk statistics
-            chunkStatistics = Array.from(result.chunkStats.entries()).map(([chunkSize, stats]) => ({
-                chunkSize,
-                chunks: stats.chunks,
-                firstTrySuccesses: stats.firstTrySuccesses,
-                totalSuccesses: stats.successes,
-                firstTryRate: stats.chunks > 0 ? (stats.firstTrySuccesses / stats.chunks) * 100 : 0,
-                totalRate: stats.chunks > 0 ? (stats.successes / stats.chunks) * 100 : 0,
-            })).filter(stat => stat.chunks > 0);
-        }
-
-        console.log(`\n   - Found ${allEvents.length} total transfer events`);
 
         // Initialize statistics for each drop
         const multiStats: MultiDropStatistics = {};
@@ -723,8 +690,17 @@ export class StatisticsService {
             incomingEvents: (ethers.EventLog | ethers.Log)[];
             contractOwner: string | null;
         }> = new Map();
+        let chunkStatistics: ChunkStatistics[] | undefined;
+        const combinedChunkStats = new Map<number, {
+            chunks: number;
+            firstTrySuccesses: number;
+            attempts: number;
+            successes: number;
+        }>();
 
-        // Get contract owners for each drop
+        // Per-drop filtered Transfer queries. Filtering server-side returns only
+        // the events that touch the drop contract (orders of magnitude less data
+        // than an unfiltered Transfer() query) and avoids RPC payload-size limits.
         const dropContractABI = ['function owner() external view returns (address)'];
         for (const config of dropConfigs) {
             let contractOwner: string | null = null;
@@ -734,31 +710,100 @@ export class StatisticsService {
             } catch {
                 // Contract might not have an owner function
             }
-            
+
+            const outgoingFilter = tokenContract.filters.Transfer(config.contractAddress, null, null);
+            const incomingFilter = tokenContract.filters.Transfer(null, config.contractAddress, null);
+
+            console.log(`   - Drop v${config.version}: querying filtered Transfer events...`);
+
+            let outgoingEvents: (ethers.EventLog | ethers.Log)[] = [];
+            let incomingEvents: (ethers.EventLog | ethers.Log)[] = [];
+
+            try {
+                const [outgoing, incoming] = await Promise.all([
+                    tokenContract.queryFilter(outgoingFilter, startBlock, 'latest'),
+                    tokenContract.queryFilter(incomingFilter, startBlock, 'latest'),
+                ]);
+                outgoingEvents = outgoing;
+                incomingEvents = incoming;
+            } catch (err) {
+                // If the RPC fundamentally cannot serve eth_getLogs for our
+                // ranges (e.g. Alchemy free-tier 10-block cap, where even the
+                // smallest chunk size in CHUNK_SIZE_FALLBACK_SEQUENCE is bigger
+                // than what the RPC allows), chunked retries will all hit the
+                // same wall – fail fast with a clear message instead of
+                // spinning silently. detectRpcCapabilityError returns null when
+                // the allowed range is >= our smallest chunk, in which case we
+                // adapt chunk size and proceed.
+                const capErr = detectRpcCapabilityError(err);
+                if (capErr) throw capErr;
+
+                // Adaptive chunk sizing: the failed direct query above is also
+                // our discovery probe. If the RPC told us its max block range
+                // in the error body, start chunking at the largest size that
+                // fits – skipping all the doomed larger sizes (which would
+                // otherwise burn 4 retries × N chunks each before stepping
+                // down).
+                let startSizeIndex = 0;
+                const capInfo = parseCapabilityErrorInfo(err);
+                if (capInfo?.allowedBlockRange !== null && capInfo?.allowedBlockRange !== undefined) {
+                    const idx = pickOptimalChunkSizeIndex(capInfo.allowedBlockRange);
+                    if (idx > 0) {
+                        startSizeIndex = idx;
+                        console.log(`   - Drop v${config.version}: RPC reports max ${capInfo.allowedBlockRange}-block range; starting at ${CHUNK_SIZE_FALLBACK_SEQUENCE[idx]}-block chunks (skipping ${idx} larger sizes)`);
+                    }
+                }
+                const initialSize = CHUNK_SIZE_FALLBACK_SEQUENCE[startSizeIndex];
+
+                console.log(`   - Drop v${config.version}: direct query failed, using chunked queries (size: ${initialSize})...`);
+                const chunks = this.createChunks(startBlock, currentBlock, initialSize);
+                const progressTracker = { completed: 0, total: chunks.length * 2 };
+                const queryOptions = { startSizeIndex, skipOptimistic: startSizeIndex > 0 };
+                const [outgoingResult, incomingResult] = await Promise.all([
+                    queryEventsWithRetry(tokenContract, outgoingFilter, chunks, progressTracker, queryOptions),
+                    queryEventsWithRetry(tokenContract, incomingFilter, chunks, progressTracker, queryOptions),
+                ]);
+                outgoingEvents = outgoingResult.events;
+                incomingEvents = incomingResult.events;
+
+                // Accumulate chunk stats across drops/filters
+                for (const result of [outgoingResult, incomingResult]) {
+                    for (const [size, stats] of result.chunkStats.entries()) {
+                        const typedStats = stats as { chunks: number; firstTrySuccesses: number; attempts: number; successes: number };
+                        const existing = combinedChunkStats.get(size);
+                        if (existing) {
+                            existing.chunks += typedStats.chunks;
+                            existing.firstTrySuccesses += typedStats.firstTrySuccesses;
+                            existing.attempts += typedStats.attempts;
+                            existing.successes += typedStats.successes;
+                        } else {
+                            combinedChunkStats.set(size, { ...typedStats });
+                        }
+                    }
+                }
+            }
+
             dropEventData.set(config.contractAddress.toLowerCase(), {
-                outgoingEvents: [],
-                incomingEvents: [],
+                outgoingEvents,
+                incomingEvents,
                 contractOwner,
             });
         }
 
-        // Distribute events to appropriate drops
-        for (const event of allEvents) {
-            if ('args' in event && event.args) {
-                const from = event.args.from?.toLowerCase();
-                const to = event.args.to?.toLowerCase();
-                
-                // Check if this is an outgoing transfer from any drop contract
-                if (from && dropEventData.has(from)) {
-                    dropEventData.get(from)!.outgoingEvents.push(event);
-                }
-                
-                // Check if this is an incoming transfer to any drop contract
-                if (to && dropEventData.has(to)) {
-                    dropEventData.get(to)!.incomingEvents.push(event);
-                }
-            }
+        if (combinedChunkStats.size > 0) {
+            chunkStatistics = Array.from(combinedChunkStats.entries()).map(([chunkSize, stats]) => ({
+                chunkSize,
+                chunks: stats.chunks,
+                firstTrySuccesses: stats.firstTrySuccesses,
+                totalSuccesses: stats.successes,
+                firstTryRate: stats.chunks > 0 ? (stats.firstTrySuccesses / stats.chunks) * 100 : 0,
+                totalRate: stats.chunks > 0 ? (stats.successes / stats.chunks) * 100 : 0,
+            })).filter(stat => stat.chunks > 0);
         }
+
+        const totalEventCount = Array.from(dropEventData.values())
+            .reduce((sum, d) => sum + d.outgoingEvents.length + d.incomingEvents.length, 0);
+        console.log(`\n   - Found ${totalEventCount} total transfer events across ${dropConfigs.length} drop${dropConfigs.length > 1 ? 's' : ''}`);
 
         // Process statistics for each drop
         const config = testConfig || this.DEFAULT_TEST_CONFIG;

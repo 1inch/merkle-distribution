@@ -1,6 +1,7 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types/hre';
 import { successfulResult, errorResult } from 'hardhat/utils/result';
 import { getTestDetectionConfig } from '../config/test-detection.config';
+import { RpcCapabilityError } from '../lib/events-query';
 import { DropConfig, StatisticsService } from '../services/StatisticsService';
 import { SignatureDropIgnition } from './lib/hardhat-helpers';
 
@@ -74,6 +75,25 @@ export default async function (
         console.log('\n✅ Statistics collection complete!');
         
     } catch (error) {
+        if (error instanceof RpcCapabilityError) {
+            console.error('');
+            console.error('❌ The configured RPC endpoint cannot serve eth_getLogs for the required block range.');
+            console.error(`   RPC responded with HTTP ${error.statusCode}:`);
+            console.error(`     ${error.rpcMessage}`);
+            console.error('');
+            const allowed = error.allowedBlockRange;
+            console.error('   How to fix:');
+            console.error('     • Set BASE_RPC_URL in .env to a provider with a larger eth_getLogs range');
+            console.error('       (e.g. drpc.org, ankr.com, quicknode.com, or a paid Alchemy/Infura plan).');
+            console.error('     • Or upgrade your current RPC plan.');
+            if (allowed !== null && allowed > 0 && allowed < error.minChunkSize) {
+                console.error(`     • Or lower CHUNK_SIZE_FALLBACK_SEQUENCE's minimum in src/lib/events-query.ts`);
+                console.error(`       to ${allowed} (your RPC's allowed range). Current minimum is ${error.minChunkSize}.`);
+                console.error(`       Note: at ${allowed} blocks/request the scan will require roughly`);
+                console.error(`       (range / ${allowed}) requests and may exhaust your RPC's compute quota.`);
+            }
+            return errorResult(new Error('RPC capability insufficient for eth_getLogs'));
+        }
         console.error(`\n❌ Failed to collect statistics: ${error}`);
         return errorResult(new Error('Failed to collect statistics'));
     }
