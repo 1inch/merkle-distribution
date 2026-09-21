@@ -4,7 +4,7 @@ import {
     formatBaseUrl,
     getChainConfig,
     getTokenAddress,
-} from '../../../src/config';
+} from '../../../src/config/index.js';
 
 describe('Config Module', () => {
     describe('chains configuration', () => {

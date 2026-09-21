@@ -5,11 +5,11 @@ import { fileURLToPath } from 'url';
 import { HardhatRuntimeEnvironment } from 'hardhat/types/hre';
 import { successfulResult, errorResult } from 'hardhat/utils/result';
 // Deploy script
-import { deploy } from '../../ignition/deploy-signature';
+import { deploy } from '../../ignition/deploy-signature.js';
 // Services to perform drop generation and verification
-import { DropService } from '../services/DropService';
+import { DropService } from '../services/DropService.js';
 // Processing .latest file to determine version
-import { verifyLinksWithProgress } from './lib/verification';
+import { verifyLinksWithProgress } from './lib/verification.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 

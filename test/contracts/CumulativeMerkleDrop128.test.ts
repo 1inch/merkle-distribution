@@ -3,8 +3,8 @@ import keccak256 from 'keccak256';
 import type { Contract, Signer } from 'ethers';
 import { expect } from 'chai';
 import hre from 'hardhat';
-import { shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234 } from './behaviors/MerkleDrop.behavior';
-import { shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234 } from './behaviors/CumulativeMerkleDrop.behavior';
+import { shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234 } from './behaviors/MerkleDrop.behavior.js';
+import { shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234 } from './behaviors/CumulativeMerkleDrop.behavior.js';
 
 
 const { ethers, networkHelpers } = await hre.network.connect();

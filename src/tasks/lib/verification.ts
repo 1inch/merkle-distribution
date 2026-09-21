@@ -1,5 +1,5 @@
 import { Contract } from 'ethers';
-import { VerificationService } from '../../services/VerificationService';
+import { VerificationService } from '../../services/VerificationService.js';
 
 /**
  * Verify multiple links with progress visualization

@@ -1,8 +1,9 @@
 import esmock from 'esmock';
 import sinon from 'sinon';
 import { expect } from 'chai';
-import { testWallets, testAmounts } from '../../fixtures/test-data';
-import type { VerificationService as VerificationServiceType } from '../../../src/services/VerificationService';
+import { testWallets, testAmounts } from '../../fixtures/test-data.js';
+import { formatBaseUrl } from '../../../src/config/index.js';
+import type { VerificationService as VerificationServiceType } from '../../../src/services/VerificationService.js';
 
 describe('VerificationService', () => {
     let VerificationService: typeof VerificationServiceType;
@@ -49,7 +50,7 @@ describe('VerificationService', () => {
             expect(result.wallet).to.equal(testWallets[0].address);
             expect(result.amount).to.equal(testAmounts[0]);
             expect(parseClaimUrlStub.calledOnce).to.be.true;
-            expect(parseClaimUrlStub.calledWith(url, root, 'https://1inch.network/qr?d=', false)).to.be.true;
+            expect(parseClaimUrlStub.calledWith(url, root, formatBaseUrl(chainId), false)).to.be.true;
         });
 
         it('should handle invalid link', () => {
@@ -90,7 +91,7 @@ describe('VerificationService', () => {
             const result = VerificationService.verifyLink(url, root, chainId, true);
 
             expect(result.isValid).to.be.true;
-            expect(parseClaimUrlStub.calledWith(url, root, 'https://1inch.network/qr?d=', true)).to.be.true;
+            expect(parseClaimUrlStub.calledWith(url, root, formatBaseUrl(chainId), true)).to.be.true;
             // Check that console.log was called (the exact message may vary)
             expect(consoleLogStub.called).to.be.true;
         });
@@ -130,7 +131,7 @@ describe('VerificationService', () => {
 
             VerificationService.verifyLink(url, root, chainId, false);
 
-            expect(parseClaimUrlStub.calledWith(url, root, 'https://1inch.network/qr?d=', false)).to.be.true;
+            expect(parseClaimUrlStub.calledWith(url, root, formatBaseUrl(chainId), false)).to.be.true;
         });
 
         it('should handle errors gracefully', () => {

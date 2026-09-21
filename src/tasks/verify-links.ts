@@ -3,8 +3,8 @@ import fs from 'fs';
 import { HardhatRuntimeEnvironment } from 'hardhat/types/hre';
 import { ethers } from 'ethers';
 import { successfulResult, errorResult } from 'hardhat/utils/result';
-import { SignatureDropIgnition } from './lib/hardhat-helpers';
-import { verifyLinksWithProgress } from './lib/verification';
+import { SignatureDropIgnition } from './lib/hardhat-helpers.js';
+import { verifyLinksWithProgress } from './lib/verification.js';
 
 interface VerifyLinksTaskArguments {
     ver: number;

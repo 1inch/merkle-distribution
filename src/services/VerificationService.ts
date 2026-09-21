@@ -1,6 +1,6 @@
-import { VerificationResult } from '../types';
-import { parseClaimUrl } from '../lib/encoding';
-import { formatBaseUrl } from '../config';
+import { VerificationResult } from '../types/index.js';
+import { parseClaimUrl } from '../lib/encoding.js';
+import { formatBaseUrl } from '../config/index.js';
 
 export class VerificationService {
     /**

@@ -71,7 +71,10 @@ describe('CLI E2E Tests', () => {
         return new Promise((resolve) => {
             const cliPath = path.join(__dirname, '../../src/cli/merkle-drop-cli.ts');
             const projectRoot = path.join(__dirname, '../..');
-            const child = spawn('node', ['--loader', 'ts-node/esm', '--experimental-specifier-resolution=node', cliPath, ...args], {
+            // Must match the runner used by the qr:create / lk:create / lk:check scripts,
+            // otherwise these tests pass while the scripts themselves are broken.
+            const tsx = path.join(projectRoot, 'node_modules/.bin/tsx');
+            const child = spawn(tsx, [cliPath, ...args], {
                 cwd: projectRoot,
                 env: { ...process.env, NODE_ENV: 'test', TEMP_DIR: tempDir },
             });

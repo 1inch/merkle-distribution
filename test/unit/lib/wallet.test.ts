@@ -4,7 +4,7 @@ import {
     generatePrivateKeys,
     getAddressFromPrivateKey,
     generateWallets,
-} from '../../../src/lib/wallet';
+} from '../../../src/lib/wallet.js';
 
 describe('Wallet Library', () => {
     describe('generatePrivateKey', () => {

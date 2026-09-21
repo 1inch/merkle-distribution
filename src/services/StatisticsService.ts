@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import { CHUNK_SIZE_FALLBACK_SEQUENCE, detectRpcCapabilityError, parseCapabilityErrorInfo, pickOptimalChunkSizeIndex, queryEventsWithRetry } from '../lib/events-query';
+import { CHUNK_SIZE_FALLBACK_SEQUENCE, detectRpcCapabilityError, parseCapabilityErrorInfo, pickOptimalChunkSizeIndex, queryEventsWithRetry } from '../lib/events-query.js';
 
 // Interfaces for statistics data
 export interface FundingTransaction {
@@ -750,7 +750,10 @@ export class StatisticsService {
                     const idx = pickOptimalChunkSizeIndex(capInfo.allowedBlockRange);
                     if (idx > 0) {
                         startSizeIndex = idx;
-                        console.log(`   - Drop v${config.version}: RPC reports max ${capInfo.allowedBlockRange}-block range; starting at ${CHUNK_SIZE_FALLBACK_SEQUENCE[idx]}-block chunks (skipping ${idx} larger sizes)`);
+                        console.log(
+                            `   - Drop v${config.version}: RPC reports max ${capInfo.allowedBlockRange}-block range; ` +
+                            `starting at ${CHUNK_SIZE_FALLBACK_SEQUENCE[idx]}-block chunks (skipping ${idx} larger sizes)`,
+                        );
                     }
                 }
                 const initialSize = CHUNK_SIZE_FALLBACK_SEQUENCE[startSizeIndex];

@@ -1,9 +1,9 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types/hre';
 import { successfulResult, errorResult } from 'hardhat/utils/result';
-import { getTestDetectionConfig } from '../config/test-detection.config';
-import { RpcCapabilityError } from '../lib/events-query';
-import { DropConfig, StatisticsService } from '../services/StatisticsService';
-import { SignatureDropIgnition } from './lib/hardhat-helpers';
+import { getTestDetectionConfig } from '../config/test-detection.config.js';
+import { RpcCapabilityError } from '../lib/events-query.js';
+import { DropConfig, StatisticsService } from '../services/StatisticsService.js';
+import { SignatureDropIgnition } from './lib/hardhat-helpers.js';
 
 interface CollectStatsTaskArguments {
     versions: number[];
@@ -87,7 +87,7 @@ export default async function (
             console.error('       (e.g. drpc.org, ankr.com, quicknode.com, or a paid Alchemy/Infura plan).');
             console.error('     • Or upgrade your current RPC plan.');
             if (allowed !== null && allowed > 0 && allowed < error.minChunkSize) {
-                console.error(`     • Or lower CHUNK_SIZE_FALLBACK_SEQUENCE's minimum in src/lib/events-query.ts`);
+                console.error('     • Or lower CHUNK_SIZE_FALLBACK_SEQUENCE\'s minimum in src/lib/events-query.ts');
                 console.error(`       to ${allowed} (your RPC's allowed range). Current minimum is ${error.minChunkSize}.`);
                 console.error(`       Note: at ${allowed} blocks/request the scan will require roughly`);
                 console.error(`       (range / ${allowed}) requests and may exhaust your RPC's compute quota.`);

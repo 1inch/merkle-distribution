@@ -5,9 +5,9 @@ import {
     generateClaimUrl,
     parseClaimUrl,
     shuffle,
-} from '../../../src/lib/encoding';
-import { createMerkleDrop } from '../../../src/lib/merkle';
-import { testWallets, testAmounts } from '../../fixtures/test-data';
+} from '../../../src/lib/encoding.js';
+import { createMerkleDrop } from '../../../src/lib/merkle.js';
+import { testWallets, testAmounts } from '../../fixtures/test-data.js';
 
 describe('Encoding Library', () => {
     describe('uriEncode', () => {

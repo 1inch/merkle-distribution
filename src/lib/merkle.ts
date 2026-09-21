@@ -1,6 +1,6 @@
 import { MerkleTree } from 'merkletreejs';
 import keccak256 from 'keccak256';
-import { MerkleDropData } from '../types';
+import { MerkleDropData } from '../types/index.js';
 
 /**
  * Keccak256 hash truncated to 128 bits (16 bytes)

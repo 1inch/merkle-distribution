@@ -1,7 +1,7 @@
 import { MerkleTree } from 'merkletreejs';
-import { VerificationResult } from '../types';
-import { getAddressFromPrivateKey } from './wallet';
-import { verifyMerkleProof, keccak128 } from './merkle';
+import { VerificationResult } from '../types/index.js';
+import { getAddressFromPrivateKey } from './wallet.js';
+import { verifyMerkleProof, keccak128 } from './merkle.js';
 
 /**
  * Encode buffer to URI-safe base64
@@ -57,6 +57,22 @@ export function generateClaimUrl (
 }
 
 /**
+ * Locate the encoded payload in a claim URL.
+ *
+ * The prefix has changed between drop versions ('?d=d=' in v65, '?d=' through v70,
+ * '?' since v71), so slicing by the length of the configured prefix misreads older
+ * links. uriEncode() maps '=' to '!', so the payload never contains '=' and the last
+ * one in the URL always ends the prefix.
+ */
+function extractPayload (url: string, prefix: string): string {
+    const lastEquals = url.lastIndexOf('=');
+    if (lastEquals !== -1) {
+        return url.substring(lastEquals + 1);
+    }
+    return url.startsWith(prefix) ? url.substring(prefix.length) : url.substring(url.indexOf('?') + 1);
+}
+
+/**
  * Parse and verify a claim URL
  */
 export function parseClaimUrl (
@@ -65,9 +81,7 @@ export function parseClaimUrl (
     prefix: string,
     displayResults: boolean = false,
 ): VerificationResult {
-    // Extract encoded data from URL
-    const encodedData = url.substring(prefix.length);
-    const buffer = uriDecode(encodedData);
+    const buffer = uriDecode(extractPayload(url, prefix));
   
     // Parse components
     // const version = buffer[0]; // Currently unused but part of the protocol

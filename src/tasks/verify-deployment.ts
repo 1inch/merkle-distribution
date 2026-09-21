@@ -1,7 +1,7 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types/hre';
 import { successfulResult, errorResult } from 'hardhat/utils/result';
 import { verifyContract } from '@nomicfoundation/hardhat-verify/verify';
-import { SignatureDropIgnition } from './lib/hardhat-helpers';
+import { SignatureDropIgnition } from './lib/hardhat-helpers.js';
 
 interface VerifyDeploymentTaskArguments {
     ver: number;

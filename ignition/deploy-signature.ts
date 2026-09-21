@@ -1,6 +1,6 @@
 import hre from 'hardhat';
 import { verifyContract } from '@nomicfoundation/hardhat-verify/verify';
-import SignatureDropModule from './modules/signature';
+import SignatureDropModule from './modules/signature.js';
 
 interface OneInchAddress {
     networkId: number;

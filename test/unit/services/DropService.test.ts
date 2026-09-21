@@ -3,8 +3,9 @@ import sinon from 'sinon';
 import mockFs from 'mock-fs';
 import { ethers } from 'ethers';
 import { expect } from 'chai';
-import { testWallets } from '../../fixtures/test-data';
-import type { DropService as DropServiceType } from '../../../src/services/DropService';
+import { testWallets } from '../../fixtures/test-data.js';
+import { formatBaseUrl } from '../../../src/config/index.js';
+import type { DropService as DropServiceType } from '../../../src/services/DropService.js';
 
 describe('DropService', () => {
     let DropService: typeof DropServiceType;
@@ -93,7 +94,7 @@ describe('DropService', () => {
             expect(settings.testCount).to.equal(5);
             expect(settings.version).to.equal(11);
             expect(settings.chainId).to.equal(1);
-            expect(settings.prefix).to.equal('https://1inch.network/qr?d=');
+            expect(settings.prefix).to.equal(formatBaseUrl(1));
             expect(settings.fileLinks).to.include('11-qr-links.json');
             expect(settings.testLinks).to.include('11-qr-links-test.json');
         });

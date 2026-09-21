@@ -1,4 +1,4 @@
-import { defineConfig, task } from 'hardhat/config';
+import { configVariable, defineConfig, task } from 'hardhat/config';
 import type { HardhatPlugin } from 'hardhat/types/plugins';
 import hardhatEthers from '@nomicfoundation/hardhat-ethers';
 import hardhatToolboxMochaEthers from '@nomicfoundation/hardhat-toolbox-mocha-ethers';
@@ -8,6 +8,9 @@ import hardhatIgnition from '@nomicfoundation/hardhat-ignition';
 import hardhatVerify from '@nomicfoundation/hardhat-verify';
 import { ArgumentType } from 'hardhat/types/arguments';
 import { configDotenv } from 'dotenv';
+
+// configVariable() resolves from process.env, so .env must be loaded before the config is built.
+configDotenv();
 
 /**
  * Merkle Drop Create and Deploy
@@ -63,7 +66,7 @@ const drop = task('drop', 'Generate merkle drop links, deploy contract, and veri
         name: 'debug',
         description: 'Debug mode',
     })
-    .setAction(() => import('./src/tasks/drop'))
+    .setAction(() => import('./src/tasks/drop.js'))
     .build();
 
 /**
@@ -99,7 +102,7 @@ const verifyLinks = task('verify-links', 'Verify all generated links against a d
         defaultValue: 0,
         type: ArgumentType.INT,
     })
-    .setAction(() => import('./src/tasks/verify-links'))
+    .setAction(() => import('./src/tasks/verify-links.js'))
     .build();
 
 /**
@@ -133,7 +136,7 @@ const verifyDeployment = task('verify-deployment', 'Verify a deployed merkle dro
         defaultValue: 0,
         type: ArgumentType.INT,
     })
-    .setAction(() => import('./src/tasks/verify-deployment'))
+    .setAction(() => import('./src/tasks/verify-deployment.js'))
     .build();
 
 /**
@@ -175,7 +178,7 @@ const stats = task('stats', 'Collect on-chain statistics for deployed drops')
         description: 'Deployment version',
         type: ArgumentType.INT,
     })
-    .setAction(() => import('./src/tasks/collect-stats'))
+    .setAction(() => import('./src/tasks/collect-stats.js'))
     .build();
 
 /**
@@ -221,7 +224,7 @@ const rescue = task('rescue', 'Rescue remaining tokens from a deployed merkle dr
         defaultValue: 0,
         type: ArgumentType.INT,
     })
-    .setAction(() => import('./src/tasks/rescue'))
+    .setAction(() => import('./src/tasks/rescue.js'))
     .build();
 
 // Ensure TypeScript recognizes these as valid plugins
@@ -238,7 +241,7 @@ export default defineConfig({
     plugins,
     paths: {
         sources: './contracts',
-        tests: './test/contracts',
+        tests: { mocha: './test' },
         cache: './cache',
         artifacts: './artifacts',
     },
@@ -279,20 +282,20 @@ export default defineConfig({
         },
         base: {
             type: 'http',
-            url: configDotenv().parsed?.BASE_RPC_URL || 'https://base.drpc.org',
+            url: configVariable('BASE_RPC_URL', { default: 'https://base.drpc.org' }),
             chainId: 8453,
-            accounts: [configDotenv().parsed?.BASE_PRIVATE_KEY || ''],
+            accounts: [configVariable('BASE_PRIVATE_KEY')],
         },
         sepolia: {
             type: 'http',
-            url: configDotenv().parsed?.SEPOLIA_RPC_URL || '',
+            url: configVariable('SEPOLIA_RPC_URL'),
             chainId: 11155111,
-            accounts: [configDotenv().parsed?.SEPOLIA_PRIVATE_KEY || ''],
+            accounts: [configVariable('SEPOLIA_PRIVATE_KEY')],
         },
     },
     verify: {
         etherscan: {
-            apiKey: configDotenv().parsed?.ETHERSCAN_API_KEY || '',
+            apiKey: configVariable('ETHERSCAN_API_KEY'),
         },
         blockscout: {
             enabled: false,

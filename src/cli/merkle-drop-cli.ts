@@ -3,9 +3,9 @@
 import { exit } from 'process';
 import { Command } from 'commander';
 import { ethers } from 'ethers';
-import { CLIOptions } from '../types';
-import { DropService } from '../services/DropService';
-import { VerificationService } from '../services/VerificationService';
+import { CLIOptions } from '../types/index.js';
+import { DropService } from '../services/DropService.js';
+import { VerificationService } from '../services/VerificationService.js';
 
 const program = new Command();
 

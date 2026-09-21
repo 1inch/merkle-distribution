@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { Config } from '../types';
+import { Config } from '../types/index.js';
 
 // Get paths based on environment (test mode or normal mode)
 function getPaths () {

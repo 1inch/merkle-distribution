@@ -4,8 +4,8 @@ import {
     createMerkleDrop,
     verifyMerkleProof,
     calculateMerkleHeight,
-} from '../../../src/lib/merkle';
-import { testWallets, testAmounts } from '../../fixtures/test-data';
+} from '../../../src/lib/merkle.js';
+import { testWallets, testAmounts } from '../../fixtures/test-data.js';
 
 describe('Merkle Library', () => {
     describe('keccak128', () => {

@@ -6,13 +6,13 @@ import {
     GeneratedLink,
     LinkFileContent,
     GenerateLinksResult,
-} from '../types';
-import { config, formatBaseUrl } from '../config';
-import { generatePrivateKeys, getAddressFromPrivateKey } from '../lib/wallet';
-import { createMerkleDrop, calculateMerkleHeight } from '../lib/merkle';
-import { generateClaimUrl, shuffle } from '../lib/encoding';
-import { generateQrCodes, ensureDirectoryExists } from '../lib/qr';
-import { zipFolders, cleanDirs } from '../lib/zip';
+} from '../types/index.js';
+import { config, formatBaseUrl } from '../config/index.js';
+import { generatePrivateKeys, getAddressFromPrivateKey } from '../lib/wallet.js';
+import { createMerkleDrop, calculateMerkleHeight } from '../lib/merkle.js';
+import { generateClaimUrl, shuffle } from '../lib/encoding.js';
+import { generateQrCodes, ensureDirectoryExists } from '../lib/qr.js';
+import { zipFolders, cleanDirs } from '../lib/zip.js';
 
 export class DropService {
     /**

@@ -1,4 +1,4 @@
-import { TestDetectionConfig } from '../services/StatisticsService';
+import { TestDetectionConfig } from '../services/StatisticsService.js';
 
 /**
  * Configuration for detecting test vs production transactions

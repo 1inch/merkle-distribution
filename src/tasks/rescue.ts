@@ -1,7 +1,7 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types/hre';
 import { ethers } from 'ethers';
 import { successfulResult, errorResult } from 'hardhat/utils/result';
-import { SignatureDropIgnition } from './lib/hardhat-helpers';
+import { SignatureDropIgnition } from './lib/hardhat-helpers.js';
 
 /** Minimal ERC-20 ABI for balance readout (no compile artifact in this repo). */
 const erc20TokenABI = [
