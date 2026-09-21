@@ -111,24 +111,23 @@ yarn qr:create 1 -a 5,10,20 -n 100,50,20
 
 ### Contract Deployment
 
-Deploy a merkle drop contract with a pre-computed merkle root:
+Contracts are deployed through the [complete drop workflow](#complete-drop-workflow) (`yarn drop`), which generates the links, builds the merkle tree and deploys the contract via Hardhat Ignition.
+
+Once deployed, the contract source can be published on the block explorer using the saved
+deployment artifacts:
 
 ```bash
-yarn deploy:qr <network> --v <version> --r <root> --h <height>
+yarn verify:contract <network> -v <version>
 ```
 
 **Parameters:**
-- `--v`: Deployment version number
-- `--r`: Merkle root (hex string)
-- `--h`: Merkle tree height
+- `network`: Target network (mainnet, base, bsc, etc.)
+- `-v, --ver`: Deployment version number
 
 **Example:**
 ```bash
-# Deploy on mainnet
-yarn deploy:qr --v 35 --r 0xc8f9f70ceaa4d05d893e74c933eed42b --h 9
-
-# Deploy on Base network
-yarn deploy:qr --v 42 --r 0xabcdef1234567890 --h 10
+# Verify the version 53 contract on Base network
+yarn verify:contract base -v 53
 ```
 
 ### Link Verification
@@ -151,12 +150,12 @@ yarn lk:check -x -u "https://drop.1inch.io/#/r1/..." -r 0xabcdef... -b 1
 Verify all generated links against a deployed merkle drop contract:
 
 ```bash
-yarn verify:links <network> --v <version>
+yarn verify:links <network> -v <version>
 ```
 
 **Parameters:**
 - `network`: Target network (mainnet, base, bsc, etc.)
-- `--v`: Deployment version number
+- `-v, --ver`: Deployment version number
 
 This command will:
 1. Read the deployment file for the specified version
@@ -168,10 +167,10 @@ This command will:
 **Example:**
 ```bash
 # Verify links for version 61 on Base network
-yarn verify:links base --v 61
+yarn verify:links base -v 61
 
 # Verify links for version 42 on mainnet
-yarn verify:links mainnet --v 42
+yarn verify:links mainnet -v 42
 ```
 
 **Requirements:**
@@ -184,8 +183,15 @@ yarn verify:links mainnet --v 42
 Execute a complete merkle drop deployment (generation + deployment + verification):
 
 ```bash
-yarn drop <network> --v <version> --a <amounts> --n <counts> [--debug]
+yarn drop <network> [-v <version>] -a <amounts> -n <counts> [--debug]
 ```
+
+**Parameters:**
+- `network`: Target network (mainnet, base, bsc, etc.)
+- `-v, --ver`: Deployment version number (optional, defaults to `.latest` + 1)
+- `-a, --amounts`: Comma-separated token amounts for each tier
+- `-n, --numbers`: Comma-separated number of codes for each tier
+- `--debug`: Generate links without deploying
 
 This command will:
 1. Generate claim links with specified amounts
@@ -196,10 +202,13 @@ This command will:
 **Example:**
 ```bash
 # Deploy on Base with 3 tiers
-yarn drop base --v 53 --a 100,250,500 --n 50,30,20
+yarn drop base -v 53 -a 100,250,500 -n 50,30,20
+
+# Deploy on Base with auto-incremented version
+yarn drop base -a 100,250,500 -n 50,30,20
 
 # Test without deployment
-yarn drop hardhat --v 54 --a 10,20 --n 5,5 --debug
+yarn drop hardhat -v 54 -a 10,20 -n 5,5 --debug
 ```
 
 ### Administrative Commands
@@ -209,12 +218,12 @@ yarn drop hardhat --v 54 --a 10,20 --n 5,5 --debug
 Collect and display on-chain statistics for deployed merkle drops:
 
 ```bash
-yarn stat <network> --v <version>
+yarn stat <network> <version> [<version> ...]
 ```
 
 **Parameters:**
 - `network`: Target network (mainnet, base, bsc, etc.)
-- `--v`: Deployment version number
+- `version`: One or more deployment version numbers, passed as positional arguments
 
 This command will:
 1. Connect to the deployed merkle drop contract
@@ -229,10 +238,13 @@ This command will:
 **Example:**
 ```bash
 # Get statistics for version 61 on Base network
-yarn stat base --v 61
+yarn stat base 61
 
 # Get statistics for version 42 on mainnet
-yarn stat mainnet --v 42
+yarn stat mainnet 42
+
+# Get statistics for several versions at once
+yarn stat mainnet 3 4 5
 ```
 
 #### Token Rescue
@@ -240,12 +252,12 @@ yarn stat mainnet --v 42
 Rescue (withdraw) remaining tokens from a deployed merkle drop contract:
 
 ```bash
-yarn rescue <network> --v <version>
+yarn rescue <network> -v <version>
 ```
 
 **Parameters:**
 - `network`: Target network (mainnet, base, bsc, etc.)
-- `--v`: Deployment version number
+- `-v, --ver`: Deployment version number
 
 **Important Notes:**
 - **Only the contract owner** (original deployer) can execute this command
@@ -262,10 +274,10 @@ This command will:
 **Example:**
 ```bash
 # Rescue tokens from version 61 on Base network
-yarn rescue base --v 61
+yarn rescue base -v 61
 
 # Rescue tokens from version 42 on mainnet
-yarn rescue mainnet --v 42
+yarn rescue mainnet -v 42
 ```
 
 **Security Considerations:**

@@ -1,28 +1,59 @@
+import esmock from 'esmock';
 import sinon from 'sinon';
 import mockFs from 'mock-fs';
 import { ethers } from 'ethers';
-import { DropService } from '../../../src/services/DropService';
-import * as wallet from '../../../src/lib/wallet';
-import * as merkle from '../../../src/lib/merkle';
-import * as encoding from '../../../src/lib/encoding';
-import * as qr from '../../../src/lib/qr';
+import { expect } from 'chai';
 import { testWallets } from '../../fixtures/test-data';
-const { expect } = require('@1inch/solidity-utils');
+import type { DropService as DropServiceType } from '../../../src/services/DropService';
 
 describe('DropService', () => {
+    let DropService: typeof DropServiceType;
     let generatePrivateKeysStub: sinon.SinonStub;
     let createMerkleDropStub: sinon.SinonStub;
     let generateClaimUrlStub: sinon.SinonStub;
     let generateQrCodesStub: sinon.SinonStub;
+    let zipFoldersStub: sinon.SinonStub;
     let consoleWarnStub: sinon.SinonStub;
 
-    beforeEach(() => {
-    // Stub console methods to prevent output during tests
+    beforeEach(async () => {
+        // Stub console methods to prevent output during tests
         sinon.stub(console, 'log');
         sinon.stub(console, 'error');
         consoleWarnStub = sinon.stub(console, 'warn');
-    
-        // Set up file system mock
+
+        // Set up stubs
+        generatePrivateKeysStub = sinon.stub();
+        createMerkleDropStub = sinon.stub();
+        generateClaimUrlStub = sinon.stub();
+        generateQrCodesStub = sinon.stub();
+        zipFoldersStub = sinon.stub();
+
+        // Mock the module before importing
+        const module = await esmock('../../../src/services/DropService.js', {
+            '../../../src/lib/wallet.js': {
+                generatePrivateKeys: generatePrivateKeysStub,
+                getAddressFromPrivateKey: sinon.stub().callsFake((pk: string) => '0x' + pk.slice(0, 40)),
+            },
+            '../../../src/lib/merkle.js': {
+                createMerkleDrop: createMerkleDropStub,
+                calculateMerkleHeight: sinon.stub().callsFake((count: number) => Math.ceil(Math.log2(count))),
+            },
+            '../../../src/lib/encoding.js': {
+                generateClaimUrl: generateClaimUrlStub,
+                shuffle: sinon.stub().callsFake((arr: number[]) => arr),
+            },
+            '../../../src/lib/qr.js': {
+                generateQrCodes: generateQrCodesStub,
+                ensureDirectoryExists: sinon.stub(),
+            },
+            '../../../src/lib/zip.js': {
+                zipFolders: zipFoldersStub,
+                cleanDirs: sinon.stub(),
+            },
+        });
+        DropService = module.DropService;
+
+        // Set up file system mock AFTER esmock resolves modules
         mockFs({
             'src': {
                 '.latest': '10',
@@ -30,13 +61,12 @@ describe('DropService', () => {
                 'qr': {},
                 'test_qr': {},
             },
+            'drops': {
+                'gendata': {},
+                'qr': {},
+                'test_qr': {},
+            },
         });
-
-        // Set up stubs
-        generatePrivateKeysStub = sinon.stub(wallet, 'generatePrivateKeys');
-        createMerkleDropStub = sinon.stub(merkle, 'createMerkleDrop');
-        generateClaimUrlStub = sinon.stub(encoding, 'generateClaimUrl');
-        generateQrCodesStub = sinon.stub(qr, 'generateQrCodes');
     });
 
     afterEach(() => {
@@ -171,8 +201,8 @@ describe('DropService', () => {
             await DropService.generateCodes(settings);
 
             // Check that version file was updated
-            const fs = require('fs');
-            const versionContent = fs.readFileSync('./src/.latest', 'utf-8');
+            const { readFileSync } = await import('fs');
+            const versionContent = readFileSync('./src/.latest', 'utf-8');
             expect(versionContent).to.equal('12');
         });
     });
@@ -255,8 +285,6 @@ describe('DropService', () => {
 
     describe('createZipArchives', () => {
         it('should call zipFolders with correct paths', () => {
-            const zipFoldersStub = sinon.stub(require('../../../src/lib/zip'), 'zipFolders');
-      
             const settings = DropService.createDropSettings(
                 false, false, [], [], 0, 11, true, 1,
             );
@@ -267,8 +295,6 @@ describe('DropService', () => {
             const call = zipFoldersStub.getCall(0);
             expect(call.args[1][0]).to.include('11-qr-drop-2024-01.zip');
             expect(call.args[1][1]).to.include('11-qr-drop-test-2024-01.zip');
-
-            zipFoldersStub.restore();
         });
     });
 });

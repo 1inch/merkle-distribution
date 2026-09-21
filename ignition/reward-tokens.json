@@ -1,0 +1,20 @@
+{
+    "oneInch": [
+        {
+            "networkId": 1,
+            "addr": "0x111111111117dC0aa78b770fA6A738034120C302"
+        },
+        {
+            "networkId": 31337,
+            "addr": "0x111111111117dC0aa78b770fA6A738034120C302"
+        },
+        {
+            "networkId": 8453,
+            "addr": "0xc5fecC3a29Fb57B5024eEc8a2239d4621e111CBE"
+        },
+        {
+            "networkId": 11155111,
+            "addr": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+        }
+    ]
+}

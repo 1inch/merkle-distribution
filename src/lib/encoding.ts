@@ -53,7 +53,7 @@ export function generateClaimUrl (
   
     // Encode and create URL
     const encoded = uriEncode(combinedBuffer);
-    return `${prefix}d=${encoded}`;
+    return `${prefix}${encoded}`;
 }
 
 /**
@@ -66,7 +66,7 @@ export function parseClaimUrl (
     displayResults: boolean = false,
 ): VerificationResult {
     // Extract encoded data from URL
-    const encodedData = url.substring(prefix.length + 2);
+    const encodedData = url.substring(prefix.length);
     const buffer = uriDecode(encodedData);
   
     // Parse components

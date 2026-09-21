@@ -1,18 +1,27 @@
+import esmock from 'esmock';
 import sinon from 'sinon';
-import { VerificationService } from '../../../src/services/VerificationService';
-import * as encoding from '../../../src/lib/encoding';
+import { expect } from 'chai';
 import { testWallets, testAmounts } from '../../fixtures/test-data';
-const { expect } = require('@1inch/solidity-utils');
+import type { VerificationService as VerificationServiceType } from '../../../src/services/VerificationService';
 
 describe('VerificationService', () => {
+    let VerificationService: typeof VerificationServiceType;
     let parseClaimUrlStub: sinon.SinonStub;
     let consoleLogStub: sinon.SinonStub;
     let consoleErrorStub: sinon.SinonStub;
 
-    beforeEach(() => {
-        parseClaimUrlStub = sinon.stub(encoding, 'parseClaimUrl');
+    beforeEach(async () => {
+        parseClaimUrlStub = sinon.stub();
         consoleLogStub = sinon.stub(console, 'log');
         consoleErrorStub = sinon.stub(console, 'error');
+
+        // Mock the module before importing
+        const module = await esmock('../../../src/services/VerificationService.js', {
+            '../../../src/lib/encoding.js': {
+                parseClaimUrl: parseClaimUrlStub,
+            },
+        });
+        VerificationService = module.VerificationService;
     });
 
     afterEach(() => {

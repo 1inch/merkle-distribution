@@ -2,8 +2,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import AdmZip from 'adm-zip';
 import sinon from 'sinon';
+import { expect } from 'chai';
 import { zipFolder, zipFolders, cleanDir, cleanDirs } from '../../../src/lib/zip';
-const { expect } = require('@1inch/solidity-utils');
 
 describe('Zip Library Integration Tests', () => {
     const testDir = './test-zip-output';

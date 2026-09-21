@@ -1,3 +1,4 @@
+import { expect } from 'chai';
 import {
     uriEncode,
     uriDecode,
@@ -7,7 +8,6 @@ import {
 } from '../../../src/lib/encoding';
 import { createMerkleDrop } from '../../../src/lib/merkle';
 import { testWallets, testAmounts } from '../../fixtures/test-data';
-const { expect } = require('@1inch/solidity-utils');
 
 describe('Encoding Library', () => {
     describe('uriEncode', () => {
@@ -70,7 +70,6 @@ describe('Encoding Library', () => {
       
             expect(url).to.be.a('string');
             expect(url).to.match(new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
-            expect(url).to.include('d=');
         });
 
         it('should encode all components correctly', () => {
@@ -83,7 +82,7 @@ describe('Encoding Library', () => {
             const prefix = 'https://test.com?';
       
             const url = generateClaimUrl(privateKey, amount, proof, version, prefix);
-            const encoded = url.substring(prefix.length + 2);
+            const encoded = url.substring(prefix.length);
             const decoded = uriDecode(encoded);
       
             expect(decoded[0]).to.equal(version); // Version byte
@@ -92,12 +91,14 @@ describe('Encoding Library', () => {
     });
 
     describe('parseClaimUrl', () => {
+        const urlprefix = 'https://app.1inch.io/#/1/qr?';
+        // const urlprefix = 'https://1inch.network/qr?';
+
         it('should parse and verify a valid claim URL', () => {
             // Create a real merkle drop
             const wallets = [testWallets[0].address];
             const amounts = [testAmounts[0]];
             const drop = createMerkleDrop(wallets, amounts);
-      
             // Generate a claim URL
             const privateKey = testWallets[0].privateKey;
             const url = generateClaimUrl(
@@ -105,11 +106,11 @@ describe('Encoding Library', () => {
                 amounts[0],
                 drop.proofs[0],
                 1,
-                'https://app.1inch.io/#/1/qr?',
+                urlprefix,
             );
       
             // Parse and verify
-            const result = parseClaimUrl(url, drop.root, 'https://app.1inch.io/#/1/qr?');
+            const result = parseClaimUrl(url, drop.root, urlprefix);
       
             expect(result.isValid).to.be.true;
             expect(result.wallet?.toLowerCase()).to.equal(wallets[0].toLowerCase());
