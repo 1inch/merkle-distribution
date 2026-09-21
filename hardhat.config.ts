@@ -20,28 +20,27 @@ import { configDotenv } from 'dotenv';
  *   4. Verifies all generated links against the deployed contract
  *
  * Parameters:
- *   -v/--ver     : (Optional) Deployment version number (defaults to .latest + 1)
+ *   --ver        : (Optional) Deployment version number (defaults to .latest + 1)
  *   -a/--amounts : Comma-separated list of token amounts for each tier
  *   -n/--numbers : Comma-separated list of how many codes to generate per tier
- *   -d/--debug   : (Optional) Debug mode - generates links without deploying
+ *   --debug      : (Optional) Debug mode - generates links without deploying
  *
  * Usage:
- *   yarn hardhat drop --network <network> [-v <version>] -a <amounts> -n <counts> [-d]
+ *   yarn hardhat drop --network <network> [--ver <version>] -a <amounts> -n <counts> [--debug]
  *
  * Examples:
  *   # Deploy on base with auto-incremented version (reads from .latest file)
  *   yarn hardhat drop --network base -a 5,10,20,30,40,50 -n 10,15,20,25,20,10
  *
  *   # Deploy on base with specific version
- *   yarn hardhat drop --network base -v 53 -a 5,10,20,30,40,50 -n 10,15,20,25,20,10
+ *   yarn hardhat drop --network base --ver 53 -a 5,10,20,30,40,50 -n 10,15,20,25,20,10
  *
  *   # Test generation without deployment (debug mode)
- *   yarn hardhat drop --network hardhat -v 55 -a 10,20 -n 5,5 -d
+ *   yarn hardhat drop --network hardhat --ver 55 -a 10,20 -n 5,5 --debug
  */
 const drop = task('drop', 'Generate merkle drop links, deploy contract, and verify all generated claim links')
     .addOption({
         name: 'ver',
-        shortName: 'v',
         description: 'Deployment version (defaults to .latest + 1)',
         defaultValue: 0,
         type: ArgumentType.INT,
@@ -76,17 +75,17 @@ const drop = task('drop', 'Generate merkle drop links, deploy contract, and veri
  *   the deployed contract to ensure they are valid.
  *
  * Parameters:
- *   -v/--ver : Deployment version number (must match the deployed contract)
+ *   --ver : Deployment version number (must match the deployed contract)
  *
  * Usage:
- *   yarn hardhat verify-links --network <network> -v <version>
+ *   yarn hardhat verify-links --network <network> --ver <version>
  *
  * Examples:
  *   # Verify links for version 61 on base network
- *   yarn hardhat verify-links --network base -v 61
+ *   yarn hardhat verify-links --network base --ver 61
  *
  *   # Verify links for version 42 on mainnet
- *   yarn hardhat verify-links --network mainnet -v 42
+ *   yarn hardhat verify-links --network mainnet --ver 42
  *
  * Note:
  *   - Requires deployment artifacts to exist in deployments/<network>/MerkleDrop128-<version>.json
@@ -96,7 +95,6 @@ const drop = task('drop', 'Generate merkle drop links, deploy contract, and veri
 const verifyLinks = task('verify-links', 'Verify all generated links against a deployed merkle drop contract')
     .addOption({
         name: 'ver',
-        shortName: 'v',
         description: 'Deployment version',
         defaultValue: 0,
         type: ArgumentType.INT,
@@ -113,17 +111,17 @@ const verifyLinks = task('verify-links', 'Verify all generated links against a d
  *   deployment artifacts to provide constructor arguments.
  *
  * Parameters:
- *   -v/--ver : Deployment version number (must match the deployed contract)
+ *   --ver : Deployment version number (must match the deployed contract)
  *
  * Usage:
- *   yarn hardhat verify-deployment --network <network> -v <version>
+ *   yarn hardhat verify-deployment --network <network> --ver <version>
  *
  * Examples:
  *   # Verify version 53 on base network
- *   yarn hardhat verify-deployment --network base -v 53
+ *   yarn hardhat verify-deployment --network base --ver 53
  *
  *   # Verify version 42 on mainnet
- *   yarn hardhat verify-deployment --network mainnet -v 42
+ *   yarn hardhat verify-deployment --network mainnet --ver 42
  *
  * Note:
  *   Requires deployment artifacts to exist
@@ -131,7 +129,6 @@ const verifyLinks = task('verify-links', 'Verify all generated links against a d
 const verifyDeployment = task('verify-deployment', 'Verify a deployed merkle drop contract on Etherscan using deployment artifacts')
     .addOption({
         name: 'ver',
-        shortName: 'v',
         description: 'Deployment version',
         defaultValue: 0,
         type: ArgumentType.INT,
@@ -148,7 +145,7 @@ const verifyDeployment = task('verify-deployment', 'Verify a deployed merkle dro
  *   through the drop contract.
  *
  * Parameters:
- *   -v/--ver : Deployment version number (must match the deployed contract)
+ *   <versions list> : One or more deployment version numbers (must match the deployed contracts)
  *
  * Usage:
  *   yarn stat <network> <versions list>
@@ -190,20 +187,20 @@ const stats = task('stats', 'Collect on-chain statistics for deployed drops')
  *   will be transferred to the owner's address.
  *
  * Parameters:
- *   -v/--ver : Deployment version number (must match the deployed contract)
+ *   --ver : Deployment version number (must match the deployed contract)
  *
  * Usage:
- *   yarn rescue <network> -v <version>
+ *   yarn rescue <network> --ver <version>
  *
  * Examples:
  *   # Rescue tokens from version 61 on base network
- *   yarn rescue base -v 61
+ *   yarn rescue base --ver 61
  *
  *   # Rescue tokens from version 41 on mainnet
- *   yarn rescue mainnet -v 41
+ *   yarn rescue mainnet --ver 41
  *
  *   # Rescue tokens from version 3 on BSC
- *   yarn rescue bsc -v 3
+ *   yarn rescue bsc --ver 3
  *
  * Information Displayed:
  *   - Current token balance on the contract
@@ -220,7 +217,6 @@ const stats = task('stats', 'Collect on-chain statistics for deployed drops')
 const rescue = task('rescue', 'Rescue remaining tokens from a deployed merkle drop contract')
     .addOption({
         name: 'ver',
-        shortName: 'v',
         description: 'Deployment version',
         defaultValue: 0,
         type: ArgumentType.INT,
