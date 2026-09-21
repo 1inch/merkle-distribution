@@ -6,7 +6,7 @@ import hre from 'hardhat';
 import { shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234 } from './behaviors/CumulativeMerkleDrop.behavior.js';
 import { shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234 } from './behaviors/MerkleDrop.behavior.js';
 
-const { ethers, networkHelpers } = await hre.network.connect();
+const { ethers, networkHelpers } = await hre.network.create();
 const { loadFixture } = networkHelpers;
 
 export interface MerkleDropData {

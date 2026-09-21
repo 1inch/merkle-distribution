@@ -19,7 +19,7 @@ export default async function (
         return errorResult(new Error('No valid versions provided'));
     }
 
-    const conn = await hre.network.connect();
+    const conn = await hre.network.create();
     const chainId = conn.networkConfig.chainId ?? 31337;
     const networkName = conn.networkName;
 

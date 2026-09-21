@@ -24,7 +24,7 @@ export default async function (
         return errorResult(new Error('Missing required version parameter'));
     }
 
-    const conn = await hre.network.connect();
+    const conn = await hre.network.create();
     const networkName = conn.networkName;
 
     // Get deployment address

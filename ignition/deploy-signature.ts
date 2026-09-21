@@ -8,7 +8,7 @@ interface OneInchAddress {
 }
 
 export async function deploy (version: number, merkleRoot: string, merkleHeight: number) {
-    const connection = await hre.network.connect();
+    const connection = await hre.network.create();
     const chainId = connection.networkConfig.chainId;
     const networkName = connection.networkName;
 

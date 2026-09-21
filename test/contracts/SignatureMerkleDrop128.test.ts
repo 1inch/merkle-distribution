@@ -4,7 +4,7 @@ import { expect } from 'chai';
 import { type Contract, type Signer, keccak256 } from 'ethers';
 import { network } from 'hardhat';
 
-const { ethers, networkHelpers } = await network.connect();
+const { ethers, networkHelpers } = await network.create();
 const { loadFixture } = networkHelpers;
 
 function keccak128 (input: Buffer | string): Buffer {

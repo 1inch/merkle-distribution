@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import type { Contract, Signer } from 'ethers';
 import hre from 'hardhat';
-const { ethers } = await hre.network.connect();
+const { ethers } = await hre.network.create();
 
 export interface MerkleDropData {
     hashedElements: string[];

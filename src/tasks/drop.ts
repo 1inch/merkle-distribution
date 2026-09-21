@@ -53,7 +53,7 @@ export default async function (
     const counts = args.numbers;
     const debugMode = args.debug;
 
-    const conn = await hre.network.connect();
+    const conn = await hre.network.create();
     const chainId = conn.networkConfig.chainId ?? 31337;
 
     console.log(`🔗 Connected to network with chain ID: ${chainId}\n`);

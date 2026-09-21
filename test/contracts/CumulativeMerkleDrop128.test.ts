@@ -7,7 +7,7 @@ import { shouldBehaveLikeMerkleDropFor4WalletsWithBalances1234 } from './behavio
 import { shouldBehaveLikeCumulativeMerkleDropFor4WalletsWithBalances1234 } from './behaviors/CumulativeMerkleDrop.behavior.js';
 
 
-const { ethers, networkHelpers } = await hre.network.connect();
+const { ethers, networkHelpers } = await hre.network.create();
 const { loadFixture } = networkHelpers;
 
 function keccak128 (input: Buffer | string): Buffer {
