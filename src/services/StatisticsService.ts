@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import { CHUNK_SIZE_FALLBACK_SEQUENCE, RpcCapabilityError, detectRpcCapabilityError, parseCapabilityErrorInfo, pickOptimalChunkSizeIndex, queryEventsWithRetry } from '../lib/events-query';
+import { CHUNK_SIZE_FALLBACK_SEQUENCE, detectRpcCapabilityError, parseCapabilityErrorInfo, pickOptimalChunkSizeIndex, queryEventsWithRetry } from '../lib/events-query';
 
 // Interfaces for statistics data
 export interface FundingTransaction {

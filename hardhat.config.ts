@@ -160,7 +160,7 @@ const verifyDeployment = task('verify-deployment', 'Verify a deployed merkle dro
  *   # Get statistics for version 41 on mainnet
  *   yarn stat mainnet 41
  *
- *   # Get statistics for versions 3 and 4 on mainnet 
+ *   # Get statistics for versions 3 and 4 on mainnet
  *   yarn stat mainnet 3 4
  *
  * Statistics Displayed:
