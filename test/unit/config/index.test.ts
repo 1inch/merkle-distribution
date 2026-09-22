@@ -65,6 +65,11 @@ describe('Config Module', () => {
             expect(config.urls.baseUrl).to.match(/^https?:\/\//);
             expect(config.urls.encodedPrefix).to.match(/^https?:\/\//);
         });
+
+        // generateClaimUrl() appends only the payload, so the parameter name must be here
+        it('should end baseUrl with the d= payload parameter', () => {
+            expect(config.urls.baseUrl).to.match(/\?d=$/);
+        });
     });
 
     describe('defaults configuration', () => {

@@ -1,5 +1,5 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types/hre';
-import { ethers } from 'ethers';
+import { ethers, type EthersError } from 'ethers';
 import { successfulResult, errorResult } from 'hardhat/utils/result';
 import { SignatureDropIgnition } from './lib/hardhat-helpers.js';
 
@@ -118,14 +118,18 @@ export default async function (
             console.log(`   - Transaction Hash: ${receipt.hash}`);
             return errorResult(new Error('Rescue transaction reverted'));
         }
-    } catch (error: any) {
+    } catch (error) {
+        // Which diagnostic fields ethers attaches depends on where the call failed,
+        // and `reason` only exists on CallExceptionError, so all of them are optional.
+        const details = error as Partial<EthersError & { reason: string }>;
+
         console.error('\n❌ FAILED! Rescue transaction failed');
-        console.error(`   - Error: ${error.message || error}`);
-        if (error.reason) {
-            console.error(`   - Reason: ${error.reason}`);
+        console.error(`   - Error: ${details.message || error}`);
+        if (details.reason) {
+            console.error(`   - Reason: ${details.reason}`);
         }
-        if (error.code) {
-            console.error(`   - Error Code: ${error.code}`);
+        if (details.code) {
+            console.error(`   - Error Code: ${details.code}`);
         }
         return errorResult(new Error('Rescue transaction failed'));
     }

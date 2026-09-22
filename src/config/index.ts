@@ -49,8 +49,10 @@ export const config: Config = {
     },
     paths: getPaths(),
     urls: {
-        // baseUrl: 'https://app.1inch.io/#/{chainId}/qr?',
-        baseUrl: 'https://1inch.network/qr?',
+        // The 'd=' query parameter is part of the prefix: generateClaimUrl() appends
+        // only the encoded payload, so a baseUrl without it yields an unclaimable link.
+        // baseUrl: 'https://app.1inch.io/#/{chainId}/qr?d=',
+        baseUrl: 'https://1inch.network/qr?d=',
         encodedPrefix: 'https://wallet.1inch.io/app/w3browser?link=',
     },
     defaults: {

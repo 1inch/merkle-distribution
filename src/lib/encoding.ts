@@ -59,10 +59,10 @@ export function generateClaimUrl (
 /**
  * Locate the encoded payload in a claim URL.
  *
- * The prefix has changed between drop versions ('?d=d=' in v65, '?d=' through v70,
- * '?' since v71), so slicing by the length of the configured prefix misreads older
- * links. uriEncode() maps '=' to '!', so the payload never contains '=' and the last
- * one in the URL always ends the prefix.
+ * The prefix has varied between drop versions ('?d=d=' in v65, a brief run of bare '?'
+ * in v71 before it was corrected), so slicing by the length of the configured prefix
+ * misreads those links. uriEncode() maps '=' to '!', so the payload never contains '='
+ * and the last one in the URL always ends the prefix.
  */
 function extractPayload (url: string, prefix: string): string {
     const lastEquals = url.lastIndexOf('=');
